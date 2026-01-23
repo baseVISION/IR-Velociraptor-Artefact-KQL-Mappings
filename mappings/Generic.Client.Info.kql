@@ -1,0 +1,101 @@
+//ARTIFACT: Generic.Client.Info/WindowsInfo
+.create table GenericClientInfoWindowsInfo (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ComputerName: string,
+    DNSHostName: string,
+    Domain: string,
+    DomainRole: string,
+    TotalPhysicalMemory: long,
+    NetworkInterfaces: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoWindowsInfo() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/WindowsInfo"
+    | extend 
+        ComputerName = tostring(RawData.["Computer Info"].Name),
+        DNSHostName = tostring(RawData.["Computer Info"].DNSHostName),
+        Domain = tostring(RawData.["Computer Info"].Domain),
+        DomainRole = tostring(RawData.["Computer Info"].DomainRole),
+        TotalPhysicalMemory = tolong(RawData.["Computer Info"].TotalPhysicalMemory),
+        NetworkInterfaces = RawData.["Network Info"]
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ComputerName, 
+        DNSHostName, 
+        Domain, 
+        DomainRole, 
+        TotalPhysicalMemory, 
+        NetworkInterfaces,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoWindowsInfo policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoWindowsInfo()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.Client.Info/BasicInformation 
+.create table GenericClientInfoBasicInformation (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Name: string,
+    BuildTime: datetime,
+    Version: string,
+    OS: string,
+    Architecture: string,
+    Platform: string,
+    PlatformVersion: string,
+    KernelVersion: string,
+    Fqdn: string,
+    MACAddresses: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoBasicInformation() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/BasicInformation"
+    | extend 
+        Name = tostring(RawData.Name),
+        BuildTime = todatetime(RawData.BuildTime),
+        Version = tostring(RawData.Version),
+        OS = tostring(RawData.OS),
+        Architecture = tostring(RawData.Architecture),
+        Platform = tostring(RawData.Platform),
+        PlatformVersion = tostring(RawData.PlatformVersion),
+        KernelVersion = tostring(RawData.KernelVersion),
+        Fqdn = tostring(RawData.Fqdn),
+        MACAddresses = RawData.MACAddresses
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Name,
+        BuildTime,
+        Version,
+        OS,
+        Architecture,
+        Platform,
+        PlatformVersion,
+        KernelVersion,
+        Fqdn,
+        MACAddresses,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoBasicInformation policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoBasicInformation()","IsTransactional":false}]'

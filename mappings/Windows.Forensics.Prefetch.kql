@@ -1,0 +1,71 @@
+//ARTIFACT: Windows.Forensics.Prefetch
+.create table WindowsForensicsPrefetch (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Version: string,
+    FileSize: long,
+    Executable: string,
+    Hash: string,
+    LastRunTimes: dynamic,
+    RunCount: int,
+    ExecutablePath: string,
+    ExecutableDosPath: string,
+    OSPath: string,
+    PrefetchFileName: string,
+    CreationTime: datetime,
+    ModificationTime: datetime,
+    Binary: string,
+    SCCAHeader: dynamic,
+    VolumeInfo: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsPrefetch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Prefetch"
+    | extend 
+        Version = tostring(RawData.Version),
+        FileSize = tolong(RawData.FileSize),
+        Executable = tostring(RawData.Executable),
+        Hash = tostring(RawData.Hash),
+        LastRunTimes = RawData.LastRunTimes,
+        RunCount = toint(RawData.RunCount),
+        ExecutablePath = tostring(RawData.ExecutablePath),
+        ExecutableDosPath = tostring(RawData.ExecutableDosPath),
+        OSPath = tostring(RawData.OSPath),
+        PrefetchFileName = tostring(RawData.PrefetchFileName),
+        CreationTime = todatetime(RawData.CreationTime),
+        ModificationTime = todatetime(RawData.ModificationTime),
+        Binary = tostring(RawData.Binary),
+        SCCAHeader = RawData._SCCAHeader,
+        VolumeInfo = RawData.VolumeInfo
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Version,
+        FileSize,
+        Executable,
+        Hash,
+        LastRunTimes,
+        RunCount,
+        ExecutablePath,
+        ExecutableDosPath,
+        OSPath,
+        PrefetchFileName,
+        CreationTime,
+        ModificationTime,
+        Binary,
+        SCCAHeader,
+        VolumeInfo,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table WindowsForensicsPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsForensicsPrefetch()","IsTransactional":false}]'

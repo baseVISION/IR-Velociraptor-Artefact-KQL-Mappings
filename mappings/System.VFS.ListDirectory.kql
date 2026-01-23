@@ -1,0 +1,62 @@
+//ARTIFACT: System.VFS.ListDirectory/Listing
+.create table SystemVFSListDirectoryListing (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    Components: dynamic,
+    Accessor: string,
+    Name: string,
+    Size: long,
+    Mode: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Idx: int,
+    Data: dynamic
+)
+
+.create-or-alter function RouteSystemVFSListDirectoryListing() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.ListDirectory/Listing"
+    | extend 
+        OSPath = tostring(RawData._OSPath),
+        Components = RawData._Components,
+        Accessor = tostring(RawData._Accessor),
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Mode = tostring(RawData.Mode),
+        Mtime = todatetime(RawData.mtime),
+        Atime = todatetime(RawData.atime),
+        Ctime = todatetime(RawData.ctime),
+        Btime = todatetime(RawData.btime),
+        Idx = toint(RawData._Idx),
+        Data = RawData._Data
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        OSPath,
+        Components,
+        Accessor,
+        Name,
+        Size,
+        Mode,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Idx,
+        Data
+}
+
+.alter table SystemVFSListDirectoryListing policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryListing()","IsTransactional":false}]'

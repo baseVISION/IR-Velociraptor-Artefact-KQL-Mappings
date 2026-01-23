@@ -1,0 +1,50 @@
+//ARTIFACT: System.VFS.DownloadFile
+.create table SystemVFSDownloadFile (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Path: string,
+    Accessor: string,
+    Size: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    Error: string,
+    Components: dynamic
+)
+
+.create-or-alter function RouteSystemVFSDownloadFile() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.DownloadFile"
+    | extend 
+        Path = tostring(RawData.Path),
+        Accessor = tostring(RawData.Accessor),
+        Size = tolong(RawData.Size),
+        StoredSize = tolong(RawData.StoredSize),
+        Sha256 = tostring(RawData.Sha256),
+        Md5 = tostring(RawData.Md5),
+        Error = tostring(RawData.Error),
+        Components = RawData._Components
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Path,
+        Accessor,
+        Size,
+        StoredSize,
+        Sha256,
+        Md5,
+        Error,
+        Components
+}
+
+.alter table SystemVFSDownloadFile policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSDownloadFile()","IsTransactional":false}]'

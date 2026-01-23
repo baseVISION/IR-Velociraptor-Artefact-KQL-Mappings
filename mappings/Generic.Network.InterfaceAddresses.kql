@@ -1,0 +1,47 @@
+//ARTIFACT: Generic.Network.InterfaceAddresses
+.create table GenericNetworkInterfaceAddresses (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    InterfaceIndex: int,
+    MTU: int,
+    Name: string,
+    HardwareAddr: string,
+    Flags: string,
+    IP: string,
+    Mask: string
+)
+
+.create-or-alter function RouteGenericNetworkInterfaceAddresses() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Network.InterfaceAddresses"
+    | extend 
+        InterfaceIndex = toint(RawData.Index),
+        MTU = toint(RawData.MTU),
+        Name = tostring(RawData.Name),
+        HardwareAddr = tostring(RawData.HardwareAddr),
+        Flags = tostring(RawData.Flags),
+        IP = tostring(RawData.IP),
+        Mask = tostring(RawData.Mask)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        InterfaceIndex,
+        MTU,
+        Name,
+        HardwareAddr,
+        Flags,
+        IP,
+        Mask
+}
+
+.alter table GenericNetworkInterfaceAddresses policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericNetworkInterfaceAddresses()","IsTransactional":false}]'

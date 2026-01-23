@@ -1,0 +1,53 @@
+//ARTIFACT: Windows.Analysis.EvidenceOfDownload
+.create table WindowsAnalysisEvidenceOfDownload (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DownloadedFilePath: string,
+    Mtime: datetime,
+    ZoneId: string,
+    HostUrl: string,
+    ReferrerUrl: string,
+    ZoneIdentifierContent: string,
+    FileHashMD5: string,
+    FileHashSHA1: string,
+    FileHashSHA256: string
+)
+
+.create-or-alter function RouteWindowsAnalysisEvidenceOfDownload() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Analysis.EvidenceOfDownload"
+    | extend 
+        DownloadedFilePath = tostring(RawData.DownloadedFilePath),
+        Mtime = todatetime(RawData.Mtime),
+        ZoneId = tostring(RawData.ZoneId),
+        HostUrl = tostring(RawData.HostUrl),
+        ReferrerUrl = tostring(RawData.ReferrerUrl),
+        ZoneIdentifierContent = tostring(RawData._ZoneIdentifierContent),
+        FileHashMD5 = tostring(RawData.FileHash.MD5),
+        FileHashSHA1 = tostring(RawData.FileHash.SHA1),
+        FileHashSHA256 = tostring(RawData.FileHash.SHA256)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DownloadedFilePath,
+        Mtime,
+        ZoneId,
+        HostUrl,
+        ReferrerUrl,
+        ZoneIdentifierContent,
+        FileHashMD5,
+        FileHashSHA1,
+        FileHashSHA256
+}
+
+.alter table WindowsAnalysisEvidenceOfDownload policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAnalysisEvidenceOfDownload()","IsTransactional":false}]'

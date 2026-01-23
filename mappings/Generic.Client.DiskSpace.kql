@@ -1,0 +1,47 @@
+//ARTIFACT: Generic.Client.DiskSpace
+.create table GenericClientDiskSpace (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DeviceID: string,
+    VolumeName: string,
+    VolumeSerialNumber: string,
+    FreeSpace: string,
+    FreePercent: int,
+    Size: string,
+    Description: string
+)
+
+.create-or-alter function RouteGenericClientDiskSpace() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.DiskSpace"
+    | extend 
+        DeviceID = tostring(RawData.DeviceID),
+        VolumeName = tostring(RawData.VolumeName),
+        VolumeSerialNumber = tostring(RawData.VolumeSerialNumber),
+        FreeSpace = tostring(RawData.FreeSpace),
+        FreePercent = toint(RawData.["Free%"]),
+        Size = tostring(RawData.Size),
+        Description = tostring(RawData.Description)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DeviceID,
+        VolumeName,
+        VolumeSerialNumber,
+        FreeSpace,
+        FreePercent,
+        Size,
+        Description
+}
+
+.alter table GenericClientDiskSpace policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientDiskSpace()","IsTransactional":false}]'

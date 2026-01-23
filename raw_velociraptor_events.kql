@@ -1,0 +1,14 @@
+// Ingestion table for Velociraptor raw events
+.create table RawVelociraptorEvents (
+    IngestionTime: datetime,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    Hostname: string,
+    Timestamp: datetime,
+    RawData: dynamic
+)
+
+// Enable streaming ingestion (for low-latency ingestion)
+.alter table RawVelociraptorEvents policy streamingingestion enable

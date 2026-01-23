@@ -1,0 +1,35 @@
+//ARTIFACT: Generic.Client.DiskUsage
+.create table GenericClientDiskUsage (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DirPath: string,
+    TotalSize: long,
+    TotalSizeHuman: string
+)
+
+.create-or-alter function RouteGenericClientDiskUsage() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.DiskUsage"
+    | extend 
+        DirPath = tostring(RawData.DirPath),
+        TotalSize = tolong(RawData.TotalSize),
+        TotalSizeHuman = tostring(RawData.TotalSizeHuman)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DirPath,
+        TotalSize,
+        TotalSizeHuman
+}
+
+.alter table GenericClientDiskUsage policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientDiskUsage()","IsTransactional":false}]'

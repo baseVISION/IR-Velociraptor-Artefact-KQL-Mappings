@@ -1,0 +1,56 @@
+// ARTIFACT: Generic.System.Pstree
+.create table GenericSystemPstree (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Pid: long,
+    Ppid: long,
+    Name: string,
+    Username: string,
+    Exe: string,
+    CommandLine: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    CallChain: string,
+    PSTree: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericSystemPstree() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.System.Pstree"
+    | extend 
+        Pid = tolong(RawData.Pid),
+        Ppid = tolong(RawData.Ppid),
+        Name = tostring(RawData.Name),
+        Username = tostring(RawData.Username),
+        Exe = tostring(RawData.Exe),
+        CommandLine = tostring(RawData.CommandLine),
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime),
+        CallChain = tostring(RawData.CallChain),
+        PSTree = RawData.PSTree
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Pid,
+        Ppid,
+        Name,
+        Username,
+        Exe,
+        CommandLine,
+        StartTime,
+        EndTime,
+        CallChain,
+        PSTree,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericSystemPstree policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemPstree()","IsTransactional":false}]'

@@ -1,0 +1,74 @@
+//ARTIFACT: Windows.EventLogs.Evtx
+.create table WindowsEventLogsEvtx (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    TimeCreated: datetime,
+    EventID: int,
+    Channel: string,
+    Level: int,
+    Computer: string,
+    EventRecordID: long,
+    Provider: string,
+    ProcessID: int,
+    ThreadID: int,
+    Task: int,
+    Opcode: int,
+    Keywords: string,
+    Message: string,
+    OSPath: string,
+    System: dynamic,
+    EventData: dynamic
+)
+
+.create-or-alter function RouteWindowsEventLogsEvtx() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.Evtx"
+    | extend 
+        TimeCreated = todatetime(RawData.TimeCreated),
+        EventID = toint(RawData.EventID),
+        Channel = tostring(RawData.Channel),
+        Level = toint(RawData.System.Level),
+        Computer = tostring(RawData.System.Computer),
+        EventRecordID = tolong(RawData.EventRecordID),
+        Provider = tostring(RawData.System.Provider.Name),
+        ProcessID = toint(RawData.System.Execution.ProcessID),
+        ThreadID = toint(RawData.System.Execution.ThreadID),
+        Task = toint(RawData.System.Task),
+        Opcode = toint(RawData.System.Opcode),
+        Keywords = tostring(RawData.System.Keywords),
+        Message = tostring(RawData.Message),
+        OSPath = tostring(RawData.OSPath),
+        System = RawData.System,
+        EventData = RawData.EventData
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        TimeCreated,
+        EventID,
+        Channel,
+        Level,
+        Computer,
+        EventRecordID,
+        Provider,
+        ProcessID,
+        ThreadID,
+        Task,
+        Opcode,
+        Keywords,
+        Message,
+        OSPath,
+        System,
+        EventData
+}
+
+.alter table WindowsEventLogsEvtx policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsEventLogsEvtx()","IsTransactional":false}]'

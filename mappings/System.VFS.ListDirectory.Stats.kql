@@ -1,0 +1,35 @@
+//ARTIFACT: System.VFS.ListDirectory/Stats
+.create table SystemVFSListDirectoryStats (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Components: dynamic,
+    Accessor: string,
+    Stats: dynamic
+)
+
+.create-or-alter function RouteSystemVFSListDirectoryStats() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.ListDirectory/Stats"
+    | extend 
+        Components = RawData.Components,
+        Accessor = tostring(RawData.Accessor),
+        Stats = RawData.Stats
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Components,
+        Accessor,
+        Stats
+}
+
+.alter table SystemVFSListDirectoryStats policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryStats()","IsTransactional":false}]'

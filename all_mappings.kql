@@ -1,0 +1,1070 @@
+// Combined KQL mappings for Velociraptor Artefacts
+// Generated on: Fri 23 Jan 12:52:07 CET 2026
+// Source directory: mappings
+
+
+// ============================================
+// Source: mappings/Generic.Applications.Chrome.SessionStorage.kql
+// ============================================
+
+//ARTIFACT: Generic.Applications.Chrome.SessionStorage
+.create table GenericApplicationsChromeSessionStorage (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    URL: string,
+    GUID: string,
+    Mapping: dynamic
+)
+
+.create-or-alter function RouteGenericApplicationsChromeSessionStorage() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Applications.Chrome.SessionStorage"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        URL = tostring(RawData.URL),
+        GUID = tostring(RawData.GUID),
+        Mapping = RawData.Mapping
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        OSPath,
+        URL,
+        GUID,
+        Mapping
+}
+
+.alter table GenericApplicationsChromeSessionStorage policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericApplicationsChromeSessionStorage()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Applications.Office.Keywords.kql
+// ============================================
+
+//ARTIFACT: Generic.Applications.Office.Keywords
+.create table GenericApplicationsOfficeKeywords (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OfficePath: string,
+    OfficeMtime: datetime,
+    OSPath: string,
+    OfficeSize: long,
+    InternalMtime: datetime,
+    HexContext: dynamic
+)
+
+.create-or-alter function RouteGenericApplicationsOfficeKeywords() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Applications.Office.Keywords"
+    | extend 
+        OfficePath = tostring(RawData.OfficePath),
+        OfficeMtime = todatetime(RawData.OfficeMtime),
+        OSPath = tostring(RawData.OSPath),
+        OfficeSize = tolong(RawData.OfficeSize),
+        InternalMtime = todatetime(RawData.InternalMtime),
+        HexContext = RawData.HexContext
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        OfficePath,
+        OfficeMtime,
+        OSPath,
+        OfficeSize,
+        InternalMtime,
+        HexContext
+}
+
+.alter table GenericApplicationsOfficeKeywords policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericApplicationsOfficeKeywords()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Client.DiskSpace.kql
+// ============================================
+
+//ARTIFACT: Generic.Client.DiskSpace
+.create table GenericClientDiskSpace (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DeviceID: string,
+    VolumeName: string,
+    VolumeSerialNumber: string,
+    FreeSpace: string,
+    FreePercent: int,
+    Size: string,
+    Description: string
+)
+
+.create-or-alter function RouteGenericClientDiskSpace() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.DiskSpace"
+    | extend 
+        DeviceID = tostring(RawData.DeviceID),
+        VolumeName = tostring(RawData.VolumeName),
+        VolumeSerialNumber = tostring(RawData.VolumeSerialNumber),
+        FreeSpace = tostring(RawData.FreeSpace),
+        FreePercent = toint(RawData.["Free%"]),
+        Size = tostring(RawData.Size),
+        Description = tostring(RawData.Description)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DeviceID,
+        VolumeName,
+        VolumeSerialNumber,
+        FreeSpace,
+        FreePercent,
+        Size,
+        Description
+}
+
+.alter table GenericClientDiskSpace policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientDiskSpace()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Client.DiskUsage.kql
+// ============================================
+
+//ARTIFACT: Generic.Client.DiskUsage
+.create table GenericClientDiskUsage (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DirPath: string,
+    TotalSize: long,
+    TotalSizeHuman: string
+)
+
+.create-or-alter function RouteGenericClientDiskUsage() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.DiskUsage"
+    | extend 
+        DirPath = tostring(RawData.DirPath),
+        TotalSize = tolong(RawData.TotalSize),
+        TotalSizeHuman = tostring(RawData.TotalSizeHuman)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DirPath,
+        TotalSize,
+        TotalSizeHuman
+}
+
+.alter table GenericClientDiskUsage policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientDiskUsage()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Client.Info.kql
+// ============================================
+
+//ARTIFACT: Generic.Client.Info/WindowsInfo
+.create table GenericClientInfoWindowsInfo (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ComputerName: string,
+    DNSHostName: string,
+    Domain: string,
+    DomainRole: string,
+    TotalPhysicalMemory: long,
+    NetworkInterfaces: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoWindowsInfo() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/WindowsInfo"
+    | extend 
+        ComputerName = tostring(RawData.["Computer Info"].Name),
+        DNSHostName = tostring(RawData.["Computer Info"].DNSHostName),
+        Domain = tostring(RawData.["Computer Info"].Domain),
+        DomainRole = tostring(RawData.["Computer Info"].DomainRole),
+        TotalPhysicalMemory = tolong(RawData.["Computer Info"].TotalPhysicalMemory),
+        NetworkInterfaces = RawData.["Network Info"]
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ComputerName, 
+        DNSHostName, 
+        Domain, 
+        DomainRole, 
+        TotalPhysicalMemory, 
+        NetworkInterfaces,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoWindowsInfo policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoWindowsInfo()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.Client.Info/BasicInformation 
+.create table GenericClientInfoBasicInformation (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Name: string,
+    BuildTime: datetime,
+    Version: string,
+    OS: string,
+    Architecture: string,
+    Platform: string,
+    PlatformVersion: string,
+    KernelVersion: string,
+    Fqdn: string,
+    MACAddresses: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoBasicInformation() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/BasicInformation"
+    | extend 
+        Name = tostring(RawData.Name),
+        BuildTime = todatetime(RawData.BuildTime),
+        Version = tostring(RawData.Version),
+        OS = tostring(RawData.OS),
+        Architecture = tostring(RawData.Architecture),
+        Platform = tostring(RawData.Platform),
+        PlatformVersion = tostring(RawData.PlatformVersion),
+        KernelVersion = tostring(RawData.KernelVersion),
+        Fqdn = tostring(RawData.Fqdn),
+        MACAddresses = RawData.MACAddresses
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Name,
+        BuildTime,
+        Version,
+        OS,
+        Architecture,
+        Platform,
+        PlatformVersion,
+        KernelVersion,
+        Fqdn,
+        MACAddresses,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoBasicInformation policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoBasicInformation()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Detection.HashHunter.kql
+// ============================================
+
+//ARTIFACT: Generic.Detection.HashHunter
+.create table GenericDetectionHashHunter (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    Name: string,
+    Size: long,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    HashMD5: string,
+    HashSHA1: string,
+    HashSHA256: string
+)
+
+.create-or-alter function RouteGenericDetectionHashHunter() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Detection.HashHunter"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Timestamps.Mtime),
+        Atime = todatetime(RawData.Timestamps.Atime),
+        Ctime = todatetime(RawData.Timestamps.Ctime),
+        Btime = todatetime(RawData.Timestamps.Btime),
+        HashMD5 = tostring(RawData.Hash.MD5),
+        HashSHA1 = tostring(RawData.Hash.SHA1),
+        HashSHA256 = tostring(RawData.Hash.SHA256)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        OSPath,
+        Name,
+        Size,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        HashMD5,
+        HashSHA1,
+        HashSHA256
+}
+
+.alter table GenericDetectionHashHunter policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericDetectionHashHunter()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Network.InterfaceAddresses.kql
+// ============================================
+
+//ARTIFACT: Generic.Network.InterfaceAddresses
+.create table GenericNetworkInterfaceAddresses (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    InterfaceIndex: int,
+    MTU: int,
+    Name: string,
+    HardwareAddr: string,
+    Flags: string,
+    IP: string,
+    Mask: string
+)
+
+.create-or-alter function RouteGenericNetworkInterfaceAddresses() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Network.InterfaceAddresses"
+    | extend 
+        InterfaceIndex = toint(RawData.Index),
+        MTU = toint(RawData.MTU),
+        Name = tostring(RawData.Name),
+        HardwareAddr = tostring(RawData.HardwareAddr),
+        Flags = tostring(RawData.Flags),
+        IP = tostring(RawData.IP),
+        Mask = tostring(RawData.Mask)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        InterfaceIndex,
+        MTU,
+        Name,
+        HardwareAddr,
+        Flags,
+        IP,
+        Mask
+}
+
+.alter table GenericNetworkInterfaceAddresses policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericNetworkInterfaceAddresses()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.System.EfiSignatures.kql
+// ============================================
+
+//ARTIFACT: Generic.System.EfiSignatures/Certificates
+.create table GenericSystemEfiSignaturesCertificates (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Name: string,
+    Owner: string,
+    SerialNumber: string,
+    Subject: string,
+    Issuer: string,
+    NotBefore: datetime,
+    NotAfter: datetime,
+    SignatureAlgorithm: string,
+    PublicKey: string,
+    Extensions: dynamic,
+    Certificate: dynamic
+)
+
+.create-or-alter function RouteGenericSystemEfiSignaturesCertificates() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.System.EfiSignatures/Certificates"
+    | extend 
+        Name = tostring(RawData.Name),
+        Owner = tostring(RawData.Owner),
+        SerialNumber = tostring(RawData.Certificate.SerialNumber),
+        Subject = tostring(RawData.Certificate.Subject),
+        Issuer = tostring(RawData.Certificate.Issuer),
+        NotBefore = todatetime(RawData.Certificate.NotBefore),
+        NotAfter = todatetime(RawData.Certificate.NotAfter),
+        SignatureAlgorithm = tostring(RawData.Certificate.SignatureAlgorithm),
+        PublicKey = tostring(RawData.Certificate.PublicKey),
+        Extensions = RawData.Certificate.Extensions,
+        Certificate = RawData.Certificate
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Name,
+        Owner,
+        SerialNumber,
+        Subject,
+        Issuer,
+        NotBefore,
+        NotAfter,
+        SignatureAlgorithm,
+        PublicKey,
+        Extensions,
+        Certificate
+}
+
+.alter table GenericSystemEfiSignaturesCertificates policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemEfiSignaturesCertificates()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.System.EfiSignatures/Hashes
+.create table GenericSystemEfiSignaturesHashes (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Name: string,
+    Owner: string,
+    Hash: string
+)
+
+.create-or-alter function RouteGenericSystemEfiSignaturesHashes() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.System.EfiSignatures/Hashes"
+    | extend 
+        Name = tostring(RawData.Name),
+        Owner = tostring(RawData.Owner),
+        Hash = tostring(RawData.Hash)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Name,
+        Owner,
+        Hash
+}
+
+.alter table GenericSystemEfiSignaturesHashes policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemEfiSignaturesHashes()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.System.Pstree.kql
+// ============================================
+
+// ARTIFACT: Generic.System.Pstree
+.create table GenericSystemPstree (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Pid: long,
+    Ppid: long,
+    Name: string,
+    Username: string,
+    Exe: string,
+    CommandLine: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    CallChain: string,
+    PSTree: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericSystemPstree() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.System.Pstree"
+    | extend 
+        Pid = tolong(RawData.Pid),
+        Ppid = tolong(RawData.Ppid),
+        Name = tostring(RawData.Name),
+        Username = tostring(RawData.Username),
+        Exe = tostring(RawData.Exe),
+        CommandLine = tostring(RawData.CommandLine),
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime),
+        CallChain = tostring(RawData.CallChain),
+        PSTree = RawData.PSTree
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Pid,
+        Ppid,
+        Name,
+        Username,
+        Exe,
+        CommandLine,
+        StartTime,
+        EndTime,
+        CallChain,
+        PSTree,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table GenericSystemPstree policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemPstree()","IsTransactional":false}]'
+// ============================================
+// Source: mappings/Network.ExternalIpAddress.kql
+// ============================================
+
+//ARTIFACT: Network.ExternalIpAddress
+.create table NetworkExternalIpAddress (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    IP: string
+)
+
+.create-or-alter function RouteNetworkExternalIpAddress() {
+    RawVelociraptorEvents
+    | where Artifact == "Network.ExternalIpAddress"
+    | extend 
+        IP = tostring(RawData.IP)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        IP
+}
+
+.alter table NetworkExternalIpAddress policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteNetworkExternalIpAddress()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/System.VFS.DownloadFile.kql
+// ============================================
+
+//ARTIFACT: System.VFS.DownloadFile
+.create table SystemVFSDownloadFile (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Path: string,
+    Accessor: string,
+    Size: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    Error: string,
+    Components: dynamic
+)
+
+.create-or-alter function RouteSystemVFSDownloadFile() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.DownloadFile"
+    | extend 
+        Path = tostring(RawData.Path),
+        Accessor = tostring(RawData.Accessor),
+        Size = tolong(RawData.Size),
+        StoredSize = tolong(RawData.StoredSize),
+        Sha256 = tostring(RawData.Sha256),
+        Md5 = tostring(RawData.Md5),
+        Error = tostring(RawData.Error),
+        Components = RawData._Components
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Path,
+        Accessor,
+        Size,
+        StoredSize,
+        Sha256,
+        Md5,
+        Error,
+        Components
+}
+
+.alter table SystemVFSDownloadFile policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSDownloadFile()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/System.VFS.ListDirectory.kql
+// ============================================
+
+//ARTIFACT: System.VFS.ListDirectory/Listing
+.create table SystemVFSListDirectoryListing (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    Components: dynamic,
+    Accessor: string,
+    Name: string,
+    Size: long,
+    Mode: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Idx: int,
+    Data: dynamic
+)
+
+.create-or-alter function RouteSystemVFSListDirectoryListing() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.ListDirectory/Listing"
+    | extend 
+        OSPath = tostring(RawData._OSPath),
+        Components = RawData._Components,
+        Accessor = tostring(RawData._Accessor),
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Mode = tostring(RawData.Mode),
+        Mtime = todatetime(RawData.mtime),
+        Atime = todatetime(RawData.atime),
+        Ctime = todatetime(RawData.ctime),
+        Btime = todatetime(RawData.btime),
+        Idx = toint(RawData._Idx),
+        Data = RawData._Data
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        OSPath,
+        Components,
+        Accessor,
+        Name,
+        Size,
+        Mode,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Idx,
+        Data
+}
+
+.alter table SystemVFSListDirectoryListing policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryListing()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/System.VFS.ListDirectory.Stats.kql
+// ============================================
+
+//ARTIFACT: System.VFS.ListDirectory/Stats
+.create table SystemVFSListDirectoryStats (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Components: dynamic,
+    Accessor: string,
+    Stats: dynamic
+)
+
+.create-or-alter function RouteSystemVFSListDirectoryStats() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.ListDirectory/Stats"
+    | extend 
+        Components = RawData.Components,
+        Accessor = tostring(RawData.Accessor),
+        Stats = RawData.Stats
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Components,
+        Accessor,
+        Stats
+}
+
+.alter table SystemVFSListDirectoryStats policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryStats()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.Analysis.EvidenceOfDownload.kql
+// ============================================
+
+//ARTIFACT: Windows.Analysis.EvidenceOfDownload
+.create table WindowsAnalysisEvidenceOfDownload (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    DownloadedFilePath: string,
+    Mtime: datetime,
+    ZoneId: string,
+    HostUrl: string,
+    ReferrerUrl: string,
+    ZoneIdentifierContent: string,
+    FileHashMD5: string,
+    FileHashSHA1: string,
+    FileHashSHA256: string
+)
+
+.create-or-alter function RouteWindowsAnalysisEvidenceOfDownload() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Analysis.EvidenceOfDownload"
+    | extend 
+        DownloadedFilePath = tostring(RawData.DownloadedFilePath),
+        Mtime = todatetime(RawData.Mtime),
+        ZoneId = tostring(RawData.ZoneId),
+        HostUrl = tostring(RawData.HostUrl),
+        ReferrerUrl = tostring(RawData.ReferrerUrl),
+        ZoneIdentifierContent = tostring(RawData._ZoneIdentifierContent),
+        FileHashMD5 = tostring(RawData.FileHash.MD5),
+        FileHashSHA1 = tostring(RawData.FileHash.SHA1),
+        FileHashSHA256 = tostring(RawData.FileHash.SHA256)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        DownloadedFilePath,
+        Mtime,
+        ZoneId,
+        HostUrl,
+        ReferrerUrl,
+        ZoneIdentifierContent,
+        FileHashMD5,
+        FileHashSHA1,
+        FileHashSHA256
+}
+
+.alter table WindowsAnalysisEvidenceOfDownload policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAnalysisEvidenceOfDownload()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.EventLogs.Evtx.kql
+// ============================================
+
+//ARTIFACT: Windows.EventLogs.Evtx
+.create table WindowsEventLogsEvtx (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    TimeCreated: datetime,
+    EventID: int,
+    Channel: string,
+    Level: int,
+    Computer: string,
+    EventRecordID: long,
+    Provider: string,
+    ProcessID: int,
+    ThreadID: int,
+    Task: int,
+    Opcode: int,
+    Keywords: string,
+    Message: string,
+    OSPath: string,
+    System: dynamic,
+    EventData: dynamic
+)
+
+.create-or-alter function RouteWindowsEventLogsEvtx() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.Evtx"
+    | extend 
+        TimeCreated = todatetime(RawData.TimeCreated),
+        EventID = toint(RawData.EventID),
+        Channel = tostring(RawData.Channel),
+        Level = toint(RawData.System.Level),
+        Computer = tostring(RawData.System.Computer),
+        EventRecordID = tolong(RawData.EventRecordID),
+        Provider = tostring(RawData.System.Provider.Name),
+        ProcessID = toint(RawData.System.Execution.ProcessID),
+        ThreadID = toint(RawData.System.Execution.ThreadID),
+        Task = toint(RawData.System.Task),
+        Opcode = toint(RawData.System.Opcode),
+        Keywords = tostring(RawData.System.Keywords),
+        Message = tostring(RawData.Message),
+        OSPath = tostring(RawData.OSPath),
+        System = RawData.System,
+        EventData = RawData.EventData
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        TimeCreated,
+        EventID,
+        Channel,
+        Level,
+        Computer,
+        EventRecordID,
+        Provider,
+        ProcessID,
+        ThreadID,
+        Task,
+        Opcode,
+        Keywords,
+        Message,
+        OSPath,
+        System,
+        EventData
+}
+
+.alter table WindowsEventLogsEvtx policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsEventLogsEvtx()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.Forensics.Lnk.kql
+// ============================================
+
+//ARTIFACT: Windows.Forensics.Lnk
+.create table WindowsForensicsLnk (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    SourceFilePath: string,
+    SourceFileMtime: datetime,
+    SourceFileBtime: datetime,
+    LinkTargetPath: string,
+    AccessTime: datetime,
+    MachineID: string,
+    MacAddress: string,
+    VolumeDroid: string,
+    FileDroid: string,
+    LinkFlags: dynamic,
+    FileAttributes: dynamic,
+    Suspicious: dynamic,
+    LinkTargetIDList: dynamic,
+    SourceFileSize: long,
+    FileSize: long,
+    CreationTime: datetime,
+    WriteTime: datetime,
+    RelativePath: string,
+    ShellLinkHeader: dynamic,
+    LinkInfo: dynamic,
+    ExtraData: dynamic
+)
+
+.create-or-alter function RouteWindowsForensicsLnk() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Lnk"
+    | extend 
+        SourceFilePath = tostring(RawData.SourceFile.OSPath),
+        SourceFileSize = tolong(RawData.SourceFile.Size),
+        SourceFileMtime = todatetime(RawData.SourceFile.Mtime),
+        SourceFileBtime = todatetime(RawData.SourceFile.Btime),
+        LinkTargetPath = tostring(RawData.StringData.TargetPath),
+        RelativePath = tostring(RawData.StringData.RelativePath),
+        CreationTime = todatetime(RawData.ShellLinkHeader.CreationTime),
+        AccessTime = todatetime(RawData.ShellLinkHeader.AccessTime),
+        WriteTime = todatetime(RawData.ShellLinkHeader.WriteTime),
+        FileSize = tolong(RawData.ShellLinkHeader.FileSize),
+        FileAttributes = RawData.ShellLinkHeader.FileAttributes,
+        LinkFlags = RawData.ShellLinkHeader.LinkFlags,
+        VolumeDroid = tostring(RawData.ExtraData.TrackerData.VolumeDroid),
+        FileDroid = tostring(RawData.ExtraData.TrackerData.FileDroid),
+        MachineID = tostring(RawData.ExtraData.TrackerData.MachineID),
+        MacAddress = tostring(RawData.ExtraData.TrackerData.MacAddress),
+        LinkTargetIDList = RawData.LinkTarget.LinkTargetIDList,
+        ShellLinkHeader = RawData.ShellLinkHeader,
+        LinkInfo = RawData.LinkInfo,
+        ExtraData = RawData.ExtraData,
+        Suspicious = RawData.Suspicious
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        SourceFilePath,
+        SourceFileMtime,
+        SourceFileBtime,
+        LinkTargetPath,
+        AccessTime,
+        MachineID,
+        MacAddress,
+        VolumeDroid,
+        FileDroid,
+        LinkFlags,
+        FileAttributes,
+        Suspicious,
+        LinkTargetIDList,
+        SourceFileSize,
+        FileSize,
+        CreationTime,
+        WriteTime,
+        RelativePath,
+        ShellLinkHeader,
+        LinkInfo,
+        ExtraData
+}
+
+.alter table WindowsForensicsLnk policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsForensicsLnk()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.Forensics.Prefetch.kql
+// ============================================
+
+//ARTIFACT: Windows.Forensics.Prefetch
+.create table WindowsForensicsPrefetch (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    Version: string,
+    FileSize: long,
+    Executable: string,
+    Hash: string,
+    LastRunTimes: dynamic,
+    RunCount: int,
+    ExecutablePath: string,
+    ExecutableDosPath: string,
+    OSPath: string,
+    PrefetchFileName: string,
+    CreationTime: datetime,
+    ModificationTime: datetime,
+    Binary: string,
+    SCCAHeader: dynamic,
+    VolumeInfo: dynamic,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsPrefetch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Prefetch"
+    | extend 
+        Version = tostring(RawData.Version),
+        FileSize = tolong(RawData.FileSize),
+        Executable = tostring(RawData.Executable),
+        Hash = tostring(RawData.Hash),
+        LastRunTimes = RawData.LastRunTimes,
+        RunCount = toint(RawData.RunCount),
+        ExecutablePath = tostring(RawData.ExecutablePath),
+        ExecutableDosPath = tostring(RawData.ExecutableDosPath),
+        OSPath = tostring(RawData.OSPath),
+        PrefetchFileName = tostring(RawData.PrefetchFileName),
+        CreationTime = todatetime(RawData.CreationTime),
+        ModificationTime = todatetime(RawData.ModificationTime),
+        Binary = tostring(RawData.Binary),
+        SCCAHeader = RawData._SCCAHeader,
+        VolumeInfo = RawData.VolumeInfo
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        Version,
+        FileSize,
+        Executable,
+        Hash,
+        LastRunTimes,
+        RunCount,
+        ExecutablePath,
+        ExecutableDosPath,
+        OSPath,
+        PrefetchFileName,
+        CreationTime,
+        ModificationTime,
+        Binary,
+        SCCAHeader,
+        VolumeInfo,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime
+}
+
+.alter table WindowsForensicsPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsForensicsPrefetch()","IsTransactional":false}]'
