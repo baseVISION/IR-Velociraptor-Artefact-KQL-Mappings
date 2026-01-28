@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Fri 23 Jan 12:52:07 CET 2026
+// Generated on: Wed 28 Jan 16:07:40 CET 2026
 // Source directory: mappings
 
 
@@ -566,6 +566,74 @@
 }
 
 .alter table GenericSystemPstree policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemPstree()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Linux.Sys.Pslist.kql
+// ============================================
+
+//ARTIFACT: Linux.Sys.Pslist
+.create table LinuxSysPslist (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Pid: string,
+    Ppid: string,
+    Name: string,
+    CommandLine: string,
+    Exe: string,
+    HashMD5: string,
+    HashSHA1: string,
+    HashSHA256: string,
+    Username: string,
+    CreatedTime: datetime,
+    RSS: long,
+    Deleted: bool
+)
+
+.create-or-alter function RouteLinuxSysPslist() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Pslist"
+    | extend 
+        Pid = tostring(RawData.Pid),
+        Ppid = tostring(RawData.Ppid),
+        Name = tostring(RawData.Name),
+        CommandLine = tostring(RawData.CommandLine),
+        Exe = tostring(RawData.Exe),
+        HashMD5 = tostring(RawData.Hash.MD5),
+        HashSHA1 = tostring(RawData.Hash.SHA1),
+        HashSHA256 = tostring(RawData.Hash.SHA256),
+        Username = tostring(RawData.Username),
+        CreatedTime = todatetime(RawData.CreatedTime),
+        RSS = tolong(RawData.RSS),
+        Deleted = tobool(RawData.Deleted)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Pid,
+        Ppid,
+        Name,
+        CommandLine,
+        Exe,
+        HashMD5,
+        HashSHA1,
+        HashSHA256,
+        Username,
+        CreatedTime,
+        RSS,
+        Deleted
+}
+
+.alter table LinuxSysPslist policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxSysPslist()","IsTransactional":false}]'
+
 // ============================================
 // Source: mappings/Network.ExternalIpAddress.kql
 // ============================================
@@ -599,6 +667,46 @@
 }
 
 .alter table NetworkExternalIpAddress policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteNetworkExternalIpAddress()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Server.Import.ArtifactExchange.kql
+// ============================================
+
+//ARTIFACT: Server.Import.ArtifactExchange
+.create table ServerImportArtifactExchange (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    ArtifactName: string,
+    Description: string,
+    Author: string
+)
+
+.create-or-alter function RouteServerImportArtifactExchange() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Import.ArtifactExchange"
+    | extend 
+        ArtifactName = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        Author = tostring(RawData.Author)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        ArtifactName,
+        Description,
+        Author
+}
+
+.alter table ServerImportArtifactExchange policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerImportArtifactExchange()","IsTransactional":false}]'
 
 // ============================================
 // Source: mappings/System.VFS.DownloadFile.kql
@@ -819,6 +927,46 @@
 }
 
 .alter table WindowsAnalysisEvidenceOfDownload policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAnalysisEvidenceOfDownload()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.Attack.Prefetch.kql
+// ============================================
+
+//ARTIFACT: Windows.Attack.Prefetch
+.create table WindowsAttackPrefetch (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Name: string,
+    ModTime: datetime,
+    Modified: datetime
+)
+
+.create-or-alter function RouteWindowsAttackPrefetch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Attack.Prefetch"
+    | extend 
+        Name = tostring(RawData.Name),
+        ModTime = todatetime(RawData.ModTime),
+        Modified = todatetime(RawData.modified)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Name,
+        ModTime,
+        Modified
+}
+
+.alter table WindowsAttackPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAttackPrefetch()","IsTransactional":false}]'
 
 // ============================================
 // Source: mappings/Windows.EventLogs.Evtx.kql

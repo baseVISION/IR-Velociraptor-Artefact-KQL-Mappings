@@ -1,0 +1,62 @@
+//ARTIFACT: Linux.Sys.Pslist
+.create table LinuxSysPslist (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Pid: string,
+    Ppid: string,
+    Name: string,
+    CommandLine: string,
+    Exe: string,
+    HashMD5: string,
+    HashSHA1: string,
+    HashSHA256: string,
+    Username: string,
+    CreatedTime: datetime,
+    RSS: long,
+    Deleted: bool
+)
+
+.create-or-alter function RouteLinuxSysPslist() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Pslist"
+    | extend 
+        Pid = tostring(RawData.Pid),
+        Ppid = tostring(RawData.Ppid),
+        Name = tostring(RawData.Name),
+        CommandLine = tostring(RawData.CommandLine),
+        Exe = tostring(RawData.Exe),
+        HashMD5 = tostring(RawData.Hash.MD5),
+        HashSHA1 = tostring(RawData.Hash.SHA1),
+        HashSHA256 = tostring(RawData.Hash.SHA256),
+        Username = tostring(RawData.Username),
+        CreatedTime = todatetime(RawData.CreatedTime),
+        RSS = tolong(RawData.RSS),
+        Deleted = tobool(RawData.Deleted)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Pid,
+        Ppid,
+        Name,
+        CommandLine,
+        Exe,
+        HashMD5,
+        HashSHA1,
+        HashSHA256,
+        Username,
+        CreatedTime,
+        RSS,
+        Deleted
+}
+
+.alter table LinuxSysPslist policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxSysPslist()","IsTransactional":false}]'

@@ -1,0 +1,35 @@
+//ARTIFACT: Windows.Attack.Prefetch
+.create table WindowsAttackPrefetch (
+    Timestamp: datetime,
+    Hostname: string,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    Organization: string,
+    IngestionTime: datetime,
+    Name: string,
+    ModTime: datetime,
+    Modified: datetime
+)
+
+.create-or-alter function RouteWindowsAttackPrefetch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Attack.Prefetch"
+    | extend 
+        Name = tostring(RawData.Name),
+        ModTime = todatetime(RawData.ModTime),
+        Modified = todatetime(RawData.modified)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Artifact,
+        ClientId, 
+        FlowId, 
+        Organization, 
+        IngestionTime,
+        Name,
+        ModTime,
+        Modified
+}
+
+.alter table WindowsAttackPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAttackPrefetch()","IsTransactional":false}]'
