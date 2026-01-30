@@ -2,17 +2,17 @@
 .create table GenericApplicationsOfficeKeywords (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     OfficePath: string,
     OfficeMtime: datetime,
     OSPath: string,
     OfficeSize: long,
     InternalMtime: datetime,
-    HexContext: dynamic
+    HexContext: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteGenericApplicationsOfficeKeywords() {
@@ -28,17 +28,17 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         OfficePath,
         OfficeMtime,
         OSPath,
         OfficeSize,
         InternalMtime,
-        HexContext
+        HexContext,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table GenericApplicationsOfficeKeywords policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericApplicationsOfficeKeywords()","IsTransactional":false}]'

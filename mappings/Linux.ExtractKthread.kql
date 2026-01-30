@@ -1,0 +1,39 @@
+//ARTIFACT: Linux.ExtractKthread/extractKthread
+//DESCRIPTION: Extracts kernel threads from /proc filesystem
+//TABLE: LinuxExtractKthread
+
+.create table LinuxExtractKthread (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    ProcessName: string,
+    Kthread: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxExtractKthreadextractKthread() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.ExtractKthread/extractKthread"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        ProcessName = tostring(RawData.ProcessName),
+        Kthread = tostring(RawData.Kthread)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        ProcessName,
+        Kthread,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxExtractKthread policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxExtractKthreadextractKthread()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

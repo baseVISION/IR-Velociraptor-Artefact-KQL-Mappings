@@ -2,11 +2,6 @@
 .create table GenericSystemEfiSignaturesCertificates (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     Name: string,
     Owner: string,
     SerialNumber: string,
@@ -17,7 +12,12 @@
     SignatureAlgorithm: string,
     PublicKey: string,
     Extensions: dynamic,
-    Certificate: dynamic
+    Certificate: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteGenericSystemEfiSignaturesCertificates() {
@@ -38,11 +38,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         Name,
         Owner,
         SerialNumber,
@@ -53,7 +48,12 @@
         SignatureAlgorithm,
         PublicKey,
         Extensions,
-        Certificate
+        Certificate,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table GenericSystemEfiSignaturesCertificates policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemEfiSignaturesCertificates()","IsTransactional":false}]'
@@ -62,14 +62,14 @@
 .create table GenericSystemEfiSignaturesHashes (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     Name: string,
     Owner: string,
-    Hash: string
+    Hash: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteGenericSystemEfiSignaturesHashes() {
@@ -82,14 +82,14 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         Name,
         Owner,
-        Hash
+        Hash,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table GenericSystemEfiSignaturesHashes policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemEfiSignaturesHashes()","IsTransactional":false}]'

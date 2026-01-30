@@ -1,0 +1,57 @@
+//ARTIFACT: Linux.Sys.LastUserLogin
+.create table LinuxSysLastUserLogin (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    LoginType: string,
+    LoginID: string,
+    LoginPID: long,
+    LoginHost: string,
+    LoginUser: string,
+    LoginIpAddr: string,
+    LoginTerminal: string,
+    LoginTime: datetime,
+    LogoutTime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysLastUserLogin() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.LastUserLogin"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        LoginType = tostring(RawData.login_Type),
+        LoginID = tostring(RawData.login_ID),
+        LoginPID = tolong(RawData.login_PID),
+        LoginHost = tostring(RawData.login_Host),
+        LoginUser = tostring(RawData.login_User),
+        LoginIpAddr = tostring(RawData.login_IpAddr),
+        LoginTerminal = tostring(RawData.login_Terminal),
+        LoginTime = todatetime(RawData.login_time),
+        LogoutTime = todatetime(RawData.logout_time)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        LoginType,
+        LoginID,
+        LoginPID,
+        LoginHost,
+        LoginUser,
+        LoginIpAddr,
+        LoginTerminal,
+        LoginTime,
+        LogoutTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysLastUserLogin policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysLastUserLogin()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

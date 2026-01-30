@@ -1,0 +1,42 @@
+//ARTIFACT: Linux.Mounts
+//DESCRIPTION: Lists mounted filesystems
+//TABLE: LinuxMounts
+
+.create table LinuxMounts (
+    Timestamp: datetime,
+    Hostname: string,
+    Device: string,
+    FSType: string,
+    Mount: string,
+    Options: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxMounts() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Mounts"
+    | extend 
+        Device = tostring(RawData.Device),
+        FSType = tostring(RawData.FSType),
+        Mount = tostring(RawData.Mount),
+        Options = tostring(RawData.Options)
+    | project
+        Timestamp,
+        Hostname,
+        Device,
+        FSType,
+        Mount,
+        Options,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxMounts policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxMounts()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

@@ -1,0 +1,36 @@
+//ARTIFACT: Linux.Sys.Groups
+.create table LinuxSysGroups (
+    Timestamp: datetime,
+    Hostname: string,
+    Group: string,
+    GID: long,
+    Members: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysGroups() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Groups"
+    | extend 
+        Group = tostring(RawData.Group),
+        GID = tolong(RawData.GID),
+        Members = RawData.Members
+    | project
+        Timestamp,
+        Hostname,
+        Group,
+        GID,
+        Members,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysGroups policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysGroups()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

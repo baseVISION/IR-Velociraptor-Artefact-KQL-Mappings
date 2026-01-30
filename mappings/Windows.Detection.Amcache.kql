@@ -1,0 +1,56 @@
+//ARTIFACT: Windows.Detection.Amcache
+.create table WindowsDetectionAmcache (
+    Timestamp: datetime,
+    Hostname: string,
+    HivePath: string,
+    EntryKey: string,
+    KeyMTime: datetime,
+    EntryType: string,
+    SHA1: string,
+    EntryName: string,
+    EntryPath: string,
+    Publisher: string,
+    OriginalFileName: string,
+    BinaryType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsDetectionAmcache() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Detection.Amcache"
+    | extend 
+        HivePath = tostring(RawData.HivePath),
+        EntryKey = tostring(RawData.EntryKey),
+        KeyMTime = todatetime(RawData.KeyMTime),
+        EntryType = tostring(RawData.EntryType),
+        SHA1 = tostring(RawData.SHA1),
+        EntryName = tostring(RawData.EntryName),
+        EntryPath = tostring(RawData.EntryPath),
+        Publisher = tostring(RawData.Publisher),
+        OriginalFileName = tostring(RawData.OriginalFileName),
+        BinaryType = tostring(RawData.BinaryType)
+    | project 
+        Timestamp, 
+        Hostname, 
+        HivePath,
+        EntryKey,
+        KeyMTime,
+        EntryType,
+        SHA1,
+        EntryName,
+        EntryPath,
+        Publisher,
+        OriginalFileName,
+        BinaryType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsDetectionAmcache policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsDetectionAmcache()", "IsEnabled": "True", "IsTransactional": true}]'

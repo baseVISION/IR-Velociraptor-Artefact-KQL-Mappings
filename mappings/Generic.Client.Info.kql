@@ -2,16 +2,16 @@
 .create table GenericClientInfoWindowsInfo (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
     ComputerName: string,
     DNSHostName: string,
     Domain: string,
     DomainRole: string,
     TotalPhysicalMemory: long,
     NetworkInterfaces: dynamic,
+    Artifact: string,
+    Organization: string,
     ClientId: string,
     FlowId: string,
-    Organization: string,
     IngestionTime: datetime
 )
 
@@ -28,16 +28,16 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
         ComputerName, 
         DNSHostName, 
         Domain, 
         DomainRole, 
         TotalPhysicalMemory, 
         NetworkInterfaces,
+        Artifact,
+        Organization,
         ClientId, 
         FlowId, 
-        Organization, 
         IngestionTime
 }
 
@@ -47,7 +47,6 @@
 .create table GenericClientInfoBasicInformation (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
     Name: string,
     BuildTime: datetime,
     Version: string,
@@ -58,9 +57,13 @@
     KernelVersion: string,
     Fqdn: string,
     MACAddresses: dynamic,
+    Labels: dynamic,
+    build_url: string,
+    install_time: datetime,
+    Artifact: string,
+    Organization: string,
     ClientId: string,
     FlowId: string,
-    Organization: string,
     IngestionTime: datetime
 )
 
@@ -77,11 +80,13 @@
         PlatformVersion = tostring(RawData.PlatformVersion),
         KernelVersion = tostring(RawData.KernelVersion),
         Fqdn = tostring(RawData.Fqdn),
-        MACAddresses = RawData.MACAddresses
+        MACAddresses = RawData.MACAddresses,
+        Labels = RawData.Labels,
+        build_url = tostring(RawData.build_url),
+        install_time = todatetime(RawData.install_time)
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
         Name,
         BuildTime,
         Version,
@@ -92,10 +97,128 @@
         KernelVersion,
         Fqdn,
         MACAddresses,
+        Labels,
+        build_url,
+        install_time,
+        Artifact,
+        Organization,
         ClientId, 
         FlowId, 
-        Organization, 
         IngestionTime
 }
 
 .alter table GenericClientInfoBasicInformation policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoBasicInformation()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.Client.Info/DetailedInfo
+.create table GenericClientInfoDetailedInfo (
+    Timestamp: datetime,
+    Hostname: string,
+    Param: string,
+    Value: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoDetailedInfo() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/DetailedInfo"
+    | extend 
+        Param = tostring(RawData.Param),
+        Value = tostring(RawData.Value)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Param,
+        Value,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoDetailedInfo policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoDetailedInfo()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.Client.Info/LinuxInfo
+.create table GenericClientInfoLinuxInfo (
+    Timestamp: datetime,
+    Hostname: string,
+    TotalPhysicalMemory: long,
+    TotalFreeMemory: long,
+    TotalSharedMemory: long,
+    TotalSwap: long,
+    FreeSwap: long,
+    NetworkInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoLinuxInfo() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/LinuxInfo"
+    | extend 
+        TotalPhysicalMemory = tolong(RawData.["Computer Info"].TotalPhysicalMemory),
+        TotalFreeMemory = tolong(RawData.["Computer Info"].TotalFreeMemory),
+        TotalSharedMemory = tolong(RawData.["Computer Info"].TotalSharedMemory),
+        TotalSwap = tolong(RawData.["Computer Info"].TotalSwap),
+        FreeSwap = tolong(RawData.["Computer Info"].FreeSwap),
+        NetworkInfo = RawData.["Network Info"]
+    | project 
+        Timestamp, 
+        Hostname, 
+        TotalPhysicalMemory,
+        TotalFreeMemory,
+        TotalSharedMemory,
+        TotalSwap,
+        FreeSwap,
+        NetworkInfo,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoLinuxInfo policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoLinuxInfo()","IsTransactional":false}]'
+
+//ARTIFACT: Generic.Client.Info/Users
+.create table GenericClientInfoUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    LastLogin: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientInfoUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.Info/Users"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        LastLogin = todatetime(RawData.LastLogin)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        LastLogin,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table GenericClientInfoUsers policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoUsers()","IsTransactional":false}]'

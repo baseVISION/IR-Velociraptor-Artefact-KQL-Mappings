@@ -1,0 +1,66 @@
+//ARTIFACT: Linux.Forensics.RecentlyUsed/Recent Entries
+//DESCRIPTION: Recently used files from GNOME/KDE desktop environments
+//TABLE: LinuxForensicsRecentlyUsed
+
+.create table LinuxForensicsRecentlyUsed (
+    Timestamp: datetime,
+    Hostname: string,
+    FilePath: string,
+    SourceFile: string,
+    ApplicationName: string,
+    ApplicationExec: string,
+    ApplicationCount: long,
+    ApplicationModTime: datetime,
+    MimeType: string,
+    TimeAdded: datetime,
+    TimeModified: datetime,
+    TimeVisited: datetime,
+    User: string,
+    UID: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxForensicsRecentlyUsedRecentEntries() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Forensics.RecentlyUsed/Recent Entries"
+    | extend 
+        FilePath = tostring(RawData.FilePath),
+        SourceFile = tostring(RawData.SourceFile),
+        ApplicationName = tostring(RawData.ApplicationName),
+        ApplicationExec = tostring(RawData.ApplicationExec),
+        ApplicationCount = tolong(RawData.ApplicationCount),
+        ApplicationModTime = todatetime(RawData.ApplicationModTime),
+        MimeType = tostring(RawData.MimeType),
+        TimeAdded = todatetime(RawData.TimeAdded),
+        TimeModified = todatetime(RawData.TimeModified),
+        TimeVisited = todatetime(RawData.TimeVisited),
+        User = tostring(RawData.User),
+        UID = tostring(RawData.UID)
+    | project
+        Timestamp,
+        Hostname,
+        FilePath,
+        SourceFile,
+        ApplicationName,
+        ApplicationExec,
+        ApplicationCount,
+        ApplicationModTime,
+        MimeType,
+        TimeAdded,
+        TimeModified,
+        TimeVisited,
+        User,
+        UID,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxForensicsRecentlyUsed policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsRecentlyUsedRecentEntries()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

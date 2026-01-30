@@ -1,0 +1,53 @@
+//ARTIFACT: Windows.Network.ArpCache
+.create table WindowsNetworkArpCache (
+    Timestamp: datetime,
+    Hostname: string,
+    AddressFamily: string,
+    Store: string,
+    State: string,
+    InterfaceIndex: int,
+    LocalAddress: string,
+    HardwareAddr: string,
+    RemoteAddress: string,
+    InterfaceAlias: string,
+    RemoteMACAddress: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNetworkArpCache() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Network.ArpCache"
+    | extend 
+        AddressFamily = tostring(RawData.AddressFamily),
+        Store = tostring(RawData.Store),
+        State = tostring(RawData.State),
+        InterfaceIndex = toint(RawData.InterfaceIndex),
+        LocalAddress = tostring(RawData.LocalAddress),
+        HardwareAddr = tostring(RawData.HardwareAddr),
+        RemoteAddress = tostring(RawData.RemoteAddress),
+        InterfaceAlias = tostring(RawData.InterfaceAlias),
+        RemoteMACAddress = tostring(RawData.RemoteMACAddress)
+    | project 
+        Timestamp, 
+        Hostname, 
+        AddressFamily,
+        Store,
+        State,
+        InterfaceIndex,
+        LocalAddress,
+        HardwareAddr,
+        RemoteAddress,
+        InterfaceAlias,
+        RemoteMACAddress,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNetworkArpCache policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNetworkArpCache()", "IsEnabled": "True", "IsTransactional": true}]'

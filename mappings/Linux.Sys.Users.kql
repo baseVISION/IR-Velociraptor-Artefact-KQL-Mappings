@@ -1,0 +1,45 @@
+//ARTIFACT: Linux.Sys.Users
+.create table LinuxSysUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    User: string,
+    Description: string,
+    Uid: string,
+    Gid: string,
+    Homedir: string,
+    Shell: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Users"
+    | extend 
+        User = tostring(RawData.User),
+        Description = tostring(RawData.Description),
+        Uid = tostring(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        Homedir = tostring(RawData.Homedir),
+        Shell = tostring(RawData.Shell)
+    | project
+        Timestamp,
+        Hostname,
+        User,
+        Description,
+        Uid,
+        Gid,
+        Homedir,
+        Shell,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysUsers policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysUsers()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

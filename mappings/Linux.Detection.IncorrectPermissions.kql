@@ -1,0 +1,72 @@
+//ARTIFACT: Linux.Detection.IncorrectPermissions/Discrepancies
+//DESCRIPTION: Detects files with incorrect permissions compared to expected values
+//TABLE: LinuxDetectionIncorrectPermissions
+
+.create-merge table LinuxDetectionIncorrectPermissions (
+    Timestamp: datetime,
+    Hostname: string,
+    ClientId: string,
+    FlowId: string,
+    Artifact: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    Mtime: datetime,
+    Mode: string,
+    User: string,
+    IsDir: bool,
+    UID: long,
+    EUser: string,
+    GID: long,
+    Group: string,
+    EGroup: string,
+    EMode: string,
+    Mismatch: string,
+    Atime: datetime,
+    Ctime: datetime
+) 
+
+.create-or-alter function RouteLinuxDetectionIncorrectPermissionsDiscrepancies() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Detection.IncorrectPermissions/Discrepancies"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Mode = tostring(RawData.Mode),
+        User = tostring(RawData.User),
+        IsDir = tobool(RawData.IsDir),
+        UID = tolong(RawData.UID),
+        EUser = tostring(RawData.EUser),
+        GID = tolong(RawData.GID),
+        Group = tostring(RawData.Group),
+        EGroup = tostring(RawData.EGroup),
+        EMode = tostring(RawData.EMode),
+        Mismatch = tostring(RawData.Mismatch),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime)
+    | project
+        Timestamp,
+        Hostname,
+        ClientId,
+        FlowId,
+        Artifact,
+        Organization,
+        IngestionTime,
+        OSPath,
+        Mtime,
+        Mode,
+        User,
+        IsDir,
+        UID,
+        EUser,
+        GID,
+        Group,
+        EGroup,
+        EMode,
+        Mismatch,
+        Atime,
+        Ctime
+}
+
+.alter table LinuxDetectionIncorrectPermissions policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionIncorrectPermissionsDiscrepancies()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

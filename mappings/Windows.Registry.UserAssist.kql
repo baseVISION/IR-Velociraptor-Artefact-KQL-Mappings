@@ -1,0 +1,44 @@
+//ARTIFACT: Windows.Registry.UserAssist
+.create table WindowsRegistryUserAssist (
+    Timestamp: datetime,
+    Hostname: string,
+    User: string,
+    Name: string,
+    KeyPath: string,
+    LastExecution: datetime,
+    LastExecutionTS: string,
+    NumberOfExecutions: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsRegistryUserAssist() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Registry.UserAssist"
+    | extend 
+        User = tostring(RawData.User),
+        Name = tostring(RawData.Name),
+        KeyPath = tostring(RawData._KeyPath),
+        LastExecution = todatetime(RawData.LastExecution),
+        LastExecutionTS = tostring(RawData.LastExecutionTS),
+        NumberOfExecutions = tolong(RawData.NumberOfExecutions)
+    | project 
+        Timestamp, 
+        Hostname, 
+        User,
+        Name,
+        KeyPath,
+        LastExecution,
+        LastExecutionTS,
+        NumberOfExecutions,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsRegistryUserAssist policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsRegistryUserAssist()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -1,0 +1,66 @@
+//ARTIFACT: Linux.Sys.SystemdTimer
+.create table LinuxSysSystemdTimer (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    OSPath: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Size: long,
+    Mode: long,
+    IsDir: bool,
+    IsLink: bool,
+    Data: dynamic,
+    Globs: dynamic,
+    FileContent: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysSystemdTimer() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.SystemdTimer"
+    | extend 
+        Name = tostring(RawData.Name),
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        Size = tolong(RawData.Size),
+        Mode = tolong(RawData.Mode),
+        IsDir = tobool(RawData.IsDir),
+        IsLink = tobool(RawData.IsLink),
+        Data = RawData.Data,
+        Globs = RawData.Globs,
+        FileContent = tostring(RawData.["read_file(filename=OSPath)"])
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        OSPath,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Size,
+        Mode,
+        IsDir,
+        IsLink,
+        Data,
+        Globs,
+        FileContent,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysSystemdTimer policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysSystemdTimer()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

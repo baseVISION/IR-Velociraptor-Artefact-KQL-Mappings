@@ -1,0 +1,59 @@
+//ARTIFACT: Windows.Forensics.CertUtil
+.create table WindowsForensicsCertUtil (
+    Timestamp: datetime,
+    Hostname: string,
+    DownloadTime: datetime,
+    URL: string,
+    UrlTLD: string,
+    Hash: string,
+    FileSize: long,
+    VersionInformation: string,
+    Authenticode: string,
+    MetadataFile: string,
+    ContentPath: string,
+    MetdataUpload: string,
+    Upload: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsCertUtil() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.CertUtil"
+    | extend 
+        DownloadTime = todatetime(RawData.DownloadTime),
+        URL = tostring(RawData.URL),
+        UrlTLD = tostring(RawData.UrlTLD),
+        Hash = tostring(RawData.Hash),
+        FileSize = tolong(RawData.FileSize),
+        VersionInformation = tostring(RawData.VersionInformation),
+        Authenticode = tostring(RawData.Authenticode),
+        MetadataFile = tostring(RawData._MetadataFile),
+        ContentPath = tostring(RawData._ContentPath),
+        MetdataUpload = tostring(RawData._MetdataUpload),
+        Upload = tostring(RawData._Upload)
+    | project 
+        Timestamp, 
+        Hostname, 
+        DownloadTime,
+        URL,
+        UrlTLD,
+        Hash,
+        FileSize,
+        VersionInformation,
+        Authenticode,
+        MetadataFile,
+        ContentPath,
+        MetdataUpload,
+        Upload,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsCertUtil policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsCertUtil()", "IsEnabled": "True", "IsTransactional": true}]'

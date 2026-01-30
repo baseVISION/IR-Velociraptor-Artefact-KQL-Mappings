@@ -2,11 +2,6 @@
 .create table GenericDetectionHashHunter (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     OSPath: string,
     Name: string,
     Size: long,
@@ -16,7 +11,12 @@
     Btime: datetime,
     HashMD5: string,
     HashSHA1: string,
-    HashSHA256: string
+    HashSHA256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteGenericDetectionHashHunter() {
@@ -36,11 +36,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         OSPath,
         Name,
         Size,
@@ -50,7 +45,12 @@
         Btime,
         HashMD5,
         HashSHA1,
-        HashSHA256
+        HashSHA256,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table GenericDetectionHashHunter policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericDetectionHashHunter()","IsTransactional":false}]'

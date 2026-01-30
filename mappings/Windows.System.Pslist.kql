@@ -1,0 +1,81 @@
+//ARTIFACT: Windows.System.Pslist
+.create table WindowsSystemPslist (
+    Hostname: string,
+    Timestamp: datetime,
+    Name: string,
+    Pid: long,
+    Ppid: long,
+    CommandLine: string,
+    CreateTime: datetime,
+    Exe: string,
+    Hash: dynamic,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    Authenticode: dynamic,
+    Trusted: string,
+    Subject: string,
+    IssuerName: string,
+    TokenIsElevated: string,
+    TokenInfo: dynamic,
+    Username: string,
+    WorkingSetSize: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemPslist() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Pslist"
+    | extend 
+        Timestamp = todatetime(RawData.Timestamp),
+        Name = tostring(RawData.Name),
+        Pid = tolong(RawData.Pid),
+        Ppid = tolong(RawData.Ppid),
+        CommandLine = tostring(RawData.CommandLine),
+        CreateTime = todatetime(RawData.CreateTime),
+        Exe = tostring(RawData.Exe),
+        Hash = RawData.Hash,
+        MD5 = tostring(RawData.Hash.MD5),
+        SHA1 = tostring(RawData.Hash.SHA1),
+        SHA256 = tostring(RawData.Hash.SHA256),
+        Authenticode = RawData.Authenticode,
+        Trusted = tostring(RawData.Authenticode.Trusted),
+        Subject = tostring(RawData.Authenticode.Subject),
+        IssuerName = tostring(RawData.Authenticode.IssuerName),
+        TokenIsElevated = tostring(RawData.TokenIsElevated),
+        TokenInfo = RawData.TokenInfo,
+        Username = tostring(RawData.Username),
+        WorkingSetSize = tolong(RawData.WorkingSetSize)
+    | project 
+        Hostname, 
+        Timestamp,
+        Name,
+        Pid,
+        Ppid,
+        CommandLine,
+        CreateTime,
+        Exe,
+        Hash,
+        MD5,
+        SHA1,
+        SHA256,
+        Authenticode,
+        Trusted,
+        Subject,
+        IssuerName,
+        TokenIsElevated,
+        TokenInfo,
+        Username,
+        WorkingSetSize,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemPslist policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemPslist()", "IsEnabled": "True", "IsTransactional": true}]'

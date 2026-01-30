@@ -1,0 +1,56 @@
+//ARTIFACT: Windows.Packs.LateralMovement/AlternateLogon
+.create table WindowsPacksLateralMovementAlternateLogon (
+    Timestamp: datetime,
+    Hostname: string,
+    EventTime: datetime,
+    LogonTime: long,
+    TargetUserName: string,
+    SubjectUserName: string,
+    SubjectUserSid: string,
+    ProcessName: string,
+    IpAddress: string,
+    Port: string,
+    TargetServerName: string,
+    Source: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsPacksLateralMovementAlternateLogon() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Packs.LateralMovement/AlternateLogon"
+    | extend 
+        EventTime = todatetime(RawData.EventTime),
+        LogonTime = tolong(RawData.LogonTime),
+        TargetUserName = tostring(RawData.TargetUserName),
+        SubjectUserName = tostring(RawData.SubjectUserName),
+        SubjectUserSid = tostring(RawData.SubjectUserSid),
+        ProcessName = tostring(RawData.ProcessName),
+        IpAddress = tostring(RawData.IpAddress),
+        Port = tostring(RawData.Port),
+        TargetServerName = tostring(RawData.TargetServerName),
+        Source = tostring(RawData._Source)
+    | project 
+        Timestamp, 
+        Hostname, 
+        EventTime,
+        LogonTime,
+        TargetUserName,
+        SubjectUserName,
+        SubjectUserSid,
+        ProcessName,
+        IpAddress,
+        Port,
+        TargetServerName,
+        Source,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsPacksLateralMovementAlternateLogon policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPacksLateralMovementAlternateLogon()", "IsEnabled": "True", "IsTransactional": true}]'

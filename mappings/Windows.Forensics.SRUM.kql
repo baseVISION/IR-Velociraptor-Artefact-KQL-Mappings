@@ -1,0 +1,240 @@
+//ARTIFACT: Windows.Forensics.SRUM/Execution Stats
+.create table WindowsForensicsSRUMExecutionStats (
+    Hostname: string,
+    Timestamp: datetime,
+    ID: long,
+    App: string,
+    UserSid: string,
+    User: string,
+    EndTime: datetime,
+    DurationMS: long,
+    NetworkBytesRaw: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSRUMExecutionStats() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SRUM/Execution Stats"
+    | extend 
+        Timestamp = todatetime(RawData.TimeStamp),
+        ID = tolong(RawData.ID),
+        App = tostring(RawData.App),
+        UserSid = tostring(RawData.UserSid),
+        User = tostring(RawData.User),
+        EndTime = todatetime(RawData.EndTime),
+        DurationMS = tolong(RawData.DurationMS),
+        NetworkBytesRaw = tostring(RawData.NetworkBytesRaw)
+    | project 
+        Hostname, 
+        Timestamp,
+        ID,
+        App,
+        UserSid,
+        User,
+        EndTime,
+        DurationMS,
+        NetworkBytesRaw,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSRUMExecutionStats policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSRUMExecutionStats()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.SRUM/Application Resource Usage
+.create table WindowsForensicsSRUMApplicationResourceUsage (
+    Hostname: string,
+    Timestamp: datetime,
+    App: string,
+    UserSid: string,
+    User: string,
+    SRUMId: string,
+    ForegroundCycleTime: string,
+    BackgroundCycleTime: string,
+    FaceTime: string,
+    ForegroundContextSwitches: string,
+    BackgroundContextSwitches: string,
+    ForegroundBytesRead: string,
+    ForegroundBytesWritten: string,
+    ForegroundNumReadOperations: string,
+    ForegroundNumWriteOperations: string,
+    ForegroundNumberOfFlushes: string,
+    BackgroundBytesRead: string,
+    BackgroundBytesWritten: string,
+    BackgroundNumReadOperations: string,
+    BackgroundNumWriteOperations: string,
+    BackgroundNumberOfFlushes: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSRUMApplicationResourceUsage() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SRUM/Application Resource Usage"
+    | extend 
+        Timestamp = todatetime(RawData.TimeStamp),
+        App = tostring(RawData.App),
+        UserSid = tostring(RawData.UserSid),
+        User = tostring(RawData.User),
+        SRUMId = tostring(RawData.SRUMId),
+        ForegroundCycleTime = tostring(RawData.ForegroundCycleTime),
+        BackgroundCycleTime = tostring(RawData.BackgroundCycleTime),
+        FaceTime = tostring(RawData.FaceTime),
+        ForegroundContextSwitches = tostring(RawData.ForegroundContextSwitches),
+        BackgroundContextSwitches = tostring(RawData.BackgroundContextSwitches),
+        ForegroundBytesRead = tostring(RawData.ForegroundBytesRead),
+        ForegroundBytesWritten = tostring(RawData.ForegroundBytesWritten),
+        ForegroundNumReadOperations = tostring(RawData.ForegroundNumReadOperations),
+        ForegroundNumWriteOperations = tostring(RawData.ForegroundNumWriteOperations),
+        ForegroundNumberOfFlushes = tostring(RawData.ForegroundNumberOfFlushes),
+        BackgroundBytesRead = tostring(RawData.BackgroundBytesRead),
+        BackgroundBytesWritten = tostring(RawData.BackgroundBytesWritten),
+        BackgroundNumReadOperations = tostring(RawData.BackgroundNumReadOperations),
+        BackgroundNumWriteOperations = tostring(RawData.BackgroundNumWriteOperations),
+        BackgroundNumberOfFlushes = tostring(RawData.BackgroundNumberOfFlushes)
+    | project 
+        Hostname, 
+        Timestamp,
+        App,
+        UserSid,
+        User,
+        SRUMId,
+        ForegroundCycleTime,
+        BackgroundCycleTime,
+        FaceTime,
+        ForegroundContextSwitches,
+        BackgroundContextSwitches,
+        ForegroundBytesRead,
+        ForegroundBytesWritten,
+        ForegroundNumReadOperations,
+        ForegroundNumWriteOperations,
+        ForegroundNumberOfFlushes,
+        BackgroundBytesRead,
+        BackgroundBytesWritten,
+        BackgroundNumReadOperations,
+        BackgroundNumWriteOperations,
+        BackgroundNumberOfFlushes,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSRUMApplicationResourceUsage policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSRUMApplicationResourceUsage()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.SRUM/Network Usage
+.create table WindowsForensicsSRUMNetworkUsage (
+    Hostname: string,
+    Timestamp: datetime,
+    App: string,
+    UserSid: string,
+    User: string,
+    SRUMId: string,
+    UserId: string,
+    InterfaceLuid: string,
+    BytesSent: string,
+    BytesRecvd: string,
+    L2ProfileId: string,
+    L2ProfileFlags: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSRUMNetworkUsage() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SRUM/Network Usage"
+    | extend 
+        Timestamp = todatetime(RawData.TimeStamp),
+        App = tostring(RawData.App),
+        UserSid = tostring(RawData.UserSid),
+        User = tostring(RawData.User),
+        SRUMId = tostring(RawData.SRUMId),
+        UserId = tostring(RawData.UserId),
+        InterfaceLuid = tostring(RawData.InterfaceLuid),
+        BytesSent = tostring(RawData.BytesSent),
+        BytesRecvd = tostring(RawData.BytesRecvd),
+        L2ProfileId = tostring(RawData.L2ProfileId),
+        L2ProfileFlags = tostring(RawData.L2ProfileFlags)
+    | project 
+        Hostname, 
+        Timestamp,
+        App,
+        UserSid,
+        User,
+        SRUMId,
+        UserId,
+        InterfaceLuid,
+        BytesSent,
+        BytesRecvd,
+        L2ProfileId,
+        L2ProfileFlags,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSRUMNetworkUsage policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSRUMNetworkUsage()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.SRUM/Network Connections
+.create table WindowsForensicsSRUMNetworkConnections (
+    Hostname: string,
+    Timestamp: datetime,
+    App: string,
+    UserSid: string,
+    User: string,
+    SRUMId: string,
+    StartTime: datetime,
+    InterfaceLuid: string,
+    ConnectedTime: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSRUMNetworkConnections() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SRUM/Network Connections"
+    | extend 
+        Timestamp = todatetime(RawData.TimeStamp),
+        App = tostring(RawData.App),
+        UserSid = tostring(RawData.UserSid),
+        User = tostring(RawData.User),
+        SRUMId = tostring(RawData.SRUMId),
+        StartTime = todatetime(RawData.StartTime),
+        InterfaceLuid = tostring(RawData.InterfaceLuid),
+        ConnectedTime = tostring(RawData.ConnectedTime)
+    | project 
+        Hostname, 
+        Timestamp,
+        App,
+        UserSid,
+        User,
+        SRUMId,
+        StartTime,
+        InterfaceLuid,
+        ConnectedTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSRUMNetworkConnections policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSRUMNetworkConnections()", "IsEnabled": "True", "IsTransactional": true}]'

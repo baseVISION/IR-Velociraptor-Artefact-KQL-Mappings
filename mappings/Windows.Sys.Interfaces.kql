@@ -1,0 +1,38 @@
+//ARTIFACT: Windows.Sys.Interfaces
+.create table WindowsSysInterfaces (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    MAC: string,
+    Details: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysInterfaces() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sys.Interfaces"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Details.Description),
+        MAC = tostring(RawData.Details.MAC),
+        Details = RawData.Details
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        MAC,
+        Details,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysInterfaces policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysInterfaces()", "IsEnabled": "True", "IsTransactional": true}]'

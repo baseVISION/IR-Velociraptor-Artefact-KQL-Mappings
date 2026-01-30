@@ -1,0 +1,149 @@
+//ARTIFACT: Linux.Sys.Crontab/CronScripts
+.create table LinuxSysCrontabCronScripts (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    Content: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysCrontabCronScripts() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Crontab/CronScripts"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Content = tostring(RawData.Content)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Mtime,
+        Content,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysCrontabCronScripts policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysCrontabCronScripts()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Sys.Crontab/CronTabs
+.create table LinuxSysCrontabCronTabs (
+    Timestamp: datetime,
+    Hostname: string,
+    User: string,
+    Path: string,
+    Event: string,
+    Minute: string,
+    Hour: string,
+    DayOfMonth: string,
+    Month: string,
+    DayOfWeek: string,
+    Command: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysCrontabCronTabs() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Crontab/CronTabs"
+    | extend 
+        User = tostring(RawData.User),
+        Path = tostring(RawData.Path),
+        Event = tostring(RawData.Event),
+        Minute = tostring(RawData.Minute),
+        Hour = tostring(RawData.Hour),
+        DayOfMonth = tostring(RawData.DayOfMonth),
+        Month = tostring(RawData.Month),
+        DayOfWeek = tostring(RawData.DayOfWeek),
+        Command = tostring(RawData.Command)
+    | project
+        Timestamp,
+        Hostname,
+        User,
+        Path,
+        Event,
+        Minute,
+        Hour,
+        DayOfMonth,
+        Month,
+        DayOfWeek,
+        Command,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysCrontabCronTabs policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysCrontabCronTabs()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Sys.Crontab/Uploaded
+.create table LinuxSysCrontabUploaded (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    StoredName: string,
+    Components: dynamic,
+    Accessor: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysCrontabUploaded() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Crontab/Uploaded"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        StoredName = tostring(RawData.Upload.StoredName),
+        Components = RawData.Upload.Components,
+        Accessor = tostring(RawData.Upload.Accessor)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        StoredName,
+        Components,
+        Accessor,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysCrontabUploaded policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysCrontabUploaded()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

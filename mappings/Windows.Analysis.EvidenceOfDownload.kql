@@ -2,11 +2,6 @@
 .create table WindowsAnalysisEvidenceOfDownload (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     DownloadedFilePath: string,
     Mtime: datetime,
     ZoneId: string,
@@ -15,7 +10,12 @@
     ZoneIdentifierContent: string,
     FileHashMD5: string,
     FileHashSHA1: string,
-    FileHashSHA256: string
+    FileHashSHA256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteWindowsAnalysisEvidenceOfDownload() {
@@ -34,11 +34,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         DownloadedFilePath,
         Mtime,
         ZoneId,
@@ -47,7 +42,12 @@
         ZoneIdentifierContent,
         FileHashMD5,
         FileHashSHA1,
-        FileHashSHA256
+        FileHashSHA256,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table WindowsAnalysisEvidenceOfDownload policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAnalysisEvidenceOfDownload()","IsTransactional":false}]'

@@ -1,0 +1,41 @@
+//ARTIFACT: IRIS.Sync.Asset
+.create table IRISSyncAsset (
+    Timestamp: datetime,
+    Hostname: string,
+    Action: string,
+    Result: string,
+    IRIS_AssetId: string,
+    AssetProperties: dynamic,
+    RawEvent: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteIRISSyncAsset() {
+    RawVelociraptorEvents
+    | where Artifact == "IRIS.Sync.Asset"
+    | extend 
+        Action = tostring(RawData.Action),
+        Result = tostring(RawData.Result),
+        IRIS_AssetId = tostring(RawData.IRIS_AssetId),
+        AssetProperties = RawData.AssetProperties,
+        RawEvent = RawData._rawEvent
+    | project 
+        Timestamp, 
+        Hostname, 
+        Action,
+        Result,
+        IRIS_AssetId,
+        AssetProperties,
+        RawEvent,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table IRISSyncAsset policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteIRISSyncAsset()","IsTransactional":false}]'

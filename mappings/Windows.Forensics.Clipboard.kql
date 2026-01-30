@@ -1,0 +1,56 @@
+//ARTIFACT: Windows.Forensics.Clipboard
+.create table WindowsForensicsClipboard (
+    Timestamp: datetime,
+    Hostname: string,
+    User: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    CreatedTime: datetime,
+    LastModifiedTime: datetime,
+    LastModifiedOnClient: datetime,
+    Mtime: datetime,
+    Path: string,
+    Payload: string,
+    ClipboardPayload: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsClipboard() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Clipboard"
+    | extend 
+        User = tostring(RawData.User),
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime),
+        CreatedTime = todatetime(RawData.CreatedTime),
+        LastModifiedTime = todatetime(RawData.LastModifiedTime),
+        LastModifiedOnClient = todatetime(RawData.LastModifiedOnClient),
+        Mtime = todatetime(RawData.Mtime),
+        Path = tostring(RawData.Path),
+        Payload = tostring(RawData.Payload),
+        ClipboardPayload = tostring(RawData.ClipboardPayload)
+    | project 
+        Timestamp, 
+        Hostname, 
+        User,
+        StartTime,
+        EndTime,
+        CreatedTime,
+        LastModifiedTime,
+        LastModifiedOnClient,
+        Mtime,
+        Path,
+        Payload,
+        ClipboardPayload,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsClipboard policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsClipboard()", "IsEnabled": "True", "IsTransactional": true}]'

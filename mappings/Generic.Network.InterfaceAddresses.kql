@@ -2,18 +2,18 @@
 .create table GenericNetworkInterfaceAddresses (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     InterfaceIndex: int,
     MTU: int,
     Name: string,
     HardwareAddr: string,
     Flags: string,
     IP: string,
-    Mask: string
+    Mask: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteGenericNetworkInterfaceAddresses() {
@@ -30,18 +30,18 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         InterfaceIndex,
         MTU,
         Name,
         HardwareAddr,
         Flags,
         IP,
-        Mask
+        Mask,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table GenericNetworkInterfaceAddresses policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericNetworkInterfaceAddresses()","IsTransactional":false}]'

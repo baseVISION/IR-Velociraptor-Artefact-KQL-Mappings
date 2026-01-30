@@ -1,0 +1,33 @@
+//ARTIFACT: Linux.Sys.BashHistory
+.create table LinuxSysBashHistory (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Line: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysBashHistory() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.BashHistory"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Line = tostring(RawData.Line)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Line,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysBashHistory policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysBashHistory()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

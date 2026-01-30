@@ -1,0 +1,38 @@
+//ARTIFACT: Windows.Forensics.Timeline
+.create table WindowsForensicsTimeline (
+    Timestamp: datetime,
+    Hostname: string,
+    User: string,
+    LastExecutionTS: string,
+    Application: string,
+    LastModifiedTime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsTimeline() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Timeline"
+    | extend 
+        User = tostring(RawData.User),
+        LastExecutionTS = tostring(RawData.LastExecutionTS),
+        Application = tostring(RawData.Application),
+        LastModifiedTime = todatetime(RawData.LastModifiedTime)
+    | project 
+        Timestamp, 
+        Hostname, 
+        User,
+        LastExecutionTS,
+        Application,
+        LastModifiedTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsTimeline policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsTimeline()", "IsEnabled": "True", "IsTransactional": true}]'

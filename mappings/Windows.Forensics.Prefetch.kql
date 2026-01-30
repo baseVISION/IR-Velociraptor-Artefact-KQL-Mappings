@@ -2,7 +2,6 @@
 .create table WindowsForensicsPrefetch (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
     Version: string,
     FileSize: long,
     Executable: string,
@@ -18,9 +17,11 @@
     Binary: string,
     SCCAHeader: dynamic,
     VolumeInfo: dynamic,
+    FilesAccessed: dynamic,
+    Artifact: string,
+    Organization: string,
     ClientId: string,
     FlowId: string,
-    Organization: string,
     IngestionTime: datetime
 )
 
@@ -42,11 +43,11 @@
         ModificationTime = todatetime(RawData.ModificationTime),
         Binary = tostring(RawData.Binary),
         SCCAHeader = RawData._SCCAHeader,
-        VolumeInfo = RawData.VolumeInfo
+        VolumeInfo = RawData.VolumeInfo,
+        FilesAccessed = RawData.FilesAccessed
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
         Version,
         FileSize,
         Executable,
@@ -62,9 +63,11 @@
         Binary,
         SCCAHeader,
         VolumeInfo,
+        FilesAccessed,
+        Artifact,
+        Organization,
         ClientId, 
         FlowId, 
-        Organization, 
         IngestionTime
 }
 

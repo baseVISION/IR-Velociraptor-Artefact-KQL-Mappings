@@ -1,0 +1,161 @@
+//ARTIFACT: Windows.Triage.Targets/SearchGlobs
+.create table WindowsTriageTargetsSearchGlobs (
+    Timestamp: datetime,
+    Hostname: string,
+    Rule: string,
+    Glob: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTriageTargetsSearchGlobs() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Triage.Targets/SearchGlobs"
+    | extend 
+        Rule = tostring(RawData.Rule),
+        Glob = tostring(RawData.Glob)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Rule,
+        Glob,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTriageTargetsSearchGlobs policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsSearchGlobs()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Triage.Targets/Uploads
+.create table WindowsTriageTargetsUploads (
+    Timestamp: datetime,
+    Hostname: string,
+    SourceFile: string,
+    FileSize: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    CopiedOnTimestamp: datetime,
+    DestinationFile: string,
+    SourceFileSha256: string,
+    StoredName: string,
+    UploadId: long,
+    UploadSize: long,
+    UploadAccessor: string,
+    UploadPath: string,
+    UploadComponents: dynamic,
+    Details: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTriageTargetsUploads() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Triage.Targets/Uploads"
+    | extend 
+        SourceFile = tostring(RawData.SourceFile),
+        FileSize = tolong(RawData.FileSize),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed),
+        CopiedOnTimestamp = todatetime(RawData.CopiedOnTimestamp),
+        DestinationFile = tostring(RawData.DestinationFile),
+        SourceFileSha256 = tostring(RawData.SourceFileSha256),
+        StoredName = tostring(RawData.Upload.StoredName),
+        UploadId = tolong(RawData.Upload.UploadId),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadAccessor = tostring(RawData.Upload.Accessor),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadComponents = RawData.Upload.Components,
+        Details = RawData.Details
+    | project 
+        Timestamp, 
+        Hostname, 
+        SourceFile,
+        FileSize,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        CopiedOnTimestamp,
+        DestinationFile,
+        SourceFileSha256,
+        StoredName,
+        UploadId,
+        UploadSize,
+        UploadAccessor,
+        UploadPath,
+        UploadComponents,
+        Details,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTriageTargetsUploads policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsUploads()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Triage.Targets/All Matches Metadata
+.create table WindowsTriageTargetsAllMatchesMetadata (
+    Timestamp: datetime,
+    Hostname: string,
+    Type: string,
+    SourceFile: string,
+    Size: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    Accessor: string,
+    Data: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTriageTargetsAllMatchesMetadata() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Triage.Targets/All Matches Metadata"
+    | extend 
+        Type = tostring(RawData.Type),
+        SourceFile = tostring(RawData.SourceFile),
+        Size = tolong(RawData.Size),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed),
+        Accessor = tostring(RawData.Accessor),
+        Data = RawData.Data
+    | project 
+        Timestamp, 
+        Hostname, 
+        Type,
+        SourceFile,
+        Size,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        Accessor,
+        Data,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTriageTargetsAllMatchesMetadata policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsAllMatchesMetadata()", "IsEnabled": "True", "IsTransactional": true}]'

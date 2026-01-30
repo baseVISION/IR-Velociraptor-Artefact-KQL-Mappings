@@ -1,0 +1,63 @@
+//ARTIFACT: Windows.Forensics.Shellbags
+.create table WindowsForensicsShellbags (
+    Hostname: string,
+    Timestamp: datetime,
+    Hive: string,
+    FullPath: string,
+    ModTime: datetime,
+    KeyPath: string,
+    Slot: string,
+    DescriptionType: string,
+    DescriptionGUID: string,
+    DescriptionLongName: string,
+    DescriptionShortName: string,
+    RawData: string,
+    Description: dynamic,
+    Parsed: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsShellbags() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Shellbags"
+    | extend 
+        Timestamp = todatetime(RawData.ModTime),
+        Hive = tostring(RawData.Hive),
+        FullPath = tostring(RawData.FullPath),
+        ModTime = todatetime(RawData.ModTime),
+        KeyPath = tostring(RawData.KeyPath),
+        Slot = tostring(RawData.Slot),
+        DescriptionType = tostring(RawData.Description.Type),
+        DescriptionGUID = tostring(RawData.Description.GUID),
+        DescriptionLongName = tostring(RawData.Description.LongName),
+        DescriptionShortName = tostring(RawData.Description.ShortName),
+        RawData = tostring(RawData._RawData),
+        Description = RawData.Description,
+        Parsed = RawData._Parsed
+    | project 
+        Hostname, 
+        Timestamp,
+        Hive,
+        FullPath,
+        ModTime,
+        KeyPath,
+        Slot,
+        DescriptionType,
+        DescriptionGUID,
+        DescriptionLongName,
+        DescriptionShortName,
+        RawData,
+        Description,
+        Parsed,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsShellbags policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsShellbags()", "IsEnabled": "True", "IsTransactional": true}]'

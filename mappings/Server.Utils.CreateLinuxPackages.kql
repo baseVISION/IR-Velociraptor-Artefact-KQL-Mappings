@@ -1,0 +1,35 @@
+//ARTIFACT: Server.Utils.CreateLinuxPackages
+.create table ServerUtilsCreateLinuxPackages (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Upload: dynamic,
+    Sha256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerUtilsCreateLinuxPackages() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Utils.CreateLinuxPackages"
+    | extend 
+        Name = tostring(RawData.Name),
+        Upload = RawData.Upload,
+        Sha256 = tostring(RawData.Upload.sha256)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Upload,
+        Sha256,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerUtilsCreateLinuxPackages policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerUtilsCreateLinuxPackages()","IsTransactional":false}]'

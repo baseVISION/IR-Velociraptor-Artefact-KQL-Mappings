@@ -1,0 +1,59 @@
+//ARTIFACT: Windows.System.Amcache/InventoryApplicationFile
+.create table WindowsSystemAmcacheInventoryApplicationFile (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Binary: string,
+    FileId: string,
+    Size: long,
+    Version: string,
+    BinFileVersion: string,
+    ProductName: string,
+    Publisher: string,
+    LastModified: datetime,
+    Key: string,
+    Hive: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemAmcacheInventoryApplicationFile() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Amcache/InventoryApplicationFile"
+    | extend 
+        Name = tostring(RawData.Name),
+        Binary = tostring(RawData.Binary),
+        FileId = tostring(RawData.FileId),
+        Size = tolong(RawData.Size),
+        Version = tostring(RawData.Version),
+        BinFileVersion = tostring(RawData.BinFileVersion),
+        ProductName = tostring(RawData.ProductName),
+        Publisher = tostring(RawData.Publisher),
+        LastModified = todatetime(RawData.LastModified),
+        Key = tostring(RawData.Key),
+        Hive = tostring(RawData.Hive)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Binary,
+        FileId,
+        Size,
+        Version,
+        BinFileVersion,
+        ProductName,
+        Publisher,
+        LastModified,
+        Key,
+        Hive,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemAmcacheInventoryApplicationFile policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemAmcacheInventoryApplicationFile()", "IsEnabled": "True", "IsTransactional": true}]'

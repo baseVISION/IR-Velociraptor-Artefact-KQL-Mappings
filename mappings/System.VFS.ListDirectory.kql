@@ -2,11 +2,6 @@
 .create table SystemVFSListDirectoryListing (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     OSPath: string,
     Components: dynamic,
     Accessor: string,
@@ -18,7 +13,12 @@
     Ctime: datetime,
     Btime: datetime,
     Idx: int,
-    Data: dynamic
+    Data: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteSystemVFSListDirectoryListing() {
@@ -40,11 +40,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         OSPath,
         Components,
         Accessor,
@@ -56,7 +51,48 @@
         Ctime,
         Btime,
         Idx,
-        Data
+        Data,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table SystemVFSListDirectoryListing policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryListing()","IsTransactional":false}]'
+
+//ARTIFACT: System.VFS.ListDirectory/Stats
+.create table SystemVFSListDirectoryStats (
+    Timestamp: datetime,
+    Hostname: string,
+    Components: dynamic,
+    Accessor: string,
+    Stats: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteSystemVFSListDirectoryStats() {
+    RawVelociraptorEvents
+    | where Artifact == "System.VFS.ListDirectory/Stats"
+    | extend 
+        Components = RawData.Components,
+        Accessor = tostring(RawData.Accessor),
+        Stats = RawData.Stats
+    | project 
+        Timestamp, 
+        Hostname, 
+        Components,
+        Accessor,
+        Stats,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table SystemVFSListDirectoryStats policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSListDirectoryStats()","IsTransactional":false}]'

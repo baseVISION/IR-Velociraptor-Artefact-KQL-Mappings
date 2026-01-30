@@ -1,0 +1,60 @@
+//ARTIFACT: Windows.Attack.ParentProcess
+.create table WindowsAttackParentProcess (
+    Hostname: string,
+    Timestamp: datetime,
+    Username: string,
+    ActualProcessName: string,
+    ActualParentName: string,
+    ExpectedParentName: string,
+    Pid: string,
+    Ppid: string,
+    Exe: string,
+    CommandLine: string,
+    CallChain: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsAttackParentProcess() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Attack.ParentProcess"
+    | extend 
+        Timestamp = todatetime(RawData.StartTime),
+        Username = tostring(RawData.Username),
+        ActualProcessName = tostring(RawData.ActualProcessName),
+        ActualParentName = tostring(RawData.ActualParentName),
+        ExpectedParentName = tostring(RawData.ExpectedParentName),
+        Pid = tostring(RawData.Pid),
+        Ppid = tostring(RawData.Ppid),
+        Exe = tostring(RawData.Exe),
+        CommandLine = tostring(RawData.CommandLine),
+        CallChain = tostring(RawData.CallChain),
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime)
+    | project 
+        Hostname, 
+        Timestamp,
+        Username,
+        ActualProcessName,
+        ActualParentName,
+        ExpectedParentName,
+        Pid,
+        Ppid,
+        Exe,
+        CommandLine,
+        CallChain,
+        StartTime,
+        EndTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsAttackParentProcess policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsAttackParentProcess()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -1,0 +1,38 @@
+//ARTIFACT: Server.Hunts.CancelAndDelete/HuntFiles
+.create table ServerHuntsCancelAndDeleteHuntFiles (
+    Timestamp: datetime,
+    Hostname: string,
+    Id: int,
+    Type: string,
+    Data: dynamic,
+    Error: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerHuntsCancelAndDeleteHuntFiles() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Hunts.CancelAndDelete/HuntFiles"
+    | extend 
+        Id = toint(RawData.Id),
+        Type = tostring(RawData.Type),
+        Data = RawData.Data,
+        Error = tostring(RawData.Error)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Id,
+        Type,
+        Data,
+        Error,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerHuntsCancelAndDeleteHuntFiles policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerHuntsCancelAndDeleteHuntFiles()","IsTransactional":false}]'

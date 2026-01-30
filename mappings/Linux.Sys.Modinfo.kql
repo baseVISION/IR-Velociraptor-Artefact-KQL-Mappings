@@ -1,0 +1,66 @@
+//ARTIFACT: Linux.Sys.Modinfo
+.create table LinuxSysModinfo (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Filename: string,
+    Description: string,
+    Alias: string,
+    License: string,
+    Author: string,
+    SrcVersion: string,
+    Depends: string,
+    Retpoline: string,
+    Intree: string,
+    Vermagic: string,
+    SourceInfo: dynamic,
+    Signature: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysModinfo() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Modinfo"
+    | extend 
+        Name = tostring(RawData.Name),
+        Filename = tostring(RawData.Filename),
+        Description = tostring(RawData.Description),
+        Alias = tostring(RawData.Alias),
+        License = tostring(RawData.License),
+        Author = tostring(RawData.Author),
+        SrcVersion = tostring(RawData.SrcVersion),
+        Depends = tostring(RawData.Depends),
+        Retpoline = tostring(RawData.Retpoline),
+        Intree = tostring(RawData.Intree),
+        Vermagic = tostring(RawData.Vermagic),
+        SourceInfo = RawData.SourceInfo,
+        Signature = RawData.Signature
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Filename,
+        Description,
+        Alias,
+        License,
+        Author,
+        SrcVersion,
+        Depends,
+        Retpoline,
+        Intree,
+        Vermagic,
+        SourceInfo,
+        Signature,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysModinfo policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysModinfo()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

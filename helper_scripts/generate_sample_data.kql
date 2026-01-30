@@ -1,0 +1,33 @@
+// Query to generate sample data for field coverage validation
+// This query extracts one sample row per artifact to analyze field coverage
+// Run this in Azure Data Explorer and save the output as samples.txt
+
+// Time filter: Last 1 hour
+let timeFilter = ago(1h);
+
+// Get one sample per artifact
+RawVelociraptorEvents
+| where IngestionTime >= timeFilter
+| summarize arg_max(Timestamp, *) by Artifact
+| project 
+    Artifact, 
+    Timestamp, 
+    Hostname, 
+    ClientId, 
+    FlowId, 
+    IngestionTime,
+    RawData
+| order by Artifact asc
+
+
+// Instructions:
+// 1. Run this query in Azure Data Explorer
+// 2. Copy rows to check to the clipboard as datatable
+// 3. Save as samples.txt in the repository root
+// 4. Run: python helper_scripts/check_missing_fields.py
+//
+// Adjust the time filter (ago(1h)) as needed:
+//   - ago(1h)   = Last 1 hour
+//   - ago(24h)  = Last 24 hours  
+//   - ago(7d)   = Last 7 days
+//   - ago(30d)  = Last 30 days

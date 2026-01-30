@@ -1,0 +1,113 @@
+//ARTIFACT: Linux.Forensics.EnvironmentVariables/LoginScriptsDetection, Linux.Forensics.EnvironmentVariables/ModifierDetection
+//DESCRIPTION: Detects environment variable modifications in login scripts
+//TABLE: LinuxForensicsEnvironmentVariables
+//NOTE: LoginScriptsDetection includes Upload, ModifierDetection only has Line+OSPath
+
+.create table LinuxForensicsEnvironmentVariables (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Line: string,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    UploadError: string,
+    UploadAccessor: string,
+    UploadComponents: string,
+    UploadStoredName: string,
+    DetectionType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Forensics.EnvironmentVariables/LoginScriptsDetection"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Line = "",
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        UploadError = tostring(RawData.Upload.Error),
+        UploadAccessor = tostring(RawData.Upload.Accessor),
+        UploadComponents = tostring(RawData.Upload.Components),
+        UploadStoredName = tostring(RawData.Upload.StoredName),
+        DetectionType = "LoginScripts"
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Line,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        UploadError,
+        UploadAccessor,
+        UploadComponents,
+        UploadStoredName,
+        DetectionType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.create-or-alter function RouteLinuxForensicsEnvironmentVariablesModifierDetection() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Forensics.EnvironmentVariables/ModifierDetection"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Line = tostring(RawData.Line),
+        UploadPath = "",
+        UploadSize = long(null),
+        UploadId = long(null),
+        StoredSize = long(null),
+        Sha256 = "",
+        Md5 = "",
+        UploadError = "",
+        UploadAccessor = "",
+        UploadComponents = "",
+        UploadStoredName = "",
+        DetectionType = "Modifier"
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Line,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        UploadError,
+        UploadAccessor,
+        UploadComponents,
+        UploadStoredName,
+        DetectionType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxForensicsEnvironmentVariables policy update 
+@'[
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection()", "IsTransactional": false, "PropagateIngestionProperties": false},
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesModifierDetection()", "IsTransactional": false, "PropagateIngestionProperties": false}
+]'

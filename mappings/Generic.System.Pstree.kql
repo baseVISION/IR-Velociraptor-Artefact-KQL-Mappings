@@ -2,7 +2,6 @@
 .create table GenericSystemPstree (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
     Pid: long,
     Ppid: long,
     Name: string,
@@ -13,9 +12,10 @@
     EndTime: datetime,
     CallChain: string,
     PSTree: dynamic,
+    Artifact: string,
+    Organization: string,
     ClientId: string,
     FlowId: string,
-    Organization: string,
     IngestionTime: datetime
 )
 
@@ -36,7 +36,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
         Pid,
         Ppid,
         Name,
@@ -47,9 +46,10 @@
         EndTime,
         CallChain,
         PSTree,
+        Artifact,
+        Organization,
         ClientId, 
         FlowId, 
-        Organization, 
         IngestionTime
 }
 

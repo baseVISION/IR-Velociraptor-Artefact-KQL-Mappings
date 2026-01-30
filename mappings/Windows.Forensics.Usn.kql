@@ -1,0 +1,62 @@
+//ARTIFACT: Windows.Forensics.Usn
+.create table WindowsForensicsUsn (
+    Timestamp: datetime,
+    Hostname: string,
+    EventTimestamp: datetime,
+    Filename: string,
+    OSPath: string,
+    MFTId: long,
+    Sequence: int,
+    ParentMFTId: long,
+    ParentSequence: int,
+    Usn: long,
+    Links: dynamic,
+    Reason: dynamic,
+    FileAttributes: dynamic,
+    SourceInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsUsn() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Usn"
+    | extend 
+        EventTimestamp = todatetime(RawData.Timestamp),
+        Filename = tostring(RawData.Filename),
+        OSPath = tostring(RawData.OSPath),
+        MFTId = tolong(RawData.MFTId),
+        Sequence = toint(RawData.Sequence),
+        ParentMFTId = tolong(RawData.ParentMFTId),
+        ParentSequence = toint(RawData.ParentSequence),
+        Usn = tolong(RawData.Usn),
+        Links = RawData._Links,
+        Reason = RawData.Reason,
+        FileAttributes = RawData.FileAttributes,
+        SourceInfo = RawData.SourceInfo
+    | project 
+        Timestamp, 
+        Hostname, 
+        EventTimestamp,
+        Filename,
+        OSPath,
+        MFTId,
+        Sequence,
+        ParentMFTId,
+        ParentSequence,
+        Usn,
+        Links,
+        Reason,
+        FileAttributes,
+        SourceInfo,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsUsn policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsUsn()", "IsEnabled": "True", "IsTransactional": true}]'

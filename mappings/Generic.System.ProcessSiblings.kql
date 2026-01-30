@@ -1,0 +1,53 @@
+//ARTIFACT: Generic.System.ProcessSiblings
+.create table GenericSystemProcessSiblings (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Pid: string,
+    Ppid: string,
+    Username: string,
+    CommandLine: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    ChildPid: string,
+    ParentTree: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericSystemProcessSiblings() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.System.ProcessSiblings"
+    | extend 
+        Name = tostring(RawData.Name),
+        Pid = tostring(RawData.Pid),
+        Ppid = tostring(RawData.Ppid),
+        Username = tostring(RawData.Username),
+        CommandLine = tostring(RawData.CommandLine),
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime),
+        ChildPid = tostring(RawData.ChildPid),
+        ParentTree = RawData.ParentTree
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Pid,
+        Ppid,
+        Username,
+        CommandLine,
+        StartTime,
+        EndTime,
+        ChildPid,
+        ParentTree,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table GenericSystemProcessSiblings policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericSystemProcessSiblings()","IsTransactional":false}]'

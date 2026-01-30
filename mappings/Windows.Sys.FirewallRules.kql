@@ -1,0 +1,53 @@
+//ARTIFACT: Windows.Sys.FirewallRules
+.create table WindowsSysFirewallRules (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    Value: string,
+    Active: string,
+    Action: string,
+    Dir: string,
+    Protocol: string,
+    LPort: string,
+    App: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysFirewallRules() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sys.FirewallRules"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        Value = tostring(RawData.Value),
+        Active = tostring(RawData.Active),
+        Action = tostring(RawData.Action),
+        Dir = tostring(RawData.Dir),
+        Protocol = tostring(RawData.Protocol),
+        LPort = tostring(RawData.LPort),
+        App = tostring(RawData.App)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        Value,
+        Active,
+        Action,
+        Dir,
+        Protocol,
+        LPort,
+        App,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysFirewallRules policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysFirewallRules()", "IsEnabled": "True", "IsTransactional": true}]'

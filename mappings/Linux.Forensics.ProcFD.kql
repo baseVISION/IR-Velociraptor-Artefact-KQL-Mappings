@@ -1,0 +1,66 @@
+//ARTIFACT: Linux.Forensics.ProcFD/DeletedFiles, Linux.Forensics.ProcFD/DeviceFiles, Linux.Forensics.ProcFD/RegularFiles, Linux.Forensics.ProcFD/Sockets
+//DESCRIPTION: Forensic analysis of process file descriptors
+//TABLE: LinuxForensicsProcFD
+
+.create table LinuxForensicsProcFD (
+    Timestamp: datetime,
+    Hostname: string,
+    FDPath: string,
+    FDLink: string,
+    ProcessCmdLine: string,
+    Process: string,
+    LoginUID: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    OctalMode: string,
+    StringMode: string,
+    FileType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxForensicsProcFD() {
+    RawVelociraptorEvents
+    | where Artifact startswith "Linux.Forensics.ProcFD/"
+    | extend 
+        FDPath = tostring(RawData.FDPath),
+        FDLink = tostring(RawData.FDLink),
+        ProcessCmdLine = tostring(RawData.ProcessCmdLine),
+        Process = tostring(RawData.Process),
+        LoginUID = tostring(RawData.LoginUID),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        OctalMode = tostring(RawData.OctalMode),
+        StringMode = tostring(RawData.StringMode),
+        FileType = tostring(split(Artifact, "/")[1])  // DeletedFiles, DeviceFiles, RegularFiles, Sockets
+    | project
+        Timestamp,
+        Hostname,
+        FDPath,
+        FDLink,
+        ProcessCmdLine,
+        Process,
+        LoginUID,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        OctalMode,
+        StringMode,
+        FileType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxForensicsProcFD policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsProcFD()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

@@ -1,57 +1,163 @@
 # Velociraptor Artefact KQL Mappings
 
-KQL (Kusto Query Language) mappings for ingesting and processing Velociraptor artefact data into Azure Data Explorer (Kusto).
+KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explorer tables. Automatically routes per artifacts from raw ingestion to structured tables.
 
-## Overview
+> **Disclaimer:** This project covers a subset of available Velociraptor artifacts. Mappings are provided as-is and may contain errors. Always validate against your data before production use.
 
-This project provides table schemas, routing functions, and update policies to automatically parse Velociraptor artefact data from a raw ingestion table into structured, artifact-specific tables for incident response and forensic analysis.
 
 ## Structure
 
-- **`raw_velociraptor_events.kql`** - Creates the `RawVelociraptorEvents` ingestion table (run first)
-- **`mappings/`** - Individual KQL mapping files for each Velociraptor artifact
-- **`combine_mappings.sh`** - Script to merge all mappings into a single file
-- **`all_mappings.kql`** - Generated combined file (execute this against your cluster)
+- **`Ingress_Setup_RawVelociraptorEvents.kql`** - Creates the raw ingestion table (one-time setup)
+- **`all_mappings.kql`** - Generated deployment artifact (execute against cluster)
+- **`mappings/`** - Individual KQL files per artifact (table + routing function + update policy)
+- **`helper_scripts/combine_mappings.sh`** - Merges all mappings into deployment file
+- **`.github/.copilot-instructions.md`** - Development guidelines for creating new mappings
 
 ## Current Parsed Artifacts
+- `Generic.Applications.Chrome.SessionStorage`
+- `Generic.Applications.Office.Keywords`
+- `Generic.Client.DiskSpace`
+- `Generic.Client.DiskUsage`
+- `Generic.Client.Info/WindowsInfo`
+- `Generic.Detection.HashHunter`
+- `Generic.Network.InterfaceAddresses`
+- `Generic.System.EfiSignatures/Certificates`
+- `Generic.System.ProcessSiblings`
+- `IRIS.Sync.Asset`
+- `Linux.Applications.Docker.Info`
+- `Linux.Applications.Docker.Version`
+- `Linux.Collection.*`
+- `Linux.Collection.CatScale`
+- `Linux.Detection.AnomalousFiles`
+- `Linux.Detection.BruteForce/btmp.logs, Linux.Detection.BruteForce/wtmp.logs`
+- `Linux.Detection.IncorrectPermissions/Discrepancies`
+- `Linux.ExtractKthread/extractKthread`
+- `Linux.Forensics.EnvironmentVariables/LoginScriptsDetection, Linux.Forensics.EnvironmentVariables/ModifierDetection`
+- `Linux.Forensics.Journal`
+- `Linux.Forensics.ProcFD/DeletedFiles, Linux.Forensics.ProcFD/DeviceFiles, Linux.Forensics.ProcFD/RegularFiles, Linux.Forensics.ProcFD/Sockets`
+- `Linux.Forensics.RecentlyUsed/Recent Entries`
+- `Linux.Forensics.Targets/*`
+- `Linux.Memory.AVML`
+- `Linux.Mounts`
+- `Linux.Network.NetstatEnriched`
+- `Linux.Network.Netstat/TCP4, Linux.Network.Netstat/TCP6`
+- `Linux.Network.Netstat.Watcher/RemoteConnectionsDiffMonitor`
+- `Linux.Network.NM.Connections/ConnectionConfigs`
+- `Linux.Proc.Arp`
+- `Linux.Proc.Modules`
+- `Linux.Sys.ACPITables`
+- `Linux.Sys.BashHistory`
+- `Linux.Sys.CPUTime`
+- `Linux.Sys.Crontab/CronScripts`
+- `Linux.Sys.Getcap`
+- `Linux.Sys.Groups`
+- `Linux.Sys.JournalCtl`
+- `Linux.Sys.LastUserLogin`
+- `Linux.Sys.LogHunter`
+- `Linux.Sys.Maps`
+- `Linux.Sys.Modinfo`
+- `Linux.Sys.Pslist`
+- `Linux.Sys.Services`
+- `Linux.Sys.SUID`
+- `Linux.Sys.SystemdTimer`
+- `Linux.System.BashLogout`
+- `Linux.System.PAM`
+- `Linux.Sys.Users`
+- `Linux.Users.InteractiveUsers`
+- `Linux.Users.RootUsers`
+- `Network.ExternalIpAddress`
+- `Server.Hunts.CancelAndDelete/HuntFiles`
+- `Server.Import.ArtifactExchange`
+- `Server.Import.Extras`
+- `Server.Orgs.NewOrg`
+- `Server.Utils.CreateLinuxPackages`
+- `Server.Utils.CreateMSI`
+- `Server.Utils.DeleteEvents`
+- `System.VFS.DownloadFile`
+- `System.VFS.ListDirectory/Listing`
+- `Windows.Analysis.EvidenceOfDownload`
+- `Windows.Attack.ParentProcess`
+- `Windows.Attack.Prefetch`
+- `Windows.Detection.Amcache`
+- `Windows.Detection.BinaryHunter`
+- `Windows.Detection.BinaryRename`
+- `Windows.Detection.Malfind`
+- `Windows.Detection.Mutants/Handles`
+- `Windows.EventLogs.Evtx`
+- `Windows.EventLogs.Hayabusa/Results`
+- `Windows.Forensics.CertUtil`
+- `Windows.Forensics.Clipboard`
+- `Windows.Forensics.Lnk`
+- `Windows.Forensics.Prefetch`
+- `Windows.Forensics.RecycleBin`
+- `Windows.Forensics.SAM/CreateTimes`
+- `Windows.Forensics.Shellbags`
+- `Windows.Forensics.SRUM/Execution Stats`
+- `Windows.Forensics.Timeline`
+- `Windows.Forensics.Usn`
+- `Windows.Network.ArpCache`
+- `Windows.Network.InterfaceAddresses`
+- `Windows.Network.ListeningPorts`
+- `Windows.Network.Netstat`
+- `Windows.Network.NetstatEnriched`
+- `Windows.NTFS.ADSHunter`
+- `Windows.NTFS.MFT`
+- `Windows.Packs.LateralMovement/AlternateLogon`
+- `Windows.Packs.Persistence/Startup Items`
+- `Windows.Registry.NTUser`
+- `Windows.Registry.ScheduledTasks`
+- `Windows.Registry.UserAssist`
+- `Windows.Sys.FirewallRules`
+- `Windows.Sys.Interfaces`
+- `Windows.Sysinternals.Autoruns`
+- `Windows.Sys.StartupItems`
+- `Windows.System.Amcache/InventoryApplicationFile`
+- `Windows.System.AppCompatPCA`
+- `Windows.System.LocalAdmins`
+- `Windows.System.Powershell.ModuleAnalysisCache`
+- `Windows.System.Powershell.PSReadline`
+- `Windows.System.Pslist`
+- `Windows.System.Shares`
+- `Windows.System.WMIProviders`
+- `Windows.System.WMIQuery`
+- `Windows.Timeline.MFT`
+- `Windows.Triage.Targets/SearchGlobs`
 
-- `Generic.Applications.Chrome.SessionStorage` - Browser session storage entries
-- `Generic.Applications.Office.Keywords` - Office document keyword hits with context
-- `Generic.Client.DiskSpace` - Volume capacity and free space
-- `Generic.Client.DiskUsage` - Directory size summary
-- `Generic.Client.Info/WindowsInfo` - Windows system information
-- `Generic.Client.Info/BasicInformation` - Client metadata and configuration
-- `Generic.Detection.HashHunter` - File hashes with timestamps
-- `Generic.Network.InterfaceAddresses` - Interface IP/MAC/flags
-- `Generic.System.EfiSignatures/Certificates` - EFI trust store certificates
-- `Generic.System.EfiSignatures/Hashes` - EFI dbx hashes
-- `Generic.System.Pstree` - Process tree and hierarchy data
-- `Network.ExternalIpAddress` - Observed public IP
-- `System.VFS.DownloadFile` - Downloaded file metadata
-- `System.VFS.ListDirectory/Listing` - File and registry directory listings
-- `System.VFS.ListDirectory/Stats` - Listing pagination stats
-- `Windows.Analysis.EvidenceOfDownload` - Zone.Identifier download evidence
-- `Windows.EventLogs.Evtx` - Windows event log records
-- `Windows.Forensics.Lnk` - Shortcut evidence
-- `Windows.Forensics.Prefetch` - Prefetch execution metadata
+## Quick Start
 
-### Adding New Artifacts
+1. **One-time setup:** Execute `Ingress_Setup_RawVelociraptorEvents.kql` against your Azure Data Explorer cluster
+2. **Deploy mappings:** Execute `all_mappings.kql` against your cluster
+3. **Ingest data:** Send Velociraptor output to `RawVelociraptorEvents` table
+4. **Query:** Data automatically routes to artifact-specific tables (e.g., `WindowsForensicsPrefetch`, `LinuxSysPslist`)
 
-Each artifact mapping requires three components:
-1. **`.create table`** - Define the schema with typed columns
-2. **`.create-or-alter function`** - Extract and transform fields from `RawData`
-3. **`.alter table policy update`** - Auto-route matching events to the table
+## Development Workflow
 
-## Usage
+**Creating/updating mappings:**
 
-1. **First time only:** Create the raw ingestion table by executing `raw_velociraptor_events.kql` against your cluster
+1. Generate sample data: Run `helper_scripts/generate_sample_data.kql` in ADX, save output as `samples.txt`
+2. Create mapping in `mappings/` directory (see `.github/.copilot-instructions.md` for patterns)
+3. Validate: `python3 helper_scripts/check_missing_fields.py`
+4. Build: `./helper_scripts/combine_mappings.sh`
+5. Deploy: Execute updated `all_mappings.kql` against cluster
 
-2. Generate the combined mappings file:
-   ```bash
-   ./combine_mappings.sh
-   # Or specify a custom directory: ./combine_mappings.sh -d custom_dir
-   ```
+## Helper Scripts
 
-3. Execute `all_mappings.kql` against your Azure Data Explorer cluster
+**`check_missing_fields.py`** - Tries to validates field completeness by comparing sample data against KQL mappings using heuristics. 
 
-4. Ingest Velociraptor data to the `RawVelociraptorEvents` table - data will automatically route to artifact-specific tables
+```bash
+python3 helper_scripts/check_missing_fields.py
+# Custom paths: python3 helper_scripts/check_missing_fields.py --samples data/samples.txt --mappings custom_mappings/
+```
+
+Reports missing/obsolete fields. Expected optional fields (auto-ignored): `timestamp`, `Upload.*`, dynamic parent fields (`EventData.*`, `System.*`)
+
+**`generate_sample_data.kql`** - ADX query to extract sample Velociraptor events for validation
+
+Run in Azure Data Explorer, adjust time filter (default: `ago(1h)`), save output as `samples.txt`
+
+**`combine_mappings.sh`** - Merges all `mappings/*.kql` files into `all_mappings.kql` for deployment
+
+```bash
+./helper_scripts/combine_mappings.sh
+```
+

@@ -1,0 +1,42 @@
+//ARTIFACT: Linux.Sys.Services
+.create table LinuxSysServices (
+    Timestamp: datetime,
+    Hostname: string,
+    Unit: string,
+    Description: string,
+    Active: string,
+    Load: string,
+    Sub: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysServices() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Services"
+    | extend 
+        Unit = tostring(RawData.Unit),
+        Description = tostring(RawData.Description),
+        Active = tostring(RawData.Active),
+        Load = tostring(RawData.Load),
+        Sub = tostring(RawData.Sub)
+    | project
+        Timestamp,
+        Hostname,
+        Unit,
+        Description,
+        Active,
+        Load,
+        Sub,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysServices policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysServices()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

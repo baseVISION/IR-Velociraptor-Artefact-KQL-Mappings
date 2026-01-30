@@ -1,0 +1,48 @@
+//ARTIFACT: Linux.Users.InteractiveUsers
+.create table LinuxUsersInteractiveUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    Host: string,
+    User: string,
+    Description: string,
+    Uid: string,
+    Gid: string,
+    Homedir: string,
+    Shell: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxUsersInteractiveUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Users.InteractiveUsers"
+    | extend 
+        Host = tostring(RawData.Host),
+        User = tostring(RawData.User),
+        Description = tostring(RawData.Description),
+        Uid = tostring(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        Homedir = tostring(RawData.Homedir),
+        Shell = tostring(RawData.Shell)
+    | project
+        Timestamp,
+        Hostname,
+        Host,
+        User,
+        Description,
+        Uid,
+        Gid,
+        Homedir,
+        Shell,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxUsersInteractiveUsers policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxUsersInteractiveUsers()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

@@ -1,0 +1,113 @@
+//ARTIFACT: Windows.EventLogs.Hayabusa/Results
+.create table WindowsEventLogsHayabusaResults (
+    Timestamp: datetime,
+    Hostname: string,
+    EventTimestamp: datetime,
+    Details: string,
+    EventID: int,
+    RuleTitle: string,
+    Level: string,
+    Computer: string,
+    Channel: string,
+    RecordID: long,
+    ExtraFieldInfo: string,
+    RuleID: string,
+    EventTime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsEventLogsHayabusaResults() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.Hayabusa/Results"
+    | extend 
+        EventTimestamp = todatetime(RawData.Timestamp),
+        Details = tostring(RawData.Details),
+        EventID = toint(RawData.EventID),
+        RuleTitle = tostring(RawData.RuleTitle),
+        Level = tostring(RawData.Level),
+        Computer = tostring(RawData.Computer),
+        Channel = tostring(RawData.Channel),
+        RecordID = tolong(RawData.RecordID),
+        ExtraFieldInfo = tostring(RawData.ExtraFieldInfo),
+        RuleID = tostring(RawData.RuleID),
+        EventTime = todatetime(RawData.EventTime)
+    | project 
+        Timestamp, 
+        Hostname, 
+        EventTimestamp,
+        Details,
+        EventID,
+        RuleTitle,
+        Level,
+        Computer,
+        Channel,
+        RecordID,
+        ExtraFieldInfo,
+        RuleID,
+        EventTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsEventLogsHayabusaResults policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsEventLogsHayabusaResults()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.EventLogs.Hayabusa/Upload
+.create table WindowsEventLogsHayabusaUpload (
+    Timestamp: datetime,
+    Hostname: string,
+    Size: long,
+    Accessor: string,
+    Path: string,
+    UploadId: long,
+    StoredName: string,
+    Components: dynamic,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsEventLogsHayabusaUpload() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.Hayabusa/Upload"
+    | extend 
+        Size = tolong(RawData.Uploads.Size),
+        Accessor = tostring(RawData.Uploads.Accessor),
+        Path = tostring(RawData.Uploads.Path),
+        UploadId = tolong(RawData.Uploads.UploadId),
+        StoredName = tostring(RawData.Uploads.StoredName),
+        Components = RawData.Uploads.Components,
+        StoredSize = tolong(RawData.Uploads.StoredSize),
+        Sha256 = tostring(RawData.Uploads.sha256),
+        Md5 = tostring(RawData.Uploads.md5)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Size,
+        Accessor,
+        Path,
+        UploadId,
+        StoredName,
+        Components,
+        StoredSize,
+        Sha256,
+        Md5,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsEventLogsHayabusaUpload policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsEventLogsHayabusaUpload()", "IsEnabled": "True", "IsTransactional": true}]'

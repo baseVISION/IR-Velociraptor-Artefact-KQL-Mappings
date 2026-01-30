@@ -1,0 +1,110 @@
+//ARTIFACT: Windows.Packs.Persistence/Startup Items
+.create table WindowsPacksPersistenceStartupItems (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    OSPath: string,
+    Details: string,
+    Enabled: string,
+    Source: string,
+    Upload: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsPacksPersistenceStartupItems() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Packs.Persistence/Startup Items"
+    | extend 
+        Name = tostring(RawData.Name),
+        OSPath = tostring(RawData.OSPath),
+        Details = tostring(RawData.Details),
+        Enabled = tostring(RawData.Enabled),
+        Source = tostring(RawData._Source),
+        Upload = tostring(RawData.Upload)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        OSPath,
+        Details,
+        Enabled,
+        Source,
+        Upload,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsPacksPersistenceStartupItems policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPacksPersistenceStartupItems()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Packs.Persistence/WMI Event Filters
+.create table WindowsPacksPersistenceWMIEventFilters (
+    Timestamp: datetime,
+    Hostname: string,
+    Source: string,
+    ConsumerName: string,
+    ConsumerCategory: int,
+    ConsumerEventID: int,
+    ConsumerEventType: int,
+    ConsumerSourceName: string,
+    FilterName: string,
+    FilterEventNamespace: string,
+    FilterQuery: string,
+    FilterQueryLanguage: string,
+    Namespace: string,
+    ConsumerDetails: dynamic,
+    FilterDetails: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsPacksPersistenceWMIEventFilters() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Packs.Persistence/WMI Event Filters"
+    | extend 
+        Source = tostring(RawData._Source),
+        ConsumerName = tostring(RawData.ConsumerDetails.Name),
+        ConsumerCategory = toint(RawData.ConsumerDetails.Category),
+        ConsumerEventID = toint(RawData.ConsumerDetails.EventID),
+        ConsumerEventType = toint(RawData.ConsumerDetails.EventType),
+        ConsumerSourceName = tostring(RawData.ConsumerDetails.SourceName),
+        FilterName = tostring(RawData.FilterDetails.Name),
+        FilterEventNamespace = tostring(RawData.FilterDetails.EventNamespace),
+        FilterQuery = tostring(RawData.FilterDetails.Query),
+        FilterQueryLanguage = tostring(RawData.FilterDetails.QueryLanguage),
+        Namespace = tostring(RawData.Namespace),
+        ConsumerDetails = RawData.ConsumerDetails,
+        FilterDetails = RawData.FilterDetails
+    | project 
+        Timestamp, 
+        Hostname, 
+        Source,
+        ConsumerName,
+        ConsumerCategory,
+        ConsumerEventID,
+        ConsumerEventType,
+        ConsumerSourceName,
+        FilterName,
+        FilterEventNamespace,
+        FilterQuery,
+        FilterQueryLanguage,
+        Namespace,
+        ConsumerDetails,
+        FilterDetails,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsPacksPersistenceWMIEventFilters policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPacksPersistenceWMIEventFilters()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -1,0 +1,62 @@
+//ARTIFACT: Windows.Registry.NTUser
+.create table WindowsRegistryNTUser (
+    Timestamp: datetime,
+    Hostname: string,
+    Mtime: datetime,
+    Username: string,
+    UUID: string,
+    OSPath: string,
+    Description: string,
+    Directory: string,
+    Uid: string,
+    Gid: string,
+    DataType: string,
+    DataLen: long,
+    DataValue: string,
+    Data: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsRegistryNTUser() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Registry.NTUser"
+    | extend 
+        Mtime = todatetime(RawData.Mtime),
+        Username = tostring(RawData.Username),
+        UUID = tostring(RawData.UUID),
+        OSPath = tostring(RawData.OSPath),
+        Description = tostring(RawData.Description),
+        Directory = tostring(RawData.Directory),
+        Uid = tostring(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        DataType = tostring(RawData.Data.type),
+        DataLen = tolong(RawData.Data.data_len),
+        DataValue = tostring(RawData.Data.value),
+        Data = RawData.Data
+    | project 
+        Timestamp, 
+        Hostname, 
+        Mtime,
+        Username,
+        UUID,
+        OSPath,
+        Description,
+        Directory,
+        Uid,
+        Gid,
+        DataType,
+        DataLen,
+        DataValue,
+        Data,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsRegistryNTUser policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsRegistryNTUser()", "IsEnabled": "True", "IsTransactional": true}]'

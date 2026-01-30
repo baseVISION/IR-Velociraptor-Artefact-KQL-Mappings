@@ -1,0 +1,35 @@
+//ARTIFACT: Server.Utils.DeleteEvents
+.create table ServerUtilsDeleteEvents (
+    Timestamp: datetime,
+    Hostname: string,
+    Type: string,
+    VFSPath: string,
+    Error: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerUtilsDeleteEvents() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Utils.DeleteEvents"
+    | extend 
+        Type = tostring(RawData.Type),
+        VFSPath = tostring(RawData.VFSPath),
+        Error = tostring(RawData.Error)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Type,
+        VFSPath,
+        Error,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerUtilsDeleteEvents policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerUtilsDeleteEvents()","IsTransactional":false}]'

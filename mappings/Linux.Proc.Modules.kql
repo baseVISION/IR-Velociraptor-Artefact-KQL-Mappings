@@ -1,0 +1,45 @@
+//ARTIFACT: Linux.Proc.Modules
+.create table LinuxProcModules (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Size: long,
+    UseCount: long,
+    UsedBy: string,
+    Status: string,
+    Address: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxProcModules() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Proc.Modules"
+    | extend 
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        UseCount = tolong(RawData.UseCount),
+        UsedBy = tostring(RawData.UsedBy),
+        Status = tostring(RawData.Status),
+        Address = tostring(RawData.Address)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Size,
+        UseCount,
+        UsedBy,
+        Status,
+        Address,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxProcModules policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxProcModules()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

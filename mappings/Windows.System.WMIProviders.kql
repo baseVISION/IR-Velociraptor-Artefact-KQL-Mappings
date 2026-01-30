@@ -1,0 +1,38 @@
+//ARTIFACT: Windows.System.WMIProviders
+.create table WindowsSystemWMIProviders (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    CLSID: string,
+    ServerType: string,
+    BinaryPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemWMIProviders() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.WMIProviders"
+    | extend 
+        Name = tostring(RawData.Name),
+        CLSID = tostring(RawData.CLSID),
+        ServerType = tostring(RawData.ServerType),
+        BinaryPath = tostring(RawData.BinaryPath)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        CLSID,
+        ServerType,
+        BinaryPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemWMIProviders policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemWMIProviders()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -1,0 +1,59 @@
+//ARTIFACT: Windows.NTFS.ADSHunter
+.create table WindowsNTFSADSHunter (
+    Timestamp: datetime,
+    Hostname: string,
+    Size: long,
+    OSPath: string,
+    AdsName: string,
+    Inode: string,
+    HostObject: string,
+    HostTimestampsSI: dynamic,
+    HostTimestampsMtime: datetime,
+    HostTimestampsCtime: datetime,
+    HostTimestampsAtime: datetime,
+    HostTimestampsBtime: datetime,
+    AdsContent: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNTFSADSHunter() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.NTFS.ADSHunter"
+    | extend 
+        Size = tolong(RawData.Size),
+        OSPath = tostring(RawData.OSPath),
+        AdsName = tostring(RawData.AdsName),
+        Inode = tostring(RawData.Inode),
+        HostObject = tostring(RawData.HostObject),
+        HostTimestampsSI = RawData.HostTimestampsSI,
+        HostTimestampsMtime = todatetime(RawData.HostTimestampsSI.Mtime),
+        HostTimestampsCtime = todatetime(RawData.HostTimestampsSI.Ctime),
+        HostTimestampsAtime = todatetime(RawData.HostTimestampsSI.Atime),
+        HostTimestampsBtime = todatetime(RawData.HostTimestampsSI.Btime),
+        AdsContent = tostring(RawData.AdsContent)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Size,
+        OSPath,
+        AdsName,
+        Inode,
+        HostObject,
+        HostTimestampsSI,
+        HostTimestampsMtime,
+        HostTimestampsCtime,
+        HostTimestampsAtime,
+        HostTimestampsBtime,
+        AdsContent,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNTFSADSHunter policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNTFSADSHunter()", "IsEnabled": "True", "IsTransactional": true}]'

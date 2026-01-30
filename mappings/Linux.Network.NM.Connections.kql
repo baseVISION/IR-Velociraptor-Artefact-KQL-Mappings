@@ -1,0 +1,195 @@
+//ARTIFACT: Linux.Network.NM.Connections/ConnectionConfigs
+.create table LinuxNetworkNMConnectionConfigs (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Contents: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNMConnectionsConnectionConfigs() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.NM.Connections/ConnectionConfigs"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Contents = RawData.Contents
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Contents,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNMConnectionConfigs policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNMConnectionsConnectionConfigs()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Network.NM.Connections/Connections
+.create table LinuxNetworkNMConnections (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Type: string,
+    Device: string,
+    UUID: string,
+    LastActivated: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNMConnectionsConnections() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.NM.Connections/Connections"
+    | extend 
+        Name = tostring(RawData.Name),
+        Type = tostring(RawData.Type),
+        Device = tostring(RawData.Device),
+        UUID = tostring(RawData.UUID),
+        LastActivated = todatetime(RawData.LastActivated)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Type,
+        Device,
+        UUID,
+        LastActivated,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNMConnections policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNMConnectionsConnections()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Network.NM.Connections/DeviceStatus
+.create table LinuxNetworkNMDeviceStatus (
+    Timestamp: datetime,
+    Hostname: string,
+    Device: string,
+    Type: string,
+    State: string,
+    Connection: string,
+    Mac: string,
+    MTU: string,
+    Gateway: string,
+    Addresses: dynamic,
+    Routes: dynamic,
+    DNSServers: dynamic,
+    DNSDomains: dynamic,
+    DNSSearches: dynamic,
+    IPv6Addresses: dynamic,
+    IPv6Routes: dynamic,
+    IPv6Gateway: string,
+    IPv6DNSServers: dynamic,
+    IPv6DNSDomains: dynamic,
+    IPv6DNSSearches: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNMConnectionsDeviceStatus() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.NM.Connections/DeviceStatus"
+    | extend 
+        Device = tostring(RawData.Device),
+        Type = tostring(RawData.Type),
+        State = tostring(RawData.State),
+        Connection = tostring(RawData.Connection),
+        Mac = tostring(RawData.Mac),
+        MTU = tostring(RawData.MTU),
+        Gateway = tostring(RawData.Gateway),
+        Addresses = RawData.Addresses,
+        Routes = RawData.Routes,
+        DNSServers = RawData.DNSServers,
+        DNSDomains = RawData.DNSDomains,
+        DNSSearches = RawData.DNSSearches,
+        IPv6Addresses = RawData._IPv6Addresses,
+        IPv6Routes = RawData._IPv6Routes,
+        IPv6Gateway = tostring(RawData._IPv6Gateway),
+        IPv6DNSServers = RawData._IPv6DNSServers,
+        IPv6DNSDomains = RawData._IPv6DNSDomains,
+        IPv6DNSSearches = RawData._IPv6DNSSearches
+    | project
+        Timestamp,
+        Hostname,
+        Device,
+        Type,
+        State,
+        Connection,
+        Mac,
+        MTU,
+        Gateway,
+        Addresses,
+        Routes,
+        DNSServers,
+        DNSDomains,
+        DNSSearches,
+        IPv6Addresses,
+        IPv6Routes,
+        IPv6Gateway,
+        IPv6DNSServers,
+        IPv6DNSDomains,
+        IPv6DNSSearches,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNMDeviceStatus policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNMConnectionsDeviceStatus()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Network.NM.Connections/State
+.create table LinuxNetworkNMState (
+    Timestamp: datetime,
+    Hostname: string,
+    NetworkingEnabled: string,
+    WirelessEnabled: string,
+    WWANEnabled: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNMConnectionsState() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.NM.Connections/State"
+    | extend 
+        NetworkingEnabled = tostring(RawData.NetworkingEnabled),
+        WirelessEnabled = tostring(RawData.WirelessEnabled),
+        WWANEnabled = tostring(RawData.WWANEnabled)
+    | project
+        Timestamp,
+        Hostname,
+        NetworkingEnabled,
+        WirelessEnabled,
+        WWANEnabled,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNMState policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNMConnectionsState()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

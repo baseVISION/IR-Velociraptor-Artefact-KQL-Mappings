@@ -1,0 +1,80 @@
+//ARTIFACT: Windows.Sysinternals.Autoruns
+.create table WindowsSysinternalsAutoruns (
+    Timestamp: datetime,
+    Hostname: string,
+    Category: string,
+    Entry: string,
+    EntryLocation: string,
+    Enabled: string,
+    Profile: string,
+    LaunchString: string,
+    ImagePath: string,
+    Description: string,
+    Version: string,
+    Company: string,
+    Signer: string,
+    Time: string,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    PESHA1: string,
+    PESHA256: string,
+    IMP: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysinternalsAutoruns() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sysinternals.Autoruns"
+    | extend 
+        Category = tostring(RawData.Category),
+        Entry = tostring(RawData.Entry),
+        EntryLocation = tostring(RawData['Entry Location']),
+        Enabled = tostring(RawData.Enabled),
+        Profile = tostring(RawData.Profile),
+        LaunchString = tostring(RawData['Launch String']),
+        ImagePath = tostring(RawData['Image Path']),
+        Description = tostring(RawData.Description),
+        Version = tostring(RawData.Version),
+        Company = tostring(RawData.Company),
+        Signer = tostring(RawData.Signer),
+        Time = tostring(RawData.Time),
+        MD5 = tostring(RawData.MD5),
+        SHA1 = tostring(RawData['SHA-1']),
+        SHA256 = tostring(RawData['SHA-256']),
+        PESHA1 = tostring(RawData['PESHA-1']),
+        PESHA256 = tostring(RawData['PESHA-256']),
+        IMP = tostring(RawData.IMP)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Category,
+        Entry,
+        EntryLocation,
+        Enabled,
+        Profile,
+        LaunchString,
+        ImagePath,
+        Description,
+        Version,
+        Company,
+        Signer,
+        Time,
+        MD5,
+        SHA1,
+        SHA256,
+        PESHA1,
+        PESHA256,
+        IMP,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysinternalsAutoruns policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysinternalsAutoruns()", "IsEnabled": "True", "IsTransactional": true}]'

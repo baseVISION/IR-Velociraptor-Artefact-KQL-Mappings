@@ -1,0 +1,80 @@
+//ARTIFACT: Linux.Collection.*
+// Generic table for all Linux.Collection upload artifacts
+// Handles sub-artifacts from:
+// - Linux.Collection.Autoruns/* (6 sub-artifacts)
+// - Linux.Collection.BrowserExtensions/* (Firefox addons)
+// - Linux.Collection.BrowserHistory/* (Firefox history)
+// - Linux.Collection.DBConfig/* (MySQL configs)
+// - Linux.Collection.History/* (Bash/Fish shell history)
+// - Linux.Collection.NetworkConfig/* (9 network config files)
+// - Linux.Collection.SysConfig/* (~35 system config files)
+// - Linux.Collection.SysLogs/* (7 log file types)
+// - Linux.Collection.UserConfig/* (4 shell config files)
+.create table LinuxCollectionUploads (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    UploadError: string,
+    UploadAccessor: string,
+    UploadComponents: string,
+    UploadStoredName: string,
+    Category: string,
+    SubArtifact: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxCollectionUploads() {
+    RawVelociraptorEvents
+    | where Artifact startswith "Linux.Collection." and Artifact != "Linux.Collection.CatScale"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        UploadError = tostring(RawData.Upload.Error),
+        UploadAccessor = tostring(RawData.Upload.Accessor),
+        UploadComponents = tostring(RawData.Upload.Components),
+        UploadStoredName = tostring(RawData.Upload.StoredName),
+        ArtifactParts = split(Artifact, "/"),
+        Category = tostring(split(Artifact, ".")[2]),  // Autoruns, BrowserHistory, etc.
+        SubArtifact = tostring(array_length(split(Artifact, "/")) > 1 ? split(Artifact, "/")[1] : "")
+    | project 
+        Timestamp = todatetime(RawData.timestamp),
+        Hostname,
+        OSPath,
+        Mtime,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        UploadError,
+        UploadAccessor,
+        UploadComponents,
+        UploadStoredName,
+        Category,
+        SubArtifact,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxCollectionUploads policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxCollectionUploads()","IsTransactional":false}]'

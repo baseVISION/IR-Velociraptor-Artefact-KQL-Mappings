@@ -1,0 +1,36 @@
+//ARTIFACT: Windows.System.Powershell.ModuleAnalysisCache
+.create table WindowsSystemPowershellModuleAnalysisCache (
+    Hostname: string,
+    Timestamp: datetime,
+    OSPath: string,
+    ModuleName: string,
+    Functions: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemPowershellModuleAnalysisCache() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Powershell.ModuleAnalysisCache"
+    | extend 
+        Timestamp = todatetime(RawData.Timestamp),
+        OSPath = tostring(RawData.OSPath),
+        ModuleName = tostring(RawData.ModuleName),
+        Functions = RawData.Functions
+    | project 
+        Hostname, 
+        Timestamp,
+        OSPath,
+        ModuleName,
+        Functions,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemPowershellModuleAnalysisCache policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemPowershellModuleAnalysisCache()", "IsEnabled": "True", "IsTransactional": true}]'

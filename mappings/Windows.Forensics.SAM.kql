@@ -1,0 +1,131 @@
+//ARTIFACT: Windows.Forensics.SAM/CreateTimes
+.create table WindowsForensicsSAMCreateTimes (
+    Timestamp: datetime,
+    Hostname: string,
+    Username: string,
+    CreatedTime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSAMCreateTimes() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SAM/CreateTimes"
+    | extend 
+        Username = tostring(RawData.Username),
+        CreatedTime = todatetime(RawData.CreatedTime)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Username,
+        CreatedTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSAMCreateTimes policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSAMCreateTimes()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.SAM/Parsed
+.create table WindowsForensicsSAMParsed (
+    Timestamp: datetime,
+    Hostname: string,
+    Key: string,
+    Hive: string,
+    LastLoginDate: datetime,
+    PasswordResetDate: datetime,
+    PasswordFailDate: datetime,
+    RID: int,
+    FailedLoginCount: int,
+    LoginCount: int,
+    Flags: dynamic,
+    Username: string,
+    Fullname: string,
+    Comment: string,
+    AccountType: string,
+    Driveletter: string,
+    LogonScript: string,
+    ProfilePath: string,
+    Workstation: string,
+    LmpwdHash: string,
+    NtpwdHash: string,
+    F: string,
+    V: string,
+    SupplementalCredentials: string,
+    ParsedF: dynamic,
+    ParsedV: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsSAMParsed() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.SAM/Parsed"
+    | extend 
+        Key = tostring(RawData.Key),
+        Hive = tostring(RawData.Hive),
+        LastLoginDate = todatetime(RawData.ParsedF.LastLoginDate),
+        PasswordResetDate = todatetime(RawData.ParsedF.PasswordResetDate),
+        PasswordFailDate = todatetime(RawData.ParsedF.PasswordFailDate),
+        RID = toint(RawData.ParsedF.RID),
+        FailedLoginCount = toint(RawData.ParsedF.FailedLoginCount),
+        LoginCount = toint(RawData.ParsedF.LoginCount),
+        Flags = RawData.ParsedF.Flags,
+        Username = tostring(RawData.ParsedV.username),
+        Fullname = tostring(RawData.ParsedV.fullname),
+        Comment = tostring(RawData.ParsedV.comment),
+        AccountType = tostring(RawData.ParsedV.AccountType),
+        Driveletter = tostring(RawData.ParsedV.driveletter),
+        LogonScript = tostring(RawData.ParsedV.logon_script),
+        ProfilePath = tostring(RawData.ParsedV.profile_path),
+        Workstation = tostring(RawData.ParsedV.workstation),
+        LmpwdHash = tostring(RawData.ParsedV.lmpwd_hash),
+        NtpwdHash = tostring(RawData.ParsedV.ntpwd_hash),
+        F = tostring(RawData._F),
+        V = tostring(RawData._V),
+        SupplementalCredentials = tostring(RawData._SupplementalCredentials),
+        ParsedF = RawData.ParsedF,
+        ParsedV = RawData.ParsedV
+    | project 
+        Timestamp, 
+        Hostname, 
+        Key,
+        Hive,
+        LastLoginDate,
+        PasswordResetDate,
+        PasswordFailDate,
+        RID,
+        FailedLoginCount,
+        LoginCount,
+        Flags,
+        Username,
+        Fullname,
+        Comment,
+        AccountType,
+        Driveletter,
+        LogonScript,
+        ProfilePath,
+        Workstation,
+        LmpwdHash,
+        NtpwdHash,
+        F,
+        V,
+        SupplementalCredentials,
+        ParsedF,
+        ParsedV,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsSAMParsed policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsSAMParsed()", "IsEnabled": "True", "IsTransactional": true}]'

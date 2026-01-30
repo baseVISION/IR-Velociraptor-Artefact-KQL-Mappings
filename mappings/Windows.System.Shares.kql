@@ -1,0 +1,47 @@
+//ARTIFACT: Windows.System.Shares
+.create table WindowsSystemShares (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Path: string,
+    Caption: string,
+    Status: string,
+    MaximumAllowed: long,
+    AllowMaximum: bool,
+    InstallDate: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemShares() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Shares"
+    | extend 
+        Name = tostring(RawData.Name),
+        Path = tostring(RawData.Path),
+        Caption = tostring(RawData.Caption),
+        Status = tostring(RawData.Status),
+        MaximumAllowed = tolong(RawData.MaximumAllowed),
+        AllowMaximum = tobool(RawData.AllowMaximum),
+        InstallDate = todatetime(RawData.InstallDate)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Path,
+        Caption,
+        Status,
+        MaximumAllowed,
+        AllowMaximum,
+        InstallDate,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemShares policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemShares()", "IsEnabled": "True", "IsTransactional": true}]'

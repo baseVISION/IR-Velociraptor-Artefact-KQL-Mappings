@@ -1,0 +1,42 @@
+//ARTIFACT: Linux.Sys.ACPITables
+.create table LinuxSysACPITables (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Size: long,
+    HashMD5: string,
+    HashSHA1: string,
+    HashSHA256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysACPITables() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.ACPITables"
+    | extend 
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        HashMD5 = tostring(RawData.["Hash.MD5"]),
+        HashSHA1 = tostring(RawData.["Hash.SHA1"]),
+        HashSHA256 = tostring(RawData.["Hash.SHA256"])
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Size,
+        HashMD5,
+        HashSHA1,
+        HashSHA256,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysACPITables policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysACPITables()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

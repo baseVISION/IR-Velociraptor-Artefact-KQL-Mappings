@@ -1,0 +1,56 @@
+//ARTIFACT: Windows.Network.Netstat
+.create table WindowsNetworkNetstat (
+    Timestamp: datetime,
+    Hostname: string,
+    EventTimestamp: datetime,
+    Name: string,
+    Type: string,
+    Status: string,
+    Pid: int,
+    Family: string,
+    LaddrIP: string,
+    LaddrPort: int,
+    RaddrIP: string,
+    RaddrPort: int,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNetworkNetstat() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Network.Netstat"
+    | extend 
+        EventTimestamp = todatetime(RawData.Timestamp),
+        Name = tostring(RawData.Name),
+        Type = tostring(RawData.Type),
+        Status = tostring(RawData.Status),
+        Pid = toint(RawData.Pid),
+        Family = tostring(RawData.Family),
+        LaddrIP = tostring(RawData["Laddr.IP"]),
+        LaddrPort = toint(RawData["Laddr.Port"]),
+        RaddrIP = tostring(RawData["Raddr.IP"]),
+        RaddrPort = toint(RawData["Raddr.Port"])
+    | project 
+        Timestamp, 
+        Hostname, 
+        EventTimestamp,
+        Name,
+        Type,
+        Status,
+        Pid,
+        Family,
+        LaddrIP,
+        LaddrPort,
+        RaddrIP,
+        RaddrPort,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNetworkNetstat policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNetworkNetstat()", "IsEnabled": "True", "IsTransactional": true}]'

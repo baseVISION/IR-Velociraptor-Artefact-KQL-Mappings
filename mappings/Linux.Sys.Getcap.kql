@@ -1,0 +1,51 @@
+//ARTIFACT: Linux.Sys.Getcap
+.create table LinuxSysGetcap (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Size: long,
+    Capabilities: string,
+    ModeString: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysGetcap() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Getcap"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        Size = tolong(RawData.Size),
+        Capabilities = tostring(RawData.Capabilities),
+        ModeString = tostring(RawData.ModeString)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Size,
+        Capabilities,
+        ModeString,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysGetcap policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysGetcap()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

@@ -1,0 +1,74 @@
+//ARTIFACT: Linux.Detection.BruteForce/btmp.logs, Linux.Detection.BruteForce/wtmp.logs
+//DESCRIPTION: Detects brute force attacks from btmp (failed) and wtmp (successful) login logs
+//TABLE: LinuxDetectionBruteForce
+//NOTE: This artifact also has 3 additional text-based sources (hits_login, brute_force_attempts.log, red_zone_attempts.log)
+//      which are not mapped as they produce unstructured text output. Add separate mapping if needed.
+
+.create-merge table LinuxDetectionBruteForce (
+    Timestamp: datetime,
+    Hostname: string,
+    ClientId: string,
+    FlowId: string,
+    Artifact: string,
+    Organization: string,
+    IngestionTime: datetime,
+    IP: string,
+    Reps: string,
+    Date: string,
+    User: string,
+    LogType: string
+) 
+
+.create-or-alter function RouteLinuxDetectionBruteForcebtmplogs() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Detection.BruteForce/btmp.logs"
+    | extend 
+        IP = tostring(RawData.IP),
+        Reps = tostring(RawData.Reps),
+        Date = tostring(RawData.Date),
+        User = tostring(RawData.User),
+        LogType = "btmp"
+    | project
+        Timestamp,
+        Hostname,
+        ClientId,
+        FlowId,
+        Artifact,
+        Organization,
+        IngestionTime,
+        IP,
+        Reps,
+        Date,
+        User,
+        LogType
+}
+
+.create-or-alter function RouteLinuxDetectionBruteForcewtmplogs() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Detection.BruteForce/wtmp.logs"
+    | extend 
+        IP = tostring(RawData.IP),
+        Reps = tostring(RawData.Reps),
+        Date = tostring(RawData.Date),
+        User = tostring(RawData.User),
+        LogType = "wtmp"
+    | project
+        Timestamp,
+        Hostname,
+        ClientId,
+        FlowId,
+        Artifact,
+        Organization,
+        IngestionTime,
+        IP,
+        Reps,
+        Date,
+        User,
+        LogType
+}
+
+.alter table LinuxDetectionBruteForce policy update 
+@'[
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcebtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false},
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcewtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false}
+]'

@@ -1,0 +1,47 @@
+//ARTIFACT: Windows.Network.InterfaceAddresses
+.create table WindowsNetworkInterfaceAddresses (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    IP: string,
+    HardwareAddr: string,
+    Index: int,
+    MTU: int,
+    Flags: string,
+    Mask: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNetworkInterfaceAddresses() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Network.InterfaceAddresses"
+    | extend 
+        Name = tostring(RawData.Name),
+        IP = tostring(RawData.IP),
+        HardwareAddr = tostring(RawData.HardwareAddr),
+        Index = toint(RawData.Index),
+        MTU = toint(RawData.MTU),
+        Flags = tostring(RawData.Flags),
+        Mask = tostring(RawData.Mask)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        IP,
+        HardwareAddr,
+        Index,
+        MTU,
+        Flags,
+        Mask,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNetworkInterfaceAddresses policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNetworkInterfaceAddresses()", "IsEnabled": "True", "IsTransactional": true}]'

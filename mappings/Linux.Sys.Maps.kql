@@ -1,0 +1,57 @@
+//ARTIFACT: Linux.Sys.Maps
+.create table LinuxSysMaps (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Size: long,
+    Pid: long,
+    Username: string,
+    Deleted: bool,
+    StartHex: string,
+    EndHex: string,
+    Perm: string,
+    SizeHex: string,
+    Filename: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysMaps() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.Maps"
+    | extend 
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Pid = tolong(RawData.Pid),
+        Username = tostring(RawData.Username),
+        Deleted = tobool(RawData.Deleted),
+        StartHex = tostring(RawData.StartHex),
+        EndHex = tostring(RawData.EndHex),
+        Perm = tostring(RawData.Perm),
+        SizeHex = tostring(RawData.SizeHex),
+        Filename = tostring(RawData.Filename)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Size,
+        Pid,
+        Username,
+        Deleted,
+        StartHex,
+        EndHex,
+        Perm,
+        SizeHex,
+        Filename,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysMaps policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysMaps()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

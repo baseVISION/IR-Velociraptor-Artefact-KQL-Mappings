@@ -1,0 +1,48 @@
+//ARTIFACT: Linux.Users.RootUsers
+.create table LinuxUsersRootUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    Host: string,
+    User: string,
+    Description: string,
+    Uid: string,
+    Gid: string,
+    Homedir: string,
+    Shell: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxUsersRootUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Users.RootUsers"
+    | extend 
+        Host = tostring(RawData.Host),
+        User = tostring(RawData.User),
+        Description = tostring(RawData.Description),
+        Uid = tostring(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        Homedir = tostring(RawData.Homedir),
+        Shell = tostring(RawData.Shell)
+    | project
+        Timestamp,
+        Hostname,
+        Host,
+        User,
+        Description,
+        Uid,
+        Gid,
+        Homedir,
+        Shell,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxUsersRootUsers policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxUsersRootUsers()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

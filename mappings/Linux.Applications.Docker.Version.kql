@@ -1,0 +1,53 @@
+//ARTIFACT: Linux.Applications.Docker.Version
+.create table LinuxApplicationsDockerVersion (
+    Timestamp: datetime,
+    Hostname: string,
+    Version: string,
+    ApiVersion: string,
+    MinAPIVersion: string,
+    GitCommit: string,
+    GoVersion: string,
+    Os: string,
+    Arch: string,
+    KernelVersion: string,
+    BuildTime: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxApplicationsDockerVersion() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Applications.Docker.Version"
+    | extend 
+        Version = tostring(RawData.Version),
+        ApiVersion = tostring(RawData.ApiVersion),
+        MinAPIVersion = tostring(RawData.MinAPIVersion),
+        GitCommit = tostring(RawData.GitCommit),
+        GoVersion = tostring(RawData.GoVersion),
+        Os = tostring(RawData.Os),
+        Arch = tostring(RawData.Arch),
+        KernelVersion = tostring(RawData.KernelVersion),
+        BuildTime = tostring(RawData.BuildTime)
+    | project 
+        Timestamp = todatetime(RawData.timestamp),
+        Hostname,
+        Version,
+        ApiVersion,
+        MinAPIVersion,
+        GitCommit,
+        GoVersion,
+        Os,
+        Arch,
+        KernelVersion,
+        BuildTime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxApplicationsDockerVersion policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxApplicationsDockerVersion()","IsTransactional":false}]'

@@ -1,0 +1,125 @@
+//ARTIFACT: Linux.Network.Netstat/TCP4, Linux.Network.Netstat/TCP6
+
+.create table LinuxNetworkNetstat (
+    Timestamp: datetime,
+    Hostname: string,
+    LocalAddr: string,
+    LocalPort: string,
+    RemoteAddr: string,
+    RemotePort: string,
+    State: string,
+    Inode: string,
+    Uid: string,
+    ProcessPid: long,
+    ProcessCommand: string,
+    ProcessCommandLine: string,
+    ProcessFilename: string,
+    ProcessType: string,
+    ProcessInode: string,
+    ProcessInfo: dynamic,
+    Type: string,
+    Protocol: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNetstatTCP4() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.Netstat/TCP4"
+    | extend 
+        LocalAddr = tostring(RawData.LocalAddr),
+        LocalPort = tostring(RawData.LocalPort),
+        RemoteAddr = tostring(RawData.RemoteAddr),
+        RemotePort = tostring(RawData.RemotePort),
+        State = tostring(RawData.State),
+        Inode = tostring(RawData.inode),
+        Uid = tostring(RawData.uid),
+        ProcessPid = tolong(RawData.ProcessInfo.Pid),
+        ProcessCommand = tostring(RawData.ProcessInfo.Command),
+        ProcessCommandLine = tostring(RawData.ProcessInfo.CommandLine),
+        ProcessFilename = tostring(RawData.ProcessInfo.Filename),
+        ProcessType = tostring(RawData.ProcessInfo.Type),
+        ProcessInode = tostring(RawData.ProcessInfo.Inode),
+        ProcessInfo = RawData.ProcessInfo,
+        Type = "",
+        Protocol = "TCP4"
+    | project
+        Timestamp,
+        Hostname,
+        LocalAddr,
+        LocalPort,
+        RemoteAddr,
+        RemotePort,
+        State,
+        Inode,
+        Uid,
+        ProcessPid,
+        ProcessCommand,
+        ProcessCommandLine,
+        ProcessFilename,
+        ProcessType,
+        ProcessInode,
+        ProcessInfo,
+        Type,
+        Protocol,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+Pid = tolong(RawData.ProcessInfo.Pid),
+        ProcessCommand = tostring(RawData.ProcessInfo.Command),
+        ProcessCommandLine = tostring(RawData.ProcessInfo.CommandLine),
+        ProcessFilename = tostring(RawData.ProcessInfo.Filename),
+        ProcessType = tostring(RawData.ProcessInfo.Type),
+        ProcessInode = tostring(RawData.ProcessInfo.Inode),
+        ProcessInfo = RawData.ProcessInfo,
+        Type = tostring(RawData.Type),
+        Protocol = "TCP6"
+    | project
+        Timestamp,
+        Hostname,
+        LocalAddr,
+        LocalPort,
+        RemoteAddr,
+        RemotePort,
+        State,
+        Inode,
+        Uid,
+        ProcessPid,
+        ProcessCommand,
+        ProcessCommandLine,
+        ProcessFilename,
+        ProcessType,
+        ProcessInodecessInfo = RawData.ProcessInfo,
+        Type = tostring(RawData.Type),
+        Protocol = "TCP6"
+    | project
+        Timestamp,
+        Hostname,
+        LocalAddr,
+        LocalPort,
+        RemoteAddr,
+        RemotePort,
+        State,
+        Inode,
+        Uid,
+        ProcessInfo,
+        Type,
+        Protocol,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNetstat policy update 
+@'[
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP4()", "IsTransactional": false, "PropagateIngestionProperties": false},
+    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP6()", "IsTransactional": false, "PropagateIngestionProperties": false}
+]'

@@ -2,12 +2,12 @@
 .create table NetworkExternalIpAddress (
     Timestamp: datetime,
     Hostname: string,
+    IP: string,
     Artifact: string,
+    Organization: string,
     ClientId: string,
     FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
-    IP: string
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteNetworkExternalIpAddress() {
@@ -18,12 +18,12 @@
     | project 
         Timestamp, 
         Hostname, 
+        IP,
         Artifact,
+        Organization,
         ClientId, 
         FlowId, 
-        Organization, 
-        IngestionTime,
-        IP
+        IngestionTime
 }
 
 .alter table NetworkExternalIpAddress policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteNetworkExternalIpAddress()","IsTransactional":false}]'

@@ -1,0 +1,33 @@
+//ARTIFACT: Linux.Sys.LogHunter
+.create table LinuxSysLogHunter (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Line: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysLogHunter() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.LogHunter"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Line = tostring(RawData.Line)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Line,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysLogHunter policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysLogHunter()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

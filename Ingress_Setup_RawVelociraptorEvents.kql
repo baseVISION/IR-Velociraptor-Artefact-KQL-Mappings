@@ -12,3 +12,6 @@
 
 // Enable streaming ingestion (for low-latency ingestion)
 .alter table RawVelociraptorEvents policy streamingingestion enable
+
+// Keep recent data hot for active investigations
+.alter table RawVelociraptorEvents policy caching hot = 30d

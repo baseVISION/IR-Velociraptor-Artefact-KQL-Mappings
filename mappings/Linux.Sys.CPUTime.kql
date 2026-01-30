@@ -1,0 +1,60 @@
+//ARTIFACT: Linux.Sys.CPUTime
+.create table LinuxSysCPUTime (
+    Timestamp: datetime,
+    Hostname: string,
+    Core: string,
+    User: long,
+    Nice: long,
+    System: long,
+    Idle: long,
+    IOWait: long,
+    IRQ: long,
+    SoftIRQ: long,
+    Steal: long,
+    Guest: long,
+    GuestNice: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysCPUTime() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.CPUTime"
+    | extend 
+        Core = tostring(RawData.Core),
+        User = tolong(RawData.User),
+        Nice = tolong(RawData.Nice),
+        System = tolong(RawData.System),
+        Idle = tolong(RawData.Idle),
+        IOWait = tolong(RawData.IOWait),
+        IRQ = tolong(RawData.IRQ),
+        SoftIRQ = tolong(RawData.SoftIRQ),
+        Steal = tolong(RawData.Steal),
+        Guest = tolong(RawData.Guest),
+        GuestNice = tolong(RawData.GuestNice)
+    | project
+        Timestamp,
+        Hostname,
+        Core,
+        User,
+        Nice,
+        System,
+        Idle,
+        IOWait,
+        IRQ,
+        SoftIRQ,
+        Steal,
+        Guest,
+        GuestNice,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysCPUTime policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysCPUTime()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

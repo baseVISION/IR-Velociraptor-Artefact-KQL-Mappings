@@ -2,11 +2,6 @@
 .create table LinuxSysPslist (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     Pid: string,
     Ppid: string,
     Name: string,
@@ -18,7 +13,12 @@
     Username: string,
     CreatedTime: datetime,
     RSS: long,
-    Deleted: bool
+    Deleted: bool,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteLinuxSysPslist() {
@@ -40,11 +40,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         Pid,
         Ppid,
         Name,
@@ -56,7 +51,12 @@
         Username,
         CreatedTime,
         RSS,
-        Deleted
+        Deleted,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table LinuxSysPslist policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxSysPslist()","IsTransactional":false}]'

@@ -2,14 +2,14 @@
 .create table WindowsAttackPrefetch (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     Name: string,
     ModTime: datetime,
-    Modified: datetime
+    Modified: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteWindowsAttackPrefetch() {
@@ -22,14 +22,14 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         Name,
         ModTime,
-        Modified
+        Modified,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table WindowsAttackPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAttackPrefetch()","IsTransactional":false}]'

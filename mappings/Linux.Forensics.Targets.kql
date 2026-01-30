@@ -1,0 +1,66 @@
+//ARTIFACT: Linux.Forensics.Targets/*
+// Generic table for all Linux.Forensics.Targets upload artifacts
+// Handles 10 sub-artifacts:
+// - BootTargets, CertificateTargets, CronTargets, LogTargets, NetworkTargets
+// - PackageTargets, ServiceTargets, SystemTargets, SystemVersionTargets, UserTargets
+.create table LinuxForensicsTargets (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    UploadError: string,
+    UploadAccessor: string,
+    UploadComponents: string,
+    UploadStoredName: string,
+    TargetType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxForensicsTargets() {
+    RawVelociraptorEvents
+    | where Artifact startswith "Linux.Forensics.Targets/"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        UploadError = tostring(RawData.Upload.Error),
+        UploadAccessor = tostring(RawData.Upload.Accessor),
+        UploadComponents = tostring(RawData.Upload.Components),
+        UploadStoredName = tostring(RawData.Upload.StoredName),
+        TargetType = tostring(split(Artifact, "/")[1])  // BootTargets, CertificateTargets, etc.
+    | project 
+        Timestamp = todatetime(RawData.timestamp),
+        Hostname,
+        OSPath,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        UploadError,
+        UploadAccessor,
+        UploadComponents,
+        UploadStoredName,
+        TargetType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxForensicsTargets policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxForensicsTargets()","IsTransactional":false}]'

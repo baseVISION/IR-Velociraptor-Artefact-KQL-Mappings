@@ -1,0 +1,77 @@
+//ARTIFACT: Windows.Detection.Mutants/Handles
+.create table WindowsDetectionMutantsHandles (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Type: string,
+    Exe: string,
+    ProcPid: int,
+    ProcName: string,
+    Handle: int,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsDetectionMutantsHandles() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Detection.Mutants/Handles"
+    | extend 
+        Name = tostring(RawData.Name),
+        Type = tostring(RawData.Type),
+        Exe = tostring(RawData.Exe),
+        ProcPid = toint(RawData.ProcPid),
+        ProcName = tostring(RawData.ProcName),
+        Handle = toint(RawData.Handle)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Type,
+        Exe,
+        ProcPid,
+        ProcName,
+        Handle,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsDetectionMutantsHandles policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsDetectionMutantsHandles()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Detection.Mutants/ObjectTree
+.create table WindowsDetectionMutantsObjectTree (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Type: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsDetectionMutantsObjectTree() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Detection.Mutants/ObjectTree"
+    | extend 
+        Name = tostring(RawData.Name),
+        Type = tostring(RawData.Type)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Type,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsDetectionMutantsObjectTree policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsDetectionMutantsObjectTree()", "IsEnabled": "True", "IsTransactional": true}]'

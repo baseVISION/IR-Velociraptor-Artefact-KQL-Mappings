@@ -1,0 +1,35 @@
+//ARTIFACT: Windows.System.LocalAdmins
+.create table WindowsSystemLocalAdmins (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    SID: string,
+    PrincipalSource: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemLocalAdmins() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.LocalAdmins"
+    | extend 
+        Name = tostring(RawData.Name),
+        SID = tostring(RawData.SID),
+        PrincipalSource = tostring(RawData.PrincipalSource)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        SID,
+        PrincipalSource,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemLocalAdmins policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemLocalAdmins()", "IsEnabled": "True", "IsTransactional": true}]'

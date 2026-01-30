@@ -1,0 +1,29 @@
+//ARTIFACT: Server.Orgs.NewOrg
+.create table ServerOrgsNewOrg (
+    Timestamp: datetime,
+    Hostname: string,
+    Organization: string,
+    CollectClientResult: dynamic,
+    Artifact: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerOrgsNewOrg() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Orgs.NewOrg"
+    | extend 
+        CollectClientResult = RawData.["collect_client(artifacts=InitialArtifacts.Artifact, client_id=\"server\")"]
+    | project 
+        Timestamp, 
+        Hostname, 
+        Organization,
+        CollectClientResult,
+        Artifact,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerOrgsNewOrg policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerOrgsNewOrg()","IsTransactional":false}]'

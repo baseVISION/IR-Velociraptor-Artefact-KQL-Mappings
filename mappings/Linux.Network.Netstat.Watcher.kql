@@ -1,0 +1,105 @@
+//ARTIFACT: Linux.Network.Netstat.Watcher/RemoteConnectionsDiffMonitor
+
+.create table LinuxNetworkNetstatWatcherDiffMonitor (
+    Timestamp: datetime,
+    Hostname: string,
+    Diff: string,
+    FamilyString: string,
+    Laddr: dynamic,
+    Pid: long,
+    ProcInfo: dynamic,
+    Raddr: dynamic,
+    Status: string,
+    EventTimestamp: datetime,
+    NowUtc: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNetstatWatcherRemoteConnectionsDiffMonitor() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.Netstat.Watcher/RemoteConnectionsDiffMonitor"
+    | extend 
+        Diff = tostring(RawData.Diff),
+        FamilyString = tostring(RawData.FamilyString),
+        Laddr = RawData.Laddr,
+        Pid = tolong(RawData.Pid),
+        ProcInfo = RawData.ProcInfo,
+        Raddr = RawData.Raddr,
+        Status = tostring(RawData.Status),
+        EventTimestamp = todatetime(RawData.Timestamp),
+        NowUtc = todatetime(RawData.now_utc)
+    | project
+        Timestamp,
+        Hostname,
+        Diff,
+        FamilyString,
+        Laddr,
+        Pid,
+        ProcInfo,
+        Raddr,
+        Status,
+        EventTimestamp,
+        NowUtc,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNetstatWatcherDiffMonitor policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatWatcherRemoteConnectionsDiffMonitor()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//ARTIFACT: Linux.Network.Netstat.Watcher/RemoteConnectionsSnapshot
+
+.create table LinuxNetworkNetstatWatcherSnapshot (
+    Timestamp: datetime,
+    Hostname: string,
+    FamilyString: string,
+    Laddr: dynamic,
+    Pid: long,
+    ProcInfo: dynamic,
+    Raddr: dynamic,
+    Status: string,
+    NowUtc: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNetstatWatcherRemoteConnectionsSnapshot() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.Netstat.Watcher/RemoteConnectionsSnapshot"
+    | extend 
+        FamilyString = tostring(RawData.FamilyString),
+        Laddr = RawData.Laddr,
+        Pid = tolong(RawData.Pid),
+        ProcInfo = RawData.ProcInfo,
+        Raddr = RawData.Raddr,
+        Status = tostring(RawData.Status),
+        NowUtc = todatetime(RawData.now_utc)
+    | project
+        Timestamp,
+        Hostname,
+        FamilyString,
+        Laddr,
+        Pid,
+        ProcInfo,
+        Raddr,
+        Status,
+        NowUtc,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNetstatWatcherSnapshot policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatWatcherRemoteConnectionsSnapshot()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

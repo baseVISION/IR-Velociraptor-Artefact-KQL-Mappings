@@ -1,0 +1,57 @@
+//ARTIFACT: Windows.System.Powershell.PSReadline
+.create table WindowsSystemPowershellPSReadline (
+    Hostname: string,
+    Timestamp: datetime,
+    Username: string,
+    LineNum: long,
+    Line: string,
+    OSPath: string,
+    StatBtime: datetime,
+    StatMtime: datetime,
+    StatAtime: datetime,
+    StatCtime: datetime,
+    StatSize: long,
+    Stat: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemPowershellPSReadline() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Powershell.PSReadline"
+    | extend 
+        Timestamp = todatetime(RawData.Stat.Mtime),
+        OSPath = tostring(RawData.OSPath),
+        Stat = RawData.Stat,
+        StatMtime = todatetime(RawData.Stat.Mtime),
+        StatAtime = todatetime(RawData.Stat.Atime),
+        StatCtime = todatetime(RawData.Stat.Ctime),
+        StatBtime = todatetime(RawData.Stat.Btime),
+        StatSize = tolong(RawData.Stat.Size),
+        LineNum = tolong(RawData.LineNum),
+        Line = tostring(RawData.Line),
+        Username = tostring(RawData.Username)
+    | project 
+        Hostname, 
+        Timestamp,
+        Username,
+        LineNum,
+        Line,
+        OSPath,
+        StatBtime,
+        StatMtime,
+        StatAtime,
+        StatCtime,
+        StatSize,
+        Stat,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemPowershellPSReadline policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemPowershellPSReadline()", "IsEnabled": "True", "IsTransactional": true}]'

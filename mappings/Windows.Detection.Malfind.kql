@@ -1,0 +1,78 @@
+//ARTIFACT: Windows.Detection.Malfind
+.create table WindowsDetectionMalfind (
+    Hostname: string,
+    Timestamp: datetime,
+    Name: string,
+    Pid: long,
+    CreateTime: datetime,
+    Address: string,
+    AddressRange: string,
+    Protection: string,
+    SectionSize: long,
+    HexHeader: string,
+    DataMagic: string,
+    SectionData: string,
+    PathSpec: string,
+    YaraRule: string,
+    YaraStringName: string,
+    YaraStringData: string,
+    YaraStringOffset: long,
+    YaraHit: dynamic,
+    ProcessChain: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsDetectionMalfind() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Detection.Malfind"
+    | extend 
+        Timestamp = todatetime(RawData.CreateTime),
+        Name = tostring(RawData.Name),
+        Pid = tolong(RawData.Pid),
+        CreateTime = todatetime(RawData.CreateTime),
+        Address = tostring(RawData._Address),
+        AddressRange = tostring(RawData.AddressRange),
+        Protection = tostring(RawData.Protection),
+        SectionSize = tolong(RawData.SectionSize),
+        HexHeader = tostring(RawData.HexHeader),
+        DataMagic = tostring(RawData.DataMagic),
+        SectionData = tostring(RawData.SectionData),
+        PathSpec = tostring(RawData._PathSpec),
+        YaraRule = tostring(RawData.YaraHit[0].Rule),
+        YaraStringName = tostring(RawData.YaraHit[0].String.Name),
+        YaraStringData = tostring(RawData.YaraHit[0].String.Data),
+        YaraStringOffset = tolong(RawData.YaraHit[0].String.Offset),
+        YaraHit = RawData.YaraHit,
+        ProcessChain = RawData.ProcessChain
+    | project 
+        Hostname, 
+        Timestamp,
+        Name,
+        Pid,
+        CreateTime,
+        Address,
+        AddressRange,
+        Protection,
+        SectionSize,
+        HexHeader,
+        DataMagic,
+        SectionData,
+        PathSpec,
+        YaraRule,
+        YaraStringName,
+        YaraStringData,
+        YaraStringOffset,
+        YaraHit,
+        ProcessChain,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsDetectionMalfind policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsDetectionMalfind()", "IsEnabled": "True", "IsTransactional": true}]'

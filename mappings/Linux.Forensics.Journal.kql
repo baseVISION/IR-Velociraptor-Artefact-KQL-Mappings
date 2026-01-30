@@ -1,0 +1,36 @@
+//ARTIFACT: Linux.Forensics.Journal
+//DESCRIPTION: Systemd journal logs with system and event data
+//TABLE: LinuxForensicsJournal
+
+.create table LinuxForensicsJournal (
+    Timestamp: datetime,
+    Hostname: string,
+    System: dynamic,
+    EventData: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxForensicsJournal() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Forensics.Journal"
+    | extend 
+        System = RawData.System,
+        EventData = RawData.EventData
+    | project
+        Timestamp,
+        Hostname,
+        System,
+        EventData,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxForensicsJournal policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsJournal()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

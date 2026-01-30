@@ -1,0 +1,45 @@
+//ARTIFACT: Linux.Sys.SUID
+.create table LinuxSysSUID (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    Size: long,
+    Mode: string,
+    OwnerID: string,
+    GroupID: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysSUID() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.SUID"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Size = tolong(RawData.Size),
+        Mode = tostring(RawData.Mode),
+        OwnerID = tostring(RawData.OwnerID),
+        GroupID = tostring(RawData.GroupID)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Mtime,
+        Size,
+        Mode,
+        OwnerID,
+        GroupID,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysSUID policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysSUID()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

@@ -2,11 +2,6 @@
 .create table WindowsEventLogsEvtx (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     TimeCreated: datetime,
     EventID: int,
     Channel: string,
@@ -22,7 +17,12 @@
     Message: string,
     OSPath: string,
     System: dynamic,
-    EventData: dynamic
+    EventData: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteWindowsEventLogsEvtx() {
@@ -48,11 +48,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         TimeCreated,
         EventID,
         Channel,
@@ -68,7 +63,12 @@
         Message,
         OSPath,
         System,
-        EventData
+        EventData,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table WindowsEventLogsEvtx policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsEventLogsEvtx()","IsTransactional":false}]'

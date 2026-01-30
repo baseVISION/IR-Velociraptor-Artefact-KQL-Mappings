@@ -1,0 +1,53 @@
+//ARTIFACT: Linux.Collection.CatScale
+.create table LinuxCollectionCatScale (
+    Timestamp: datetime,
+    Hostname: string,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    StoredName: string,
+    Accessor: string,
+    Components: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxCollectionCatScale() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Collection.CatScale"
+    | extend 
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        StoredName = tostring(RawData.Upload.StoredName),
+        Accessor = tostring(RawData.Upload.Accessor),
+        Components = tostring(RawData.Upload.Components)
+    | project 
+        Timestamp = todatetime(RawData.timestamp),
+        Hostname,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        StoredName,
+        Accessor,
+        Components,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxCollectionCatScale policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxCollectionCatScale()","IsTransactional":false}]'

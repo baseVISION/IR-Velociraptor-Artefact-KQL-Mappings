@@ -1,0 +1,63 @@
+//ARTIFACT: Linux.System.BashLogout
+.create table LinuxSystemBashLogout (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    StoredName: string,
+    Components: dynamic,
+    Accessor: string,
+    Content: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSystemBashLogout() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.System.BashLogout"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        StoredName = tostring(RawData.Upload.StoredName),
+        Components = RawData.Upload.Components,
+        Accessor = tostring(RawData.Upload.Accessor),
+        Content = tostring(RawData.Content)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Mtime,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        StoredName,
+        Components,
+        Accessor,
+        Content,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSystemBashLogout policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSystemBashLogout()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

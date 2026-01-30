@@ -1,0 +1,45 @@
+//ARTIFACT: Linux.Proc.Arp
+.create table LinuxProcArp (
+    Timestamp: datetime,
+    Hostname: string,
+    Device: string,
+    IPAddress: string,
+    HWType: string,
+    Flags: string,
+    HWAddress: string,
+    Mask: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxProcArp() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Proc.Arp"
+    | extend 
+        Device = tostring(RawData.Device),
+        IPAddress = tostring(RawData.IP_address),
+        HWType = tostring(RawData.HW_type),
+        Flags = tostring(RawData.Flags),
+        HWAddress = tostring(RawData.HW_address),
+        Mask = tostring(RawData.Mask)
+    | project
+        Timestamp,
+        Hostname,
+        Device,
+        IPAddress,
+        HWType,
+        Flags,
+        HWAddress,
+        Mask,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxProcArp policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxProcArp()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

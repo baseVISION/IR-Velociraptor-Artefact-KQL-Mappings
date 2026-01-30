@@ -1,0 +1,32 @@
+//ARTIFACT: Server.Utils.CreateMSI
+.create table ServerUtilsCreateMSI (
+    Timestamp: datetime,
+    Hostname: string,
+    BuildResult: dynamic,
+    Sha256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerUtilsCreateMSI() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Utils.CreateMSI"
+    | extend 
+        BuildResult = RawData.["Build(Target=\"VelociraptorWindowsMSI\")"],
+        Sha256 = tostring(RawData.["Build(Target=\"VelociraptorWindowsMSI\")"].sha256)
+    | project 
+        Timestamp, 
+        Hostname, 
+        BuildResult,
+        Sha256,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerUtilsCreateMSI policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerUtilsCreateMSI()","IsTransactional":false}]'

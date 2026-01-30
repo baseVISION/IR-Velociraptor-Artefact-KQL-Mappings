@@ -1,0 +1,63 @@
+//ARTIFACT: Linux.Sys.JournalCtl
+.create table LinuxSysJournalCtl (
+    Timestamp: datetime,
+    Hostname: string,
+    EventTimestamp: datetime,
+    EventHostname: string,
+    Message: string,
+    MachineID: string,
+    BootID: string,
+    SyslogIdentifier: string,
+    Priority: string,
+    SyslogFacility: string,
+    MonotonicTS: string,
+    SourceMonoTS: string,
+    Transport: string,
+    Cursor: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSysJournalCtl() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Sys.JournalCtl"
+    | extend 
+        EventTimestamp = todatetime(RawData.Timestamp),
+        EventHostname = tostring(RawData._Hostname),
+        Message = tostring(RawData.Message),
+        MachineID = tostring(RawData._MachineID),
+        BootID = tostring(RawData.BootID),
+        SyslogIdentifier = tostring(RawData._SyslogIdentifier),
+        Priority = tostring(RawData._Priority),
+        SyslogFacility = tostring(RawData._SyslogFacility),
+        MonotonicTS = tostring(RawData._MonotonicTS),
+        SourceMonoTS = tostring(RawData._SourceMonoTS),
+        Transport = tostring(RawData._Transport),
+        Cursor = tostring(RawData.Cursor)
+    | project
+        Timestamp,
+        Hostname,
+        EventTimestamp,
+        EventHostname,
+        Message,
+        MachineID,
+        BootID,
+        SyslogIdentifier,
+        Priority,
+        SyslogFacility,
+        MonotonicTS,
+        SourceMonoTS,
+        Transport,
+        Cursor,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSysJournalCtl policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSysJournalCtl()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

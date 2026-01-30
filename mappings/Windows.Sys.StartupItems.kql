@@ -1,0 +1,41 @@
+//ARTIFACT: Windows.Sys.StartupItems
+.create table WindowsSysStartupItems (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    OSPath: string,
+    Details: string,
+    Enabled: string,
+    Upload: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysStartupItems() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sys.StartupItems"
+    | extend 
+        Name = tostring(RawData.Name),
+        OSPath = tostring(RawData.OSPath),
+        Details = tostring(RawData.Details),
+        Enabled = tostring(RawData.Enabled),
+        Upload = tostring(RawData.Upload)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        OSPath,
+        Details,
+        Enabled,
+        Upload,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysStartupItems policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysStartupItems()", "IsEnabled": "True", "IsTransactional": true}]'

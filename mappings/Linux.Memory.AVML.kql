@@ -1,0 +1,63 @@
+//ARTIFACT: Linux.Memory.AVML
+//DESCRIPTION: Memory dump using AVML (Acquire Volatile Memory for Linux)
+//TABLE: LinuxMemoryAVML
+
+.create table LinuxMemoryAVML (
+    Timestamp: datetime,
+    Hostname: string,
+    Stdout: string,
+    Stderr: string,
+    UploadPath: string,
+    UploadSize: long,
+    UploadId: long,
+    StoredSize: long,
+    Sha256: string,
+    Md5: string,
+    UploadAccessor: string,
+    UploadComponents: string,
+    UploadStoredName: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+) 
+
+.create-or-alter function RouteLinuxMemoryAVML() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Memory.AVML"
+    | extend 
+        Stdout = tostring(RawData.Stdout),
+        Stderr = tostring(RawData.Stderr),
+        UploadPath = tostring(RawData.Upload.Path),
+        UploadSize = tolong(RawData.Upload.Size),
+        UploadId = tolong(RawData.Upload.UploadId),
+        StoredSize = tolong(RawData.Upload.StoredSize),
+        Sha256 = tostring(RawData.Upload.sha256),
+        Md5 = tostring(RawData.Upload.md5),
+        UploadAccessor = tostring(RawData.Upload.Accessor),
+        UploadComponents = tostring(RawData.Upload.Components),
+        UploadStoredName = tostring(RawData.Upload.StoredName)
+    | project
+        Timestamp,
+        Hostname,
+        Stdout,
+        Stderr,
+        UploadPath,
+        UploadSize,
+        UploadId,
+        StoredSize,
+        Sha256,
+        Md5,
+        UploadAccessor,
+        UploadComponents,
+        UploadStoredName,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxMemoryAVML policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxMemoryAVML()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

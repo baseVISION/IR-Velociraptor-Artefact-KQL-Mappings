@@ -1,0 +1,36 @@
+//ARTIFACT: Linux.System.PAM
+.create table LinuxSystemPAM (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Mtime: datetime,
+    Record: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxSystemPAM() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.System.PAM"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Mtime = todatetime(RawData.Mtime),
+        Record = tostring(RawData.Record)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Mtime,
+        Record,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxSystemPAM policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxSystemPAM()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

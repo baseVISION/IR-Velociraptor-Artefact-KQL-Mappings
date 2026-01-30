@@ -2,11 +2,6 @@
 .create table SystemVFSDownloadFile (
     Timestamp: datetime,
     Hostname: string,
-    Artifact: string,
-    ClientId: string,
-    FlowId: string,
-    Organization: string,
-    IngestionTime: datetime,
     Path: string,
     Accessor: string,
     Size: long,
@@ -14,7 +9,12 @@
     Sha256: string,
     Md5: string,
     Error: string,
-    Components: dynamic
+    Components: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 )
 
 .create-or-alter function RouteSystemVFSDownloadFile() {
@@ -32,11 +32,6 @@
     | project 
         Timestamp, 
         Hostname, 
-        Artifact,
-        ClientId, 
-        FlowId, 
-        Organization, 
-        IngestionTime,
         Path,
         Accessor,
         Size,
@@ -44,7 +39,12 @@
         Sha256,
         Md5,
         Error,
-        Components
+        Components,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
 }
 
 .alter table SystemVFSDownloadFile policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteSystemVFSDownloadFile()","IsTransactional":false}]'

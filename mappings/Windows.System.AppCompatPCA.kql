@@ -1,0 +1,35 @@
+//ARTIFACT: Windows.System.AppCompatPCA
+.create table WindowsSystemAppCompatPCA (
+    Timestamp: datetime,
+    Hostname: string,
+    FullPath: string,
+    ExePath: string,
+    LastExecuted: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemAppCompatPCA() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.AppCompatPCA"
+    | extend 
+        FullPath = tostring(RawData.FullPath),
+        ExePath = tostring(RawData.ExePath),
+        LastExecuted = todatetime(RawData.LastExecuted)
+    | project 
+        Timestamp, 
+        Hostname, 
+        FullPath,
+        ExePath,
+        LastExecuted,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemAppCompatPCA policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemAppCompatPCA()", "IsEnabled": "True", "IsTransactional": true}]'

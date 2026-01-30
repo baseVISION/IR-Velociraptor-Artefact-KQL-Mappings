@@ -1,0 +1,55 @@
+//ARTIFACT: Linux.Network.NetstatEnriched
+
+.create table LinuxNetworkNetstatEnriched (
+    Timestamp: datetime,
+    Hostname: string,
+    Laddr: dynamic,
+    Lport: string,
+    Raddr: dynamic,
+    Rport: string,
+    Pid: long,
+    Status: string,
+    ProcInfo: dynamic,
+    CallChain: dynamic,
+    ChildrenTree: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteLinuxNetworkNetstatEnriched() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.NetstatEnriched"
+    | extend 
+        Laddr = RawData.Laddr,
+        Lport = tostring(RawData.Lport),
+        Raddr = RawData.Raddr,
+        Rport = tostring(RawData.Rport),
+        Pid = tolong(RawData.Pid),
+        Status = tostring(RawData.Status),
+        ProcInfo = RawData.ProcInfo,
+        CallChain = RawData.CallChain,
+        ChildrenTree = RawData.ChildrenTree
+    | project
+        Timestamp,
+        Hostname,
+        Laddr,
+        Lport,
+        Raddr,
+        Rport,
+        Pid,
+        Status,
+        ProcInfo,
+        CallChain,
+        ChildrenTree,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table LinuxNetworkNetstatEnriched policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatEnriched()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

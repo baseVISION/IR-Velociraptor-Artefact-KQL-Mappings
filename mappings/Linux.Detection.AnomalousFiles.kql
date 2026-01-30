@@ -1,0 +1,51 @@
+//ARTIFACT: Linux.Detection.AnomalousFiles
+//DESCRIPTION: Detects anomalous files based on various criteria (SUID, hidden files, large files)
+//TABLE: LinuxDetectionAnomalousFiles
+
+.create-merge table LinuxDetectionAnomalousFiles (
+    Timestamp: datetime,
+    Hostname: string,
+    ClientId: string,
+    FlowId: string,
+    Artifact: string,
+    Organization: string,
+    IngestionTime: datetime,
+    OSPath: string,
+    Size: long,
+    Host: string,
+    IsHidden: bool,
+    IsLarge: bool,
+    Mode: string,
+    HasSUID: bool
+) 
+
+.create-or-alter function RouteLinuxDetectionAnomalousFiles() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Detection.AnomalousFiles"
+    | extend 
+        OSPath = tostring(RawData.OSPath),
+        Size = tolong(RawData.Size),
+        Host = tostring(RawData.Host),
+        IsHidden = tobool(RawData.IsHidden),
+        IsLarge = tobool(RawData.IsLarge),
+        Mode = tostring(RawData.Mode),
+        HasSUID = tobool(RawData.HasSUID)
+    | project
+        Timestamp,
+        Hostname,
+        ClientId,
+        FlowId,
+        Artifact,
+        Organization,
+        IngestionTime,
+        OSPath,
+        Size,
+        Host,
+        IsHidden,
+        IsLarge,
+        Mode,
+        HasSUID
+}
+
+.alter table LinuxDetectionAnomalousFiles policy update 
+@'[{ "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionAnomalousFiles()", "IsTransactional": false, "PropagateIngestionProperties": false}]'

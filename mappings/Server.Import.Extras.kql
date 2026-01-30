@@ -1,0 +1,38 @@
+//ARTIFACT: Server.Import.Extras
+.create table ServerImportExtras (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    Author: string,
+    Source: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteServerImportExtras() {
+    RawVelociraptorEvents
+    | where Artifact == "Server.Import.Extras"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        Author = tostring(RawData.Author),
+        Source = tostring(RawData._Source)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        Author,
+        Source,
+        Artifact,
+        Organization,
+        ClientId, 
+        FlowId, 
+        IngestionTime
+}
+
+.alter table ServerImportExtras policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteServerImportExtras()","IsTransactional":false}]'

@@ -1,0 +1,44 @@
+//ARTIFACT: Windows.Network.ListeningPorts
+.create table WindowsNetworkListeningPorts (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Protocol: string,
+    Pid: int,
+    Port: int,
+    Family: string,
+    Address: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNetworkListeningPorts() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Network.ListeningPorts"
+    | extend 
+        Name = tostring(RawData.Name),
+        Protocol = tostring(RawData.Protocol),
+        Pid = toint(RawData.Pid),
+        Port = toint(RawData.Port),
+        Family = tostring(RawData.Family),
+        Address = tostring(RawData.Address)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Protocol,
+        Pid,
+        Port,
+        Family,
+        Address,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNetworkListeningPorts policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNetworkListeningPorts()", "IsEnabled": "True", "IsTransactional": true}]'
