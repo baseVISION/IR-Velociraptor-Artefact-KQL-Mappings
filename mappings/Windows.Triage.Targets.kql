@@ -159,3 +159,94 @@
 }
 
 .alter table WindowsTriageTargetsAllMatchesMetadata policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsAllMatchesMetadata()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Triage.Targets/PrefetchBinaries_Executables
+.create table WindowsTriageTargetsPrefetchBinariesExecutables (
+    Timestamp: datetime,
+    Hostname: string,
+    Executable: string,
+    Hash: string,
+    Version: string,
+    FileSize: long,
+    RunCount: int,
+    LastRunTimes: dynamic,
+    OSPath: string,
+    PrefetchFileName: string,
+    CreationTime: datetime,
+    ModificationTime: datetime,
+    Binary: string,
+    ExecutablePath: string,
+    ExecutableDosPath: string,
+    SourceFile: string,
+    Size: long,
+    Modified: datetime,
+    VolumeInfo: dynamic,
+    FilesAccessed: dynamic,
+    SCCAHeader: dynamic,
+    Source: string,
+    Details: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTriageTargetsPrefetchBinariesExecutables() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Triage.Targets/PrefetchBinaries_Executables"
+    | extend
+        Executable = tostring(RawData.Executable),
+        Hash = tostring(RawData.Hash),
+        Version = tostring(RawData.Version),
+        FileSize = tolong(RawData.FileSize),
+        RunCount = toint(RawData.RunCount),
+        LastRunTimes = RawData.LastRunTimes,
+        OSPath = tostring(RawData.OSPath),
+        PrefetchFileName = tostring(RawData.PrefetchFileName),
+        CreationTime = todatetime(RawData.CreationTime),
+        ModificationTime = todatetime(RawData.ModificationTime),
+        Binary = tostring(RawData.Binary),
+        ExecutablePath = tostring(RawData.ExecutablePath),
+        ExecutableDosPath = tostring(RawData.ExecutableDosPath),
+        SourceFile = tostring(RawData.SourceFile),
+        Size = tolong(RawData.Size),
+        Modified = todatetime(RawData.Modified),
+        VolumeInfo = RawData.VolumeInfo,
+        FilesAccessed = RawData.FilesAccessed,
+        SCCAHeader = RawData._SCCAHeader,
+        Source = tostring(RawData._Source),
+        Details = RawData.Details
+    | extend Timestamp = ModificationTime
+    | project
+        Timestamp,
+        Hostname,
+        Executable,
+        Hash,
+        Version,
+        FileSize,
+        RunCount,
+        LastRunTimes,
+        OSPath,
+        PrefetchFileName,
+        CreationTime,
+        ModificationTime,
+        Binary,
+        ExecutablePath,
+        ExecutableDosPath,
+        SourceFile,
+        Size,
+        Modified,
+        VolumeInfo,
+        FilesAccessed,
+        SCCAHeader,
+        Source,
+        Details,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTriageTargetsPrefetchBinariesExecutables policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsPrefetchBinariesExecutables()", "IsEnabled": "True", "IsTransactional": true}]'

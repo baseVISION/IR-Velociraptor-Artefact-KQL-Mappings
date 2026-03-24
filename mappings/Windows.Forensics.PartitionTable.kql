@@ -1,0 +1,47 @@
+//ARTIFACT: Windows.Forensics.PartitionTable
+.create table WindowsForensicsPartitionTable (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Size: string,
+    StartOffset: long,
+    EndOffset: long,
+    Magic: string,
+    TopLevelDirectory: dynamic,
+    PartitionPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsPartitionTable() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.PartitionTable"
+    | extend
+        Name = tostring(RawData.name),
+        Size = tostring(RawData.Size),
+        StartOffset = tolong(RawData.StartOffset),
+        EndOffset = tolong(RawData.EndOffset),
+        Magic = tostring(RawData.Magic),
+        TopLevelDirectory = RawData.TopLevelDirectory,
+        PartitionPath = tostring(RawData._PartitionPath)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Size,
+        StartOffset,
+        EndOffset,
+        Magic,
+        TopLevelDirectory,
+        PartitionPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsPartitionTable policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsPartitionTable()", "IsEnabled": "True", "IsTransactional": true}]'

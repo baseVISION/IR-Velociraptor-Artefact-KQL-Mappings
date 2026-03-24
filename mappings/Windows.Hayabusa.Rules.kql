@@ -1,0 +1,60 @@
+//ARTIFACT: Windows.Hayabusa.Rules
+.create table WindowsHayabusaRules (
+    Timestamp: datetime,
+    Hostname: string,
+    Title: string,
+    Level: string,
+    EID: int,
+    Channel: string,
+    Computer: string,
+    RecordID: long,
+    Details: dynamic,
+    EventTimestamp: datetime,
+    Event: dynamic,
+    Enrichment: dynamic,
+    Source: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsHayabusaRules() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Hayabusa.Rules"
+    | extend
+        EventTimestamp = todatetime(RawData.Timestamp),
+        Title = tostring(RawData.Title),
+        Level = tostring(RawData.Level),
+        Channel = tostring(RawData.Channel),
+        Computer = tostring(RawData.Computer),
+        EID = toint(RawData.EID),
+        RecordID = tolong(RawData.RecordID),
+        Details = RawData.Details,
+        Event = RawData._Event,
+        Enrichment = RawData.Enrichment,
+        Source = tostring(RawData._Source)
+    | extend Timestamp = EventTimestamp
+    | project
+        Timestamp,
+        Hostname,
+        Title,
+        Level,
+        EID,
+        Channel,
+        Computer,
+        RecordID,
+        Details,
+        EventTimestamp,
+        Event,
+        Enrichment,
+        Source,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsHayabusaRules policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsHayabusaRules()", "IsEnabled": "True", "IsTransactional": true}]'

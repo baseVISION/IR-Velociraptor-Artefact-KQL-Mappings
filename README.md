@@ -19,6 +19,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Generic.Client.DiskSpace`
 - `Generic.Client.DiskUsage`
 - `Generic.Client.Info/WindowsInfo`
+- `Generic.Client.VQL`
 - `Generic.Detection.HashHunter`
 - `Generic.Network.InterfaceAddresses`
 - `Generic.System.EfiSignatures/Certificates`
@@ -78,6 +79,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Windows.Analysis.EvidenceOfDownload`
 - `Windows.Attack.ParentProcess`
 - `Windows.Attack.Prefetch`
+- `Windows.Collectors.File/All Matches Metadata`
 - `Windows.Detection.Amcache`
 - `Windows.Detection.BinaryHunter`
 - `Windows.Detection.BinaryRename`
@@ -87,14 +89,18 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Windows.EventLogs.Hayabusa/Results`
 - `Windows.Forensics.CertUtil`
 - `Windows.Forensics.Clipboard`
+- `Windows.Forensics.FilenameSearch`
 - `Windows.Forensics.Lnk`
+- `Windows.Forensics.PartitionTable`
 - `Windows.Forensics.Prefetch`
 - `Windows.Forensics.RecycleBin`
 - `Windows.Forensics.SAM/CreateTimes`
 - `Windows.Forensics.Shellbags`
 - `Windows.Forensics.SRUM/Execution Stats`
 - `Windows.Forensics.Timeline`
+- `Windows.Forensics.UEFI`
 - `Windows.Forensics.Usn`
+- `Windows.Hayabusa.Rules`
 - `Windows.Network.ArpCache`
 - `Windows.Network.InterfaceAddresses`
 - `Windows.Network.ListeningPorts`
@@ -121,6 +127,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Windows.System.WMIProviders`
 - `Windows.System.WMIQuery`
 - `Windows.Timeline.MFT`
+- `Windows.Timeline.Prefetch.Improved`
 - `Windows.Triage.Targets/SearchGlobs`
 
 ## Quick Start

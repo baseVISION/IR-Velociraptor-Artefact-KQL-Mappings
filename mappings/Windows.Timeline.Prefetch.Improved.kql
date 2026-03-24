@@ -1,0 +1,63 @@
+//ARTIFACT: Windows.Timeline.Prefetch.Improved
+.create table WindowsTimelinePrefetchImproved (
+    Timestamp: datetime,
+    Hostname: string,
+    FileName: string,
+    Message: string,
+    PrefetchFile: string,
+    PrefetchCount: int,
+    PrefetchHash: string,
+    PrefetchVersion: string,
+    PrefetchSize: long,
+    PrefetchCtime: datetime,
+    PrefetchMtime: datetime,
+    EventTime: datetime,
+    Source: string,
+    Parser: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTimelinePrefetchImproved() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Timeline.Prefetch.Improved"
+    | extend
+        EventTime = todatetime(RawData.event_time),
+        FileName = tostring(RawData.file_name),
+        Message = tostring(RawData.message),
+        Source = tostring(RawData.source),
+        Parser = tostring(RawData.parser),
+        PrefetchFile = tostring(RawData.prefetch_file),
+        PrefetchHash = tostring(RawData.prefetch_hash),
+        PrefetchVersion = tostring(RawData.prefetch_version),
+        PrefetchSize = tolong(RawData.prefetch_size),
+        PrefetchCount = toint(RawData.prefetch_count),
+        PrefetchCtime = todatetime(RawData.prefetch_ctime),
+        PrefetchMtime = todatetime(RawData.prefetch_mtime)
+    | extend Timestamp = EventTime
+    | project
+        Timestamp,
+        Hostname,
+        FileName,
+        Message,
+        PrefetchFile,
+        PrefetchCount,
+        PrefetchHash,
+        PrefetchVersion,
+        PrefetchSize,
+        PrefetchCtime,
+        PrefetchMtime,
+        EventTime,
+        Source,
+        Parser,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTimelinePrefetchImproved policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTimelinePrefetchImproved()", "IsEnabled": "True", "IsTransactional": true}]'

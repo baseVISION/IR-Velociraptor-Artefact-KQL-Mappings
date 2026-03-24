@@ -124,21 +124,38 @@ def extract_fields_from_kql(kql_path, artifact_name=None):
             full_content = f.read()
         
         content = full_content
-        # If artifact_name is specified, try to find the function for that specific artifact
+        # If artifact_name is specified, isolate that artifact's section using //ARTIFACT: headers.
+        # This correctly handles files that contain multiple artifact definitions.
         if artifact_name:
-            # Create function name from artifact (e.g., "Windows.Forensics.SAM/Parsed" -> "RouteWindowsForensicsSAMParsed")
-            func_name = artifact_name.replace(".", "").replace("/", "").replace(" ", "")
-            pattern = re.compile(rf'function\s+Route{func_name}\s*\(\).*?(?=\.create|\.alter|$)', re.DOTALL)
-            func_match = pattern.search(content)
-            if func_match:
-                content = func_match.group(0)
+            sections = re.split(r'(?=//ARTIFACT:)', full_content)
+            matched_section = None
+            for section in sections:
+                header_match = re.match(r'//ARTIFACT:\s*(.+)', section.strip())
+                if header_match and header_match.group(1).strip() == artifact_name:
+                    matched_section = section
+                    break
+            
+            if matched_section:
+                content = matched_section
+            else:
+                # Fallback: function name matching (strip all non-alphanumeric characters)
+                func_name = re.sub(r'[^a-zA-Z0-9]', '', artifact_name)
+                pattern = re.compile(
+                    rf'function\s+Route{func_name}\s*\(\).*?(?=\.create|\.alter|$)',
+                    re.DOTALL | re.IGNORECASE
+                )
+                func_match = pattern.search(full_content)
+                if func_match:
+                    content = func_match.group(0)
         
         fields = set()
         dynamic_parents = set()
         
-        # Extract table column names from table definition to recognize standard columns
+        # Extract table column names from the table definition within the resolved section only.
+        # Using 'content' (not 'full_content') ensures we get the right table when multiple
+        # artifacts share one file.
         table_columns = set()
-        table_match = TABLE_PATTERN.search(full_content)
+        table_match = TABLE_PATTERN.search(content)
         if table_match:
             table_def = table_match.group(0)
             for col_match in COLUMN_PATTERN.finditer(table_def):

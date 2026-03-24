@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Tue 24 Mar 15:42:32 CET 2026
+// Generated on: Tue 24 Mar 16:11:59 CET 2026
 // Source directory: mappings
 
 
@@ -415,6 +415,86 @@
 }
 
 .alter table GenericClientInfoUsers policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteGenericClientInfoUsers()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Generic.Client.VQL.kql
+// ============================================
+
+//ARTIFACT: Generic.Client.VQL
+.create table GenericClientVQL (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Path: string,
+    Name: string,
+    Size: long,
+    Mode: int,
+    IsDir: bool,
+    IsLink: bool,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Globs: dynamic,
+    Data: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientVQL() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.VQL"
+    | extend
+        OSPath = tostring(RawData.OSPath),
+        Path = tostring(RawData.Path),
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        MD5 = tostring(RawData.MD5),
+        SHA1 = tostring(RawData.SHA1),
+        SHA256 = tostring(RawData.SHA256),
+        Mode = toint(RawData.Mode),
+        IsDir = tobool(RawData.IsDir),
+        IsLink = tobool(RawData.IsLink),
+        Globs = RawData.Globs,
+        Data = RawData.Data
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Path,
+        Name,
+        Size,
+        Mode,
+        IsDir,
+        IsLink,
+        MD5,
+        SHA1,
+        SHA256,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Globs,
+        Data,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericClientVQL policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericClientVQL()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Generic.Detection.HashHunter.kql
@@ -4316,6 +4396,111 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .alter table WindowsAttackPrefetch policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsAttackPrefetch()","IsTransactional":false}]'
 
 // ============================================
+// Source: mappings/Windows.Collectors.File.kql
+// ============================================
+
+//ARTIFACT: Windows.Collectors.File/All Matches Metadata
+.create table WindowsCollectorsFileAllMatchesMetadata (
+    Timestamp: datetime,
+    Hostname: string,
+    SourceFile: string,
+    Size: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsCollectorsFileAllMatchesMetadata() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Collectors.File/All Matches Metadata"
+    | extend
+        SourceFile = tostring(RawData.SourceFile),
+        Size = tolong(RawData.Size),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed)
+    | extend Timestamp = Modified
+    | project
+        Timestamp,
+        Hostname,
+        SourceFile,
+        Size,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsCollectorsFileAllMatchesMetadata policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsCollectorsFileAllMatchesMetadata()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Collectors.File/Uploads
+.create table WindowsCollectorsFileUploads (
+    Timestamp: datetime,
+    Hostname: string,
+    SourceFile: string,
+    FileSize: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    CopiedOnTimestamp: datetime,
+    DestinationFile: string,
+    SourceFileSha256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsCollectorsFileUploads() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Collectors.File/Uploads"
+    | extend
+        SourceFile = tostring(RawData.SourceFile),
+        FileSize = tolong(RawData.FileSize),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed),
+        CopiedOnTimestamp = unixtime_seconds_todatetime(tolong(RawData.CopiedOnTimestamp)),
+        DestinationFile = tostring(RawData.DestinationFile),
+        SourceFileSha256 = tostring(RawData.SourceFileSha256)
+    | extend Timestamp = Modified
+    | project
+        Timestamp,
+        Hostname,
+        SourceFile,
+        FileSize,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        CopiedOnTimestamp,
+        DestinationFile,
+        SourceFileSha256,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsCollectorsFileUploads policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsCollectorsFileUploads()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
 // Source: mappings/Windows.Detection.Amcache.kql
 // ============================================
 
@@ -5073,6 +5258,86 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .alter table WindowsForensicsClipboard policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsClipboard()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
+// Source: mappings/Windows.Forensics.FilenameSearch.kql
+// ============================================
+
+//ARTIFACT: Windows.Forensics.FilenameSearch
+.create table WindowsForensicsFilenameSearch (
+    Timestamp: datetime,
+    Hostname: string,
+    FullPath: string,
+    OSPath: string,
+    Size: long,
+    IsDir: bool,
+    Allocated: bool,
+    SICreateTime: datetime,
+    SIFileModifiedTime: datetime,
+    SIMFTModifiedTime: datetime,
+    SIAccessedTime: datetime,
+    Hardlinks: dynamic,
+    MFTID: long,
+    SequenceNumber: int,
+    Device: string,
+    Offset: long,
+    HexData: dynamic,
+    MFT: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsFilenameSearch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.FilenameSearch"
+    | extend
+        Offset = tolong(RawData.Offset),
+        FullPath = tostring(RawData.MFT.FullPath),
+        OSPath = tostring(RawData.MFT.OSPath),
+        Device = tostring(RawData.MFT.Device),
+        MFTID = tolong(RawData.MFT.MFTID),
+        SequenceNumber = toint(RawData.MFT.SequenceNumber),
+        Size = tolong(RawData.MFT.Size),
+        Allocated = tobool(RawData.MFT.Allocated),
+        IsDir = tobool(RawData.MFT.IsDir),
+        SICreateTime = todatetime(RawData.MFT.SI_Times.CreateTime),
+        SIFileModifiedTime = todatetime(RawData.MFT.SI_Times.FileModifiedTime),
+        SIMFTModifiedTime = todatetime(RawData.MFT.SI_Times.MFTModifiedTime),
+        SIAccessedTime = todatetime(RawData.MFT.SI_Times.AccessedTime),
+        Hardlinks = RawData.MFT.Hardlinks,
+        HexData = RawData.HexData,
+        MFT = RawData.MFT
+    | extend Timestamp = SIFileModifiedTime
+    | project
+        Timestamp,
+        Hostname,
+        FullPath,
+        OSPath,
+        Size,
+        IsDir,
+        Allocated,
+        SICreateTime,
+        SIFileModifiedTime,
+        SIMFTModifiedTime,
+        SIAccessedTime,
+        Hardlinks,
+        MFTID,
+        SequenceNumber,
+        Device,
+        Offset,
+        HexData,
+        MFT,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsFilenameSearch policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsFilenameSearch()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
 // Source: mappings/Windows.Forensics.Lnk.kql
 // ============================================
 
@@ -5202,6 +5467,58 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 }
 
 .alter table WindowsForensicsLnk policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsForensicsLnk()","IsTransactional":false}]'
+
+// ============================================
+// Source: mappings/Windows.Forensics.PartitionTable.kql
+// ============================================
+
+//ARTIFACT: Windows.Forensics.PartitionTable
+.create table WindowsForensicsPartitionTable (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Size: string,
+    StartOffset: long,
+    EndOffset: long,
+    Magic: string,
+    TopLevelDirectory: dynamic,
+    PartitionPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsPartitionTable() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.PartitionTable"
+    | extend
+        Name = tostring(RawData.name),
+        Size = tostring(RawData.Size),
+        StartOffset = tolong(RawData.StartOffset),
+        EndOffset = tolong(RawData.EndOffset),
+        Magic = tostring(RawData.Magic),
+        TopLevelDirectory = RawData.TopLevelDirectory,
+        PartitionPath = tostring(RawData._PartitionPath)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Size,
+        StartOffset,
+        EndOffset,
+        Magic,
+        TopLevelDirectory,
+        PartitionPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsPartitionTable policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsPartitionTable()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Windows.Forensics.Prefetch.kql
@@ -5832,6 +6149,98 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .alter table WindowsForensicsTimeline policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsTimeline()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
+// Source: mappings/Windows.Forensics.UEFI.kql
+// ============================================
+
+//ARTIFACT: Windows.Forensics.UEFI
+.create table WindowsForensicsUEFI (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    ShortName: string,
+    IsDeleted: bool,
+    Magic: string,
+    AuthenticodeTrusted: string,
+    AuthenticodeIssuerName: string,
+    AuthenticodeSubjectName: string,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    Size: long,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Attr: string,
+    FirstCluster: long,
+    Partition: dynamic,
+    Authenticode: dynamic,
+    PEInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsUEFI() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.UEFI"
+    | extend
+        OSPath = tostring(RawData.OSPath),
+        ShortName = tostring(RawData.ShortName),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        FirstCluster = tolong(RawData.FirstCluster),
+        Attr = tostring(RawData.Attr),
+        IsDeleted = tobool(RawData.IsDeleted),
+        Magic = tostring(RawData.Magic),
+        MD5 = tostring(RawData.Hash.MD5),
+        SHA1 = tostring(RawData.Hash.SHA1),
+        SHA256 = tostring(RawData.Hash.SHA256),
+        AuthenticodeTrusted = tostring(RawData.Authenticode.Trusted),
+        AuthenticodeIssuerName = tostring(RawData.Authenticode.IssuerName),
+        AuthenticodeSubjectName = tostring(RawData.Authenticode.SubjectName),
+        Partition = RawData.Partition,
+        Authenticode = RawData.Authenticode,
+        PEInfo = RawData.PEInfo
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        ShortName,
+        IsDeleted,
+        Magic,
+        AuthenticodeTrusted,
+        AuthenticodeIssuerName,
+        AuthenticodeSubjectName,
+        MD5,
+        SHA1,
+        SHA256,
+        Size,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Attr,
+        FirstCluster,
+        Partition,
+        Authenticode,
+        PEInfo,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsUEFI policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsUEFI()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
 // Source: mappings/Windows.Forensics.Usn.kql
 // ============================================
 
@@ -5898,6 +6307,71 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 }
 
 .alter table WindowsForensicsUsn policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsUsn()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/Windows.Hayabusa.Rules.kql
+// ============================================
+
+//ARTIFACT: Windows.Hayabusa.Rules
+.create table WindowsHayabusaRules (
+    Timestamp: datetime,
+    Hostname: string,
+    Title: string,
+    Level: string,
+    EID: int,
+    Channel: string,
+    Computer: string,
+    RecordID: long,
+    Details: dynamic,
+    EventTimestamp: datetime,
+    Event: dynamic,
+    Enrichment: dynamic,
+    Source: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsHayabusaRules() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Hayabusa.Rules"
+    | extend
+        EventTimestamp = todatetime(RawData.Timestamp),
+        Title = tostring(RawData.Title),
+        Level = tostring(RawData.Level),
+        Channel = tostring(RawData.Channel),
+        Computer = tostring(RawData.Computer),
+        EID = toint(RawData.EID),
+        RecordID = tolong(RawData.RecordID),
+        Details = RawData.Details,
+        Event = RawData._Event,
+        Enrichment = RawData.Enrichment,
+        Source = tostring(RawData._Source)
+    | extend Timestamp = EventTimestamp
+    | project
+        Timestamp,
+        Hostname,
+        Title,
+        Level,
+        EID,
+        Channel,
+        Computer,
+        RecordID,
+        Details,
+        EventTimestamp,
+        Event,
+        Enrichment,
+        Source,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsHayabusaRules policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsHayabusaRules()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Windows.Network.ArpCache.kql
@@ -7738,6 +8212,74 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .alter table WindowsTimelineMFT policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteWindowsTimelineMFT()","IsTransactional":false}]'
 
 // ============================================
+// Source: mappings/Windows.Timeline.Prefetch.Improved.kql
+// ============================================
+
+//ARTIFACT: Windows.Timeline.Prefetch.Improved
+.create table WindowsTimelinePrefetchImproved (
+    Timestamp: datetime,
+    Hostname: string,
+    FileName: string,
+    Message: string,
+    PrefetchFile: string,
+    PrefetchCount: int,
+    PrefetchHash: string,
+    PrefetchVersion: string,
+    PrefetchSize: long,
+    PrefetchCtime: datetime,
+    PrefetchMtime: datetime,
+    EventTime: datetime,
+    Source: string,
+    Parser: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTimelinePrefetchImproved() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Timeline.Prefetch.Improved"
+    | extend
+        EventTime = todatetime(RawData.event_time),
+        FileName = tostring(RawData.file_name),
+        Message = tostring(RawData.message),
+        Source = tostring(RawData.source),
+        Parser = tostring(RawData.parser),
+        PrefetchFile = tostring(RawData.prefetch_file),
+        PrefetchHash = tostring(RawData.prefetch_hash),
+        PrefetchVersion = tostring(RawData.prefetch_version),
+        PrefetchSize = tolong(RawData.prefetch_size),
+        PrefetchCount = toint(RawData.prefetch_count),
+        PrefetchCtime = todatetime(RawData.prefetch_ctime),
+        PrefetchMtime = todatetime(RawData.prefetch_mtime)
+    | extend Timestamp = EventTime
+    | project
+        Timestamp,
+        Hostname,
+        FileName,
+        Message,
+        PrefetchFile,
+        PrefetchCount,
+        PrefetchHash,
+        PrefetchVersion,
+        PrefetchSize,
+        PrefetchCtime,
+        PrefetchMtime,
+        EventTime,
+        Source,
+        Parser,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTimelinePrefetchImproved policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTimelinePrefetchImproved()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
 // Source: mappings/Windows.Triage.Targets.kql
 // ============================================
 
@@ -7902,3 +8444,94 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 }
 
 .alter table WindowsTriageTargetsAllMatchesMetadata policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsAllMatchesMetadata()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Triage.Targets/PrefetchBinaries_Executables
+.create table WindowsTriageTargetsPrefetchBinariesExecutables (
+    Timestamp: datetime,
+    Hostname: string,
+    Executable: string,
+    Hash: string,
+    Version: string,
+    FileSize: long,
+    RunCount: int,
+    LastRunTimes: dynamic,
+    OSPath: string,
+    PrefetchFileName: string,
+    CreationTime: datetime,
+    ModificationTime: datetime,
+    Binary: string,
+    ExecutablePath: string,
+    ExecutableDosPath: string,
+    SourceFile: string,
+    Size: long,
+    Modified: datetime,
+    VolumeInfo: dynamic,
+    FilesAccessed: dynamic,
+    SCCAHeader: dynamic,
+    Source: string,
+    Details: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsTriageTargetsPrefetchBinariesExecutables() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Triage.Targets/PrefetchBinaries_Executables"
+    | extend
+        Executable = tostring(RawData.Executable),
+        Hash = tostring(RawData.Hash),
+        Version = tostring(RawData.Version),
+        FileSize = tolong(RawData.FileSize),
+        RunCount = toint(RawData.RunCount),
+        LastRunTimes = RawData.LastRunTimes,
+        OSPath = tostring(RawData.OSPath),
+        PrefetchFileName = tostring(RawData.PrefetchFileName),
+        CreationTime = todatetime(RawData.CreationTime),
+        ModificationTime = todatetime(RawData.ModificationTime),
+        Binary = tostring(RawData.Binary),
+        ExecutablePath = tostring(RawData.ExecutablePath),
+        ExecutableDosPath = tostring(RawData.ExecutableDosPath),
+        SourceFile = tostring(RawData.SourceFile),
+        Size = tolong(RawData.Size),
+        Modified = todatetime(RawData.Modified),
+        VolumeInfo = RawData.VolumeInfo,
+        FilesAccessed = RawData.FilesAccessed,
+        SCCAHeader = RawData._SCCAHeader,
+        Source = tostring(RawData._Source),
+        Details = RawData.Details
+    | extend Timestamp = ModificationTime
+    | project
+        Timestamp,
+        Hostname,
+        Executable,
+        Hash,
+        Version,
+        FileSize,
+        RunCount,
+        LastRunTimes,
+        OSPath,
+        PrefetchFileName,
+        CreationTime,
+        ModificationTime,
+        Binary,
+        ExecutablePath,
+        ExecutableDosPath,
+        SourceFile,
+        Size,
+        Modified,
+        VolumeInfo,
+        FilesAccessed,
+        SCCAHeader,
+        Source,
+        Details,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsTriageTargetsPrefetchBinariesExecutables policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTriageTargetsPrefetchBinariesExecutables()", "IsEnabled": "True", "IsTransactional": true}]'

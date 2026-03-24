@@ -1,0 +1,100 @@
+//ARTIFACT: Windows.Collectors.File/All Matches Metadata
+.create table WindowsCollectorsFileAllMatchesMetadata (
+    Timestamp: datetime,
+    Hostname: string,
+    SourceFile: string,
+    Size: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsCollectorsFileAllMatchesMetadata() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Collectors.File/All Matches Metadata"
+    | extend
+        SourceFile = tostring(RawData.SourceFile),
+        Size = tolong(RawData.Size),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed)
+    | extend Timestamp = Modified
+    | project
+        Timestamp,
+        Hostname,
+        SourceFile,
+        Size,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsCollectorsFileAllMatchesMetadata policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsCollectorsFileAllMatchesMetadata()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Collectors.File/Uploads
+.create table WindowsCollectorsFileUploads (
+    Timestamp: datetime,
+    Hostname: string,
+    SourceFile: string,
+    FileSize: long,
+    Created: datetime,
+    Modified: datetime,
+    Changed: datetime,
+    LastAccessed: datetime,
+    CopiedOnTimestamp: datetime,
+    DestinationFile: string,
+    SourceFileSha256: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsCollectorsFileUploads() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Collectors.File/Uploads"
+    | extend
+        SourceFile = tostring(RawData.SourceFile),
+        FileSize = tolong(RawData.FileSize),
+        Created = todatetime(RawData.Created),
+        Modified = todatetime(RawData.Modified),
+        Changed = todatetime(RawData.Changed),
+        LastAccessed = todatetime(RawData.LastAccessed),
+        CopiedOnTimestamp = unixtime_seconds_todatetime(tolong(RawData.CopiedOnTimestamp)),
+        DestinationFile = tostring(RawData.DestinationFile),
+        SourceFileSha256 = tostring(RawData.SourceFileSha256)
+    | extend Timestamp = Modified
+    | project
+        Timestamp,
+        Hostname,
+        SourceFile,
+        FileSize,
+        Created,
+        Modified,
+        Changed,
+        LastAccessed,
+        CopiedOnTimestamp,
+        DestinationFile,
+        SourceFileSha256,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsCollectorsFileUploads policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsCollectorsFileUploads()", "IsEnabled": "True", "IsTransactional": true}]'

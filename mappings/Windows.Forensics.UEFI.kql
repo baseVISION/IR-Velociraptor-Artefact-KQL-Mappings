@@ -1,0 +1,87 @@
+//ARTIFACT: Windows.Forensics.UEFI
+.create table WindowsForensicsUEFI (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    ShortName: string,
+    IsDeleted: bool,
+    Magic: string,
+    AuthenticodeTrusted: string,
+    AuthenticodeIssuerName: string,
+    AuthenticodeSubjectName: string,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    Size: long,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Attr: string,
+    FirstCluster: long,
+    Partition: dynamic,
+    Authenticode: dynamic,
+    PEInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsUEFI() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.UEFI"
+    | extend
+        OSPath = tostring(RawData.OSPath),
+        ShortName = tostring(RawData.ShortName),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        FirstCluster = tolong(RawData.FirstCluster),
+        Attr = tostring(RawData.Attr),
+        IsDeleted = tobool(RawData.IsDeleted),
+        Magic = tostring(RawData.Magic),
+        MD5 = tostring(RawData.Hash.MD5),
+        SHA1 = tostring(RawData.Hash.SHA1),
+        SHA256 = tostring(RawData.Hash.SHA256),
+        AuthenticodeTrusted = tostring(RawData.Authenticode.Trusted),
+        AuthenticodeIssuerName = tostring(RawData.Authenticode.IssuerName),
+        AuthenticodeSubjectName = tostring(RawData.Authenticode.SubjectName),
+        Partition = RawData.Partition,
+        Authenticode = RawData.Authenticode,
+        PEInfo = RawData.PEInfo
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        ShortName,
+        IsDeleted,
+        Magic,
+        AuthenticodeTrusted,
+        AuthenticodeIssuerName,
+        AuthenticodeSubjectName,
+        MD5,
+        SHA1,
+        SHA256,
+        Size,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Attr,
+        FirstCluster,
+        Partition,
+        Authenticode,
+        PEInfo,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsUEFI policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsUEFI()", "IsEnabled": "True", "IsTransactional": true}]'

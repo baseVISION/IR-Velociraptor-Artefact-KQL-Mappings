@@ -1,0 +1,75 @@
+//ARTIFACT: Generic.Client.VQL
+.create table GenericClientVQL (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Path: string,
+    Name: string,
+    Size: long,
+    Mode: int,
+    IsDir: bool,
+    IsLink: bool,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    Mtime: datetime,
+    Atime: datetime,
+    Ctime: datetime,
+    Btime: datetime,
+    Globs: dynamic,
+    Data: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericClientVQL() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Client.VQL"
+    | extend
+        OSPath = tostring(RawData.OSPath),
+        Path = tostring(RawData.Path),
+        Name = tostring(RawData.Name),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Atime = todatetime(RawData.Atime),
+        Ctime = todatetime(RawData.Ctime),
+        Btime = todatetime(RawData.Btime),
+        MD5 = tostring(RawData.MD5),
+        SHA1 = tostring(RawData.SHA1),
+        SHA256 = tostring(RawData.SHA256),
+        Mode = toint(RawData.Mode),
+        IsDir = tobool(RawData.IsDir),
+        IsLink = tobool(RawData.IsLink),
+        Globs = RawData.Globs,
+        Data = RawData.Data
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Path,
+        Name,
+        Size,
+        Mode,
+        IsDir,
+        IsLink,
+        MD5,
+        SHA1,
+        SHA256,
+        Mtime,
+        Atime,
+        Ctime,
+        Btime,
+        Globs,
+        Data,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericClientVQL policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericClientVQL()", "IsEnabled": "True", "IsTransactional": true}]'

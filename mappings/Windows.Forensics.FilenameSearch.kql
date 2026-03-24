@@ -1,0 +1,75 @@
+//ARTIFACT: Windows.Forensics.FilenameSearch
+.create table WindowsForensicsFilenameSearch (
+    Timestamp: datetime,
+    Hostname: string,
+    FullPath: string,
+    OSPath: string,
+    Size: long,
+    IsDir: bool,
+    Allocated: bool,
+    SICreateTime: datetime,
+    SIFileModifiedTime: datetime,
+    SIMFTModifiedTime: datetime,
+    SIAccessedTime: datetime,
+    Hardlinks: dynamic,
+    MFTID: long,
+    SequenceNumber: int,
+    Device: string,
+    Offset: long,
+    HexData: dynamic,
+    MFT: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsFilenameSearch() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.FilenameSearch"
+    | extend
+        Offset = tolong(RawData.Offset),
+        FullPath = tostring(RawData.MFT.FullPath),
+        OSPath = tostring(RawData.MFT.OSPath),
+        Device = tostring(RawData.MFT.Device),
+        MFTID = tolong(RawData.MFT.MFTID),
+        SequenceNumber = toint(RawData.MFT.SequenceNumber),
+        Size = tolong(RawData.MFT.Size),
+        Allocated = tobool(RawData.MFT.Allocated),
+        IsDir = tobool(RawData.MFT.IsDir),
+        SICreateTime = todatetime(RawData.MFT.SI_Times.CreateTime),
+        SIFileModifiedTime = todatetime(RawData.MFT.SI_Times.FileModifiedTime),
+        SIMFTModifiedTime = todatetime(RawData.MFT.SI_Times.MFTModifiedTime),
+        SIAccessedTime = todatetime(RawData.MFT.SI_Times.AccessedTime),
+        Hardlinks = RawData.MFT.Hardlinks,
+        HexData = RawData.HexData,
+        MFT = RawData.MFT
+    | extend Timestamp = SIFileModifiedTime
+    | project
+        Timestamp,
+        Hostname,
+        FullPath,
+        OSPath,
+        Size,
+        IsDir,
+        Allocated,
+        SICreateTime,
+        SIFileModifiedTime,
+        SIMFTModifiedTime,
+        SIAccessedTime,
+        Hardlinks,
+        MFTID,
+        SequenceNumber,
+        Device,
+        Offset,
+        HexData,
+        MFT,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsFilenameSearch policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsFilenameSearch()", "IsEnabled": "True", "IsTransactional": true}]'
