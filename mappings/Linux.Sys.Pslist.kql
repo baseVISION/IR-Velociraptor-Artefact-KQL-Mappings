@@ -37,6 +37,7 @@
         CreatedTime = todatetime(RawData.CreatedTime),
         RSS = tolong(RawData.RSS),
         Deleted = tobool(RawData.Deleted)
+    | extend Timestamp = CreatedTime
     | project 
         Timestamp, 
         Hostname, 

@@ -22,7 +22,9 @@
         User = tostring(RawData.User),
         Name = tostring(RawData.Name),
         KeyPath = tostring(RawData._KeyPath),
-        LastExecution = todatetime(RawData.LastExecution),
+        LastExecution = todatetime(RawData.LastExecution)
+    | extend
+        Timestamp = LastExecution,
         LastExecutionTS = tostring(RawData.LastExecutionTS),
         NumberOfExecutions = tolong(RawData.NumberOfExecutions)
     | project 

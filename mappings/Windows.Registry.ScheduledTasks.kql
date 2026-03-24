@@ -57,6 +57,7 @@
         Schema = tostring(RawData.Schema),
         Date = todatetime(RawData.Date),
         XmlEntry = RawData.XmlEntry
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 

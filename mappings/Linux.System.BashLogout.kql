@@ -37,6 +37,7 @@
         Components = RawData.Upload.Components,
         Accessor = tostring(RawData.Upload.Accessor),
         Content = tostring(RawData.Content)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

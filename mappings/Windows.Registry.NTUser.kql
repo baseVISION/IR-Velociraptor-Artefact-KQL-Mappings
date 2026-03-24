@@ -37,6 +37,7 @@
         DataLen = tolong(RawData.Data.data_len),
         DataValue = tostring(RawData.Data.value),
         Data = RawData.Data
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 

@@ -37,6 +37,7 @@
         Reason = RawData.Reason,
         FileAttributes = RawData.FileAttributes,
         SourceInfo = RawData.SourceInfo
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 

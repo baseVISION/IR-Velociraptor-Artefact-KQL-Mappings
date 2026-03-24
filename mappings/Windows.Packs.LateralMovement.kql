@@ -23,7 +23,9 @@
     RawVelociraptorEvents
     | where Artifact == "Windows.Packs.LateralMovement/AlternateLogon"
     | extend 
-        EventTime = todatetime(RawData.EventTime),
+        EventTime = todatetime(RawData.EventTime)
+    | extend
+        Timestamp = EventTime,
         LogonTime = tolong(RawData.LogonTime),
         TargetUserName = tostring(RawData.TargetUserName),
         SubjectUserName = tostring(RawData.SubjectUserName),

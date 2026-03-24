@@ -37,6 +37,7 @@
         SourceMonoTS = tostring(RawData._SourceMonoTS),
         Transport = tostring(RawData._Transport),
         Cursor = tostring(RawData.Cursor)
+    | extend Timestamp = EventTimestamp
     | project
         Timestamp,
         Hostname,

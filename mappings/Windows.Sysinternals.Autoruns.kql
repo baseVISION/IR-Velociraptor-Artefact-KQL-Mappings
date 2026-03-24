@@ -49,6 +49,7 @@
         PESHA1 = tostring(RawData['PESHA-1']),
         PESHA256 = tostring(RawData['PESHA-256']),
         IMP = tostring(RawData.IMP)
+    | extend Timestamp = todatetime(Time)
     | project 
         Timestamp, 
         Hostname, 

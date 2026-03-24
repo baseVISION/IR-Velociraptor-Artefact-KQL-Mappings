@@ -19,6 +19,7 @@
         OSPath = tostring(RawData.OSPath),
         Mtime = todatetime(RawData.Mtime),
         Record = tostring(RawData.Record)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

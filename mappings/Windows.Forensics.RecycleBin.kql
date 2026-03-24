@@ -20,7 +20,9 @@
     RawVelociraptorEvents
     | where Artifact == "Windows.Forensics.RecycleBin"
     | extend 
-        DeletedTimestamp = todatetime(RawData.DeletedTimestamp),
+        DeletedTimestamp = todatetime(RawData.DeletedTimestamp)
+    | extend
+        Timestamp = DeletedTimestamp,
         OriginalFilePath = tostring(RawData.OriginalFilePath),
         RecyclePath = tostring(RawData.RecyclePath),
         OSPath = tostring(RawData.OSPath),

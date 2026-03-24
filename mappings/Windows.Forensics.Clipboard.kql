@@ -33,6 +33,7 @@
         Path = tostring(RawData.Path),
         Payload = tostring(RawData.Payload),
         ClipboardPayload = tostring(RawData.ClipboardPayload)
+    | extend Timestamp = LastModifiedOnClient
     | project 
         Timestamp, 
         Hostname, 

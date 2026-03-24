@@ -33,6 +33,7 @@
         Publisher = tostring(RawData.Publisher),
         OriginalFileName = tostring(RawData.OriginalFileName),
         BinaryType = tostring(RawData.BinaryType)
+    | extend Timestamp = KeyMTime
     | project 
         Timestamp, 
         Hostname, 

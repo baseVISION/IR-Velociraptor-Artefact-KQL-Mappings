@@ -33,6 +33,8 @@
         LoginTerminal = tostring(RawData.login_Terminal),
         LoginTime = todatetime(RawData.login_time),
         LogoutTime = todatetime(RawData.logout_time)
+    | extend
+        Timestamp = LoginTime
     | project
         Timestamp,
         Hostname,

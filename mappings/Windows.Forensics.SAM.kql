@@ -17,6 +17,7 @@
     | extend 
         Username = tostring(RawData.Username),
         CreatedTime = todatetime(RawData.CreatedTime)
+    | extend Timestamp = CreatedTime
     | project 
         Timestamp, 
         Hostname, 
@@ -94,6 +95,7 @@
         SupplementalCredentials = tostring(RawData._SupplementalCredentials),
         ParsedF = RawData.ParsedF,
         ParsedV = RawData.ParsedV
+    | extend Timestamp = LastLoginDate
     | project 
         Timestamp, 
         Hostname, 

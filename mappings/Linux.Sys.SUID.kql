@@ -25,6 +25,7 @@
         Mode = tostring(RawData.Mode),
         OwnerID = tostring(RawData.OwnerID),
         GroupID = tostring(RawData.GroupID)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

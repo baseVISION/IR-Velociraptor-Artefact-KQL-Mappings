@@ -40,6 +40,7 @@
         OctalMode = tostring(RawData.OctalMode),
         StringMode = tostring(RawData.StringMode),
         FileType = tostring(split(Artifact, "/")[1])  // DeletedFiles, DeviceFiles, RegularFiles, Sockets
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

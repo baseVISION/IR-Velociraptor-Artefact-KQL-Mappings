@@ -5,18 +5,18 @@
 .create-merge table LinuxDetectionAnomalousFiles (
     Timestamp: datetime,
     Hostname: string,
-    ClientId: string,
-    FlowId: string,
-    Artifact: string,
-    Organization: string,
-    IngestionTime: datetime,
     OSPath: string,
     Size: long,
     Host: string,
     IsHidden: bool,
     IsLarge: bool,
     Mode: string,
-    HasSUID: bool
+    HasSUID: bool,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 ) 
 
 .create-or-alter function RouteLinuxDetectionAnomalousFiles() {
@@ -33,18 +33,18 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         OSPath,
         Size,
         Host,
         IsHidden,
         IsLarge,
         Mode,
-        HasSUID
+        HasSUID,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .alter table LinuxDetectionAnomalousFiles policy update 

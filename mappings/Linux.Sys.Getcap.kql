@@ -29,6 +29,7 @@
         Size = tolong(RawData.Size),
         Capabilities = tostring(RawData.Capabilities),
         ModeString = tostring(RawData.ModeString)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

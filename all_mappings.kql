@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Tue 24 Mar 15:10:36 CET 2026
+// Generated on: Tue 24 Mar 15:42:32 CET 2026
 // Source directory: mappings
 
 
@@ -1133,18 +1133,18 @@
 .create-merge table LinuxDetectionAnomalousFiles (
     Timestamp: datetime,
     Hostname: string,
-    ClientId: string,
-    FlowId: string,
-    Artifact: string,
-    Organization: string,
-    IngestionTime: datetime,
     OSPath: string,
     Size: long,
     Host: string,
     IsHidden: bool,
     IsLarge: bool,
     Mode: string,
-    HasSUID: bool
+    HasSUID: bool,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 ) 
 
 .create-or-alter function RouteLinuxDetectionAnomalousFiles() {
@@ -1161,18 +1161,18 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         OSPath,
         Size,
         Host,
         IsHidden,
         IsLarge,
         Mode,
-        HasSUID
+        HasSUID,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .alter table LinuxDetectionAnomalousFiles policy update 
@@ -1191,16 +1191,16 @@
 .create-merge table LinuxDetectionBruteForce (
     Timestamp: datetime,
     Hostname: string,
-    ClientId: string,
-    FlowId: string,
-    Artifact: string,
-    Organization: string,
-    IngestionTime: datetime,
     IP: string,
     Reps: string,
     Date: string,
     User: string,
-    LogType: string
+    LogType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 ) 
 
 .create-or-alter function RouteLinuxDetectionBruteForcebtmplogs() {
@@ -1215,16 +1215,16 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         IP,
         Reps,
         Date,
         User,
-        LogType
+        LogType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .create-or-alter function RouteLinuxDetectionBruteForcewtmplogs() {
@@ -1239,16 +1239,16 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         IP,
         Reps,
         Date,
         User,
-        LogType
+        LogType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .alter table LinuxDetectionBruteForce policy update 
@@ -1268,11 +1268,6 @@
 .create-merge table LinuxDetectionIncorrectPermissions (
     Timestamp: datetime,
     Hostname: string,
-    ClientId: string,
-    FlowId: string,
-    Artifact: string,
-    Organization: string,
-    IngestionTime: datetime,
     OSPath: string,
     Mtime: datetime,
     Mode: string,
@@ -1286,7 +1281,12 @@
     EMode: string,
     Mismatch: string,
     Atime: datetime,
-    Ctime: datetime
+    Ctime: datetime,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 ) 
 
 .create-or-alter function RouteLinuxDetectionIncorrectPermissionsDiscrepancies() {
@@ -1307,14 +1307,10 @@
         Mismatch = tostring(RawData.Mismatch),
         Atime = todatetime(RawData.Atime),
         Ctime = todatetime(RawData.Ctime)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         OSPath,
         Mtime,
         Mode,
@@ -1328,7 +1324,12 @@
         EMode,
         Mismatch,
         Atime,
-        Ctime
+        Ctime,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .alter table LinuxDetectionIncorrectPermissions policy update 
@@ -1522,6 +1523,7 @@
     | extend 
         System = RawData.System,
         EventData = RawData.EventData
+    | extend Timestamp = unixtime_microseconds_todatetime(tolong(RawData.System.__REALTIME_TIMESTAMP))
     | project
         Timestamp,
         Hostname,
@@ -1583,6 +1585,7 @@
         OctalMode = tostring(RawData.OctalMode),
         StringMode = tostring(RawData.StringMode),
         FileType = tostring(split(Artifact, "/")[1])  // DeletedFiles, DeviceFiles, RegularFiles, Sockets
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -1654,6 +1657,7 @@
         TimeVisited = todatetime(RawData.TimeVisited),
         User = tostring(RawData.User),
         UID = tostring(RawData.UID)
+    | extend Timestamp = TimeModified
     | project
         Timestamp,
         Hostname,
@@ -2640,6 +2644,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         OSPath = tostring(RawData.OSPath),
         Mtime = todatetime(RawData.Mtime),
         Content = tostring(RawData.Content)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -2804,6 +2809,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Size = tolong(RawData.Size),
         Capabilities = tostring(RawData.Capabilities),
         ModeString = tostring(RawData.ModeString)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -2909,6 +2915,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         SourceMonoTS = tostring(RawData._SourceMonoTS),
         Transport = tostring(RawData._Transport),
         Cursor = tostring(RawData.Cursor)
+    | extend Timestamp = EventTimestamp
     | project
         Timestamp,
         Hostname,
@@ -2973,6 +2980,8 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         LoginTerminal = tostring(RawData.login_Terminal),
         LoginTime = todatetime(RawData.login_time),
         LogoutTime = todatetime(RawData.logout_time)
+    | extend
+        Timestamp = LoginTime
     | project
         Timestamp,
         Hostname,
@@ -3210,6 +3219,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         CreatedTime = todatetime(RawData.CreatedTime),
         RSS = tolong(RawData.RSS),
         Deleted = tobool(RawData.Deleted)
+    | extend Timestamp = CreatedTime
     | project 
         Timestamp, 
         Hostname, 
@@ -3312,6 +3322,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Mode = tostring(RawData.Mode),
         OwnerID = tostring(RawData.OwnerID),
         GroupID = tostring(RawData.GroupID)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -3376,6 +3387,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Data = RawData.Data,
         Globs = RawData.Globs,
         FileContent = tostring(RawData.["read_file(filename=OSPath)"])
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -3445,6 +3457,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Components = RawData.Upload.Components,
         Accessor = tostring(RawData.Upload.Accessor),
         Content = tostring(RawData.Content)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -3495,6 +3508,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         OSPath = tostring(RawData.OSPath),
         Mtime = todatetime(RawData.Mtime),
         Record = tostring(RawData.Record)
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,
@@ -4173,6 +4187,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         FileHashMD5 = tostring(RawData.FileHash.MD5),
         FileHashSHA1 = tostring(RawData.FileHash.SHA1),
         FileHashSHA256 = tostring(RawData.FileHash.SHA256)
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 
@@ -4284,6 +4299,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Name = tostring(RawData.Name),
         ModTime = todatetime(RawData.ModTime),
         Modified = todatetime(RawData.modified)
+    | extend Timestamp = ModTime
     | project 
         Timestamp, 
         Hostname, 
@@ -4338,6 +4354,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Publisher = tostring(RawData.Publisher),
         OriginalFileName = tostring(RawData.OriginalFileName),
         BinaryType = tostring(RawData.BinaryType)
+    | extend Timestamp = KeyMTime
     | project 
         Timestamp, 
         Hostname, 
@@ -4531,6 +4548,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         SHA256 = tostring(RawData.Hash.SHA256),
         VersionInformation = RawData.VersionInformation,
         Hash = RawData.Hash
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 
@@ -4850,6 +4868,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         ExtraFieldInfo = tostring(RawData.ExtraFieldInfo),
         RuleID = tostring(RawData.RuleID),
         EventTime = todatetime(RawData.EventTime)
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 
@@ -4967,6 +4986,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         ContentPath = tostring(RawData._ContentPath),
         MetdataUpload = tostring(RawData._MetdataUpload),
         Upload = tostring(RawData._Upload)
+    | extend Timestamp = DownloadTime
     | project 
         Timestamp, 
         Hostname, 
@@ -5029,6 +5049,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Path = tostring(RawData.Path),
         Payload = tostring(RawData.Payload),
         ClipboardPayload = tostring(RawData.ClipboardPayload)
+    | extend Timestamp = LastModifiedOnClient
     | project 
         Timestamp, 
         Hostname, 
@@ -5136,6 +5157,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         LinkInfo = RawData.LinkInfo,
         ExtraData = RawData.ExtraData,
         Suspicious = RawData.Suspicious
+    | extend Timestamp = WriteTime
     | project 
         Timestamp, 
         Hostname, 
@@ -5232,6 +5254,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         SCCAHeader = RawData._SCCAHeader,
         VolumeInfo = RawData.VolumeInfo,
         FilesAccessed = RawData.FilesAccessed
+    | extend Timestamp = ModificationTime
     | project 
         Timestamp, 
         Hostname, 
@@ -5286,7 +5309,9 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     RawVelociraptorEvents
     | where Artifact == "Windows.Forensics.RecycleBin"
     | extend 
-        DeletedTimestamp = todatetime(RawData.DeletedTimestamp),
+        DeletedTimestamp = todatetime(RawData.DeletedTimestamp)
+    | extend
+        Timestamp = DeletedTimestamp,
         OriginalFilePath = tostring(RawData.OriginalFilePath),
         RecyclePath = tostring(RawData.RecyclePath),
         OSPath = tostring(RawData.OSPath),
@@ -5335,6 +5360,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     | extend 
         Username = tostring(RawData.Username),
         CreatedTime = todatetime(RawData.CreatedTime)
+    | extend Timestamp = CreatedTime
     | project 
         Timestamp, 
         Hostname, 
@@ -5412,6 +5438,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         SupplementalCredentials = tostring(RawData._SupplementalCredentials),
         ParsedF = RawData.ParsedF,
         ParsedV = RawData.ParsedV
+    | extend Timestamp = LastLoginDate
     | project 
         Timestamp, 
         Hostname, 
@@ -5787,6 +5814,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         LastExecutionTS = tostring(RawData.LastExecutionTS),
         Application = tostring(RawData.Application),
         LastModifiedTime = todatetime(RawData.LastModifiedTime)
+    | extend Timestamp = LastModifiedTime
     | project 
         Timestamp, 
         Hostname, 
@@ -5846,6 +5874,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Reason = RawData.Reason,
         FileAttributes = RawData.FileAttributes,
         SourceInfo = RawData.SourceInfo
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 
@@ -6194,6 +6223,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         LaddrPort = toint(RawData["Laddr.Port"]),
         RaddrIP = tostring(RawData["Raddr.IP"]),
         RaddrPort = toint(RawData["Raddr.Port"])
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 
@@ -6257,6 +6287,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         HostTimestampsAtime = todatetime(RawData.HostTimestampsSI.Atime),
         HostTimestampsBtime = todatetime(RawData.HostTimestampsSI.Btime),
         AdsContent = tostring(RawData.AdsContent)
+    | extend Timestamp = HostTimestampsMtime
     | project 
         Timestamp, 
         Hostname, 
@@ -6345,6 +6376,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Copied = tobool(RawData.Copied),
         FileNames = RawData.FileNames,
         FileNameTypes = tostring(RawData.FileNameTypes)
+    | extend Timestamp = LastModified0x10
     | project 
         Timestamp, 
         Hostname, 
@@ -6409,7 +6441,9 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     RawVelociraptorEvents
     | where Artifact == "Windows.Packs.LateralMovement/AlternateLogon"
     | extend 
-        EventTime = todatetime(RawData.EventTime),
+        EventTime = todatetime(RawData.EventTime)
+    | extend
+        Timestamp = EventTime,
         LogonTime = tolong(RawData.LogonTime),
         TargetUserName = tostring(RawData.TargetUserName),
         SubjectUserName = tostring(RawData.SubjectUserName),
@@ -6599,6 +6633,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         DataLen = tolong(RawData.Data.data_len),
         DataValue = tostring(RawData.Data.value),
         Data = RawData.Data
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 
@@ -6686,6 +6721,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Schema = tostring(RawData.Schema),
         Date = todatetime(RawData.Date),
         XmlEntry = RawData.XmlEntry
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 
@@ -6748,7 +6784,9 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         User = tostring(RawData.User),
         Name = tostring(RawData.Name),
         KeyPath = tostring(RawData._KeyPath),
-        LastExecution = todatetime(RawData.LastExecution),
+        LastExecution = todatetime(RawData.LastExecution)
+    | extend
+        Timestamp = LastExecution,
         LastExecutionTS = tostring(RawData.LastExecutionTS),
         NumberOfExecutions = tolong(RawData.NumberOfExecutions)
     | project 
@@ -6925,6 +6963,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         PESHA1 = tostring(RawData['PESHA-1']),
         PESHA256 = tostring(RawData['PESHA-256']),
         IMP = tostring(RawData.IMP)
+    | extend Timestamp = todatetime(Time)
     | project 
         Timestamp, 
         Hostname, 
@@ -7042,6 +7081,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         LastModified = todatetime(RawData.LastModified),
         Key = tostring(RawData.Key),
         Hive = tostring(RawData.Hive)
+    | extend Timestamp = LastModified
     | project 
         Timestamp, 
         Hostname, 
@@ -7087,9 +7127,11 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     RawVelociraptorEvents
     | where Artifact == "Windows.System.AppCompatPCA"
     | extend 
-        FullPath = tostring(RawData.FullPath),
-        ExePath = tostring(RawData.ExePath),
         LastExecuted = todatetime(RawData.LastExecuted)
+    | extend
+        Timestamp = LastExecuted,
+        FullPath = tostring(RawData.FullPath),
+        ExePath = tostring(RawData.ExePath)
     | project 
         Timestamp, 
         Hostname, 
@@ -7538,6 +7580,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         MaximumWorkingSetSize = toint(RawData.MaximumWorkingSetSize),
         MinimumWorkingSetSize = toint(RawData.MinimumWorkingSetSize),
         ExecutionState = tostring(RawData.ExecutionState)
+    | extend Timestamp = CreationDate
     | project 
         Timestamp, 
         Hostname, 

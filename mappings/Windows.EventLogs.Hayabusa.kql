@@ -35,6 +35,7 @@
         ExtraFieldInfo = tostring(RawData.ExtraFieldInfo),
         RuleID = tostring(RawData.RuleID),
         EventTime = todatetime(RawData.EventTime)
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 

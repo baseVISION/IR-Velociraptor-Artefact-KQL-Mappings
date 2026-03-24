@@ -20,6 +20,7 @@
     | extend 
         System = RawData.System,
         EventData = RawData.EventData
+    | extend Timestamp = unixtime_microseconds_todatetime(tolong(RawData.System.__REALTIME_TIMESTAMP))
     | project
         Timestamp,
         Hostname,

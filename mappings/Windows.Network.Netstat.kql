@@ -33,6 +33,7 @@
         LaddrPort = toint(RawData["Laddr.Port"]),
         RaddrIP = tostring(RawData["Raddr.IP"]),
         RaddrPort = toint(RawData["Raddr.Port"])
+    | extend Timestamp = EventTimestamp
     | project 
         Timestamp, 
         Hostname, 

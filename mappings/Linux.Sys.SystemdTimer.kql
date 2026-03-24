@@ -39,6 +39,7 @@
         Data = RawData.Data,
         Globs = RawData.Globs,
         FileContent = tostring(RawData.["read_file(filename=OSPath)"])
+    | extend Timestamp = Mtime
     | project
         Timestamp,
         Hostname,

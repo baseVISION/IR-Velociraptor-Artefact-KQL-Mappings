@@ -19,6 +19,7 @@
         Name = tostring(RawData.Name),
         ModTime = todatetime(RawData.ModTime),
         Modified = todatetime(RawData.modified)
+    | extend Timestamp = ModTime
     | project 
         Timestamp, 
         Hostname, 

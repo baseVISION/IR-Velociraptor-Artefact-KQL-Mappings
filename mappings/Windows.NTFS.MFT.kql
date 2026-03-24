@@ -59,6 +59,7 @@
         Copied = tobool(RawData.Copied),
         FileNames = RawData.FileNames,
         FileNameTypes = tostring(RawData.FileNameTypes)
+    | extend Timestamp = LastModified0x10
     | project 
         Timestamp, 
         Hostname, 

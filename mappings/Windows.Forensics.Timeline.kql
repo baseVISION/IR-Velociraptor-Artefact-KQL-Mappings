@@ -21,6 +21,7 @@
         LastExecutionTS = tostring(RawData.LastExecutionTS),
         Application = tostring(RawData.Application),
         LastModifiedTime = todatetime(RawData.LastModifiedTime)
+    | extend Timestamp = LastModifiedTime
     | project 
         Timestamp, 
         Hostname, 

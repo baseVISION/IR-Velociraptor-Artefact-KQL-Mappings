@@ -40,6 +40,7 @@
         TimeVisited = todatetime(RawData.TimeVisited),
         User = tostring(RawData.User),
         UID = tostring(RawData.UID)
+    | extend Timestamp = TimeModified
     | project
         Timestamp,
         Hostname,

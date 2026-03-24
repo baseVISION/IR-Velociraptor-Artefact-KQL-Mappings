@@ -7,16 +7,16 @@
 .create-merge table LinuxDetectionBruteForce (
     Timestamp: datetime,
     Hostname: string,
-    ClientId: string,
-    FlowId: string,
-    Artifact: string,
-    Organization: string,
-    IngestionTime: datetime,
     IP: string,
     Reps: string,
     Date: string,
     User: string,
-    LogType: string
+    LogType: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
 ) 
 
 .create-or-alter function RouteLinuxDetectionBruteForcebtmplogs() {
@@ -31,16 +31,16 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         IP,
         Reps,
         Date,
         User,
-        LogType
+        LogType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .create-or-alter function RouteLinuxDetectionBruteForcewtmplogs() {
@@ -55,16 +55,16 @@
     | project
         Timestamp,
         Hostname,
-        ClientId,
-        FlowId,
-        Artifact,
-        Organization,
-        IngestionTime,
         IP,
         Reps,
         Date,
         User,
-        LogType
+        LogType,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
 }
 
 .alter table LinuxDetectionBruteForce policy update 

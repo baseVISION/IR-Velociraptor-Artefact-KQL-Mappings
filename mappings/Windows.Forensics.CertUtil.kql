@@ -35,6 +35,7 @@
         ContentPath = tostring(RawData._ContentPath),
         MetdataUpload = tostring(RawData._MetdataUpload),
         Upload = tostring(RawData._Upload)
+    | extend Timestamp = DownloadTime
     | project 
         Timestamp, 
         Hostname, 

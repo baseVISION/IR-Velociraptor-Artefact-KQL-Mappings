@@ -35,6 +35,7 @@
         HostTimestampsAtime = todatetime(RawData.HostTimestampsSI.Atime),
         HostTimestampsBtime = todatetime(RawData.HostTimestampsSI.Btime),
         AdsContent = tostring(RawData.AdsContent)
+    | extend Timestamp = HostTimestampsMtime
     | project 
         Timestamp, 
         Hostname, 

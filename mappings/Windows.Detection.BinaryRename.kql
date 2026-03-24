@@ -53,6 +53,7 @@
         SHA256 = tostring(RawData.Hash.SHA256),
         VersionInformation = RawData.VersionInformation,
         Hash = RawData.Hash
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 

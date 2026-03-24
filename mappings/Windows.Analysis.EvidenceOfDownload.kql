@@ -31,6 +31,7 @@
         FileHashMD5 = tostring(RawData.FileHash.MD5),
         FileHashSHA1 = tostring(RawData.FileHash.SHA1),
         FileHashSHA256 = tostring(RawData.FileHash.SHA256)
+    | extend Timestamp = Mtime
     | project 
         Timestamp, 
         Hostname, 

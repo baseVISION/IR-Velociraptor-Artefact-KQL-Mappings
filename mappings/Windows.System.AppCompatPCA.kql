@@ -16,9 +16,11 @@
     RawVelociraptorEvents
     | where Artifact == "Windows.System.AppCompatPCA"
     | extend 
-        FullPath = tostring(RawData.FullPath),
-        ExePath = tostring(RawData.ExePath),
         LastExecuted = todatetime(RawData.LastExecuted)
+    | extend
+        Timestamp = LastExecuted,
+        FullPath = tostring(RawData.FullPath),
+        ExePath = tostring(RawData.ExePath)
     | project 
         Timestamp, 
         Hostname, 

@@ -45,6 +45,7 @@
         SCCAHeader = RawData._SCCAHeader,
         VolumeInfo = RawData.VolumeInfo,
         FilesAccessed = RawData.FilesAccessed
+    | extend Timestamp = ModificationTime
     | project 
         Timestamp, 
         Hostname, 

@@ -103,6 +103,7 @@
         MaximumWorkingSetSize = toint(RawData.MaximumWorkingSetSize),
         MinimumWorkingSetSize = toint(RawData.MinimumWorkingSetSize),
         ExecutionState = tostring(RawData.ExecutionState)
+    | extend Timestamp = CreationDate
     | project 
         Timestamp, 
         Hostname, 

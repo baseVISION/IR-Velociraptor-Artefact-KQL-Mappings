@@ -35,6 +35,7 @@
         LastModified = todatetime(RawData.LastModified),
         Key = tostring(RawData.Key),
         Hive = tostring(RawData.Hive)
+    | extend Timestamp = LastModified
     | project 
         Timestamp, 
         Hostname, 

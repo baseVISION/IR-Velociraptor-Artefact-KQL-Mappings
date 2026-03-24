@@ -79,6 +79,7 @@
         LinkInfo = RawData.LinkInfo,
         ExtraData = RawData.ExtraData,
         Suspicious = RawData.Suspicious
+    | extend Timestamp = WriteTime
     | project 
         Timestamp, 
         Hostname, 
