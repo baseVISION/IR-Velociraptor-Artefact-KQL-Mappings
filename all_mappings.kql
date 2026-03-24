@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Tue 24 Mar 15:00:12 CET 2026
+// Generated on: Tue 24 Mar 15:10:36 CET 2026
 // Source directory: mappings
 
 
@@ -4736,22 +4736,22 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .create table WindowsEventLogsEvtx (
     Timestamp: datetime,
     Hostname: string,
-    TimeCreated: datetime,
     EventID: int,
     Channel: string,
-    Level: int,
-    Computer: string,
-    EventRecordID: long,
     Provider: string,
+    Message: string,
+    EventData: dynamic,
+    Computer: string,
+    Level: int,
+    Keywords: string,
     ProcessID: int,
     ThreadID: int,
     Task: int,
     Opcode: int,
-    Keywords: string,
-    Message: string,
     OSPath: string,
+    EventRecordID: long,
     System: dynamic,
-    EventData: dynamic,
+    TimeCreated: datetime,
     Artifact: string,
     Organization: string,
     ClientId: string,
@@ -4762,46 +4762,48 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 .create-or-alter function RouteWindowsEventLogsEvtx() {
     RawVelociraptorEvents
     | where Artifact == "Windows.EventLogs.Evtx"
-    | extend 
-        TimeCreated = todatetime(RawData.TimeCreated),
+    | extend
+        TimeCreated = todatetime(RawData.TimeCreated)
+    | extend
+        Timestamp = TimeCreated,
         EventID = toint(RawData.EventID),
         Channel = tostring(RawData.Channel),
-        Level = toint(RawData.System.Level),
-        Computer = tostring(RawData.System.Computer),
-        EventRecordID = tolong(RawData.EventRecordID),
         Provider = tostring(RawData.System.Provider.Name),
+        Level = toint(RawData.System.Level),
+        Keywords = tostring(RawData.System.Keywords),
+        Message = tostring(RawData.Message),
+        Computer = tostring(RawData.System.Computer),
         ProcessID = toint(RawData.System.Execution.ProcessID),
         ThreadID = toint(RawData.System.Execution.ThreadID),
         Task = toint(RawData.System.Task),
         Opcode = toint(RawData.System.Opcode),
-        Keywords = tostring(RawData.System.Keywords),
-        Message = tostring(RawData.Message),
         OSPath = tostring(RawData.OSPath),
-        System = RawData.System,
-        EventData = RawData.EventData
+        EventRecordID = tolong(RawData.EventRecordID),
+        EventData = RawData.EventData,
+        System = RawData.System
     | project 
-        Timestamp, 
-        Hostname, 
-        TimeCreated,
+        Timestamp,
+        Hostname,
         EventID,
         Channel,
-        Level,
-        Computer,
-        EventRecordID,
         Provider,
+        Message,
+        EventData,
+        Computer,
+        Level,
+        Keywords,
         ProcessID,
         ThreadID,
         Task,
         Opcode,
-        Keywords,
-        Message,
         OSPath,
+        EventRecordID,
         System,
-        EventData,
+        TimeCreated,
         Artifact,
         Organization,
-        ClientId, 
-        FlowId, 
+        ClientId,
+        FlowId,
         IngestionTime
 }
 
