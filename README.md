@@ -178,3 +178,39 @@ Run in Azure Data Explorer, adjust time filter (default: `ago(1h)`), save output
 ./helper_scripts/combine_mappings.sh
 ```
 
+## Analysis Functions
+
+Pre-built KQL functions for cross-artifact analysis. Located in `analysis/`. Deployed as part of `all_mappings.kql`.
+
+### `WindowsSupertimeline` — `analysis/Windows.Supertimeline.Timeline.kql`
+
+Unions ~40 Windows artifact tables into a single chronological timeline.
+
+```kusto
+WindowsSupertimeline(ago(7d), now())
+WindowsSupertimeline(ago(7d), now(), targetHostname="DESKTOP-ABC")
+WindowsSupertimeline(ago(7d), now(), filterEventCategory="Execution,Persistence")
+WindowsSupertimeline(ago(7d), now(), filterUser="admin", filterDescription="mimikatz")
+```
+
+Parameters: `startTime`, `endTime`, `targetHostname`, `targetOrg`, `filterEventCategory`, `filterEventType`, `filterPath`, `filterUser`, `filterDescription`
+
+Companion: `WindowsSupertimelineSchema()` — lists all EventCategory/EventType/SourceTable combinations.
+
+### `WindowsPersistenceOverview` — `analysis/Windows.Persistence.Overview.kql`
+
+Unions all persistence snapshot tables into a normalized view with automated suspicion flagging.
+
+Sources: Autoruns, ScheduledTask, StartupItem, WMISubscription, WMIProvider, LocalAccount, LocalAdmin
+
+```kusto
+WindowsPersistenceOverview("DESKTOP-ABC")
+WindowsPersistenceOverview("DESKTOP-ABC", filterType="ScheduledTask")
+WindowsPersistenceOverview("DESKTOP-ABC", filterType="LocalAccount,LocalAdmin")
+WindowsPersistenceOverview("", targetOrg="CaseOrg1")
+```
+
+Suspicion flags (in the `Suspicious` column): `Unsigned`, `NoMetadata`, `SuspiciousPath`, `EncodedCommand`, `LOLBin`, `WMISubscription`, `NonStandardTask`, `ElevatedUserPath`, `NeverLoggedIn`, `DisabledWithHash`
+
+Companion: `WindowsPersistenceOverviewSchema()` — lists all PersistenceType values and their source tables.
+

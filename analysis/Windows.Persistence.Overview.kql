@@ -1,0 +1,374 @@
+//ARTIFACT: Windows.Persistence.Overview
+// Windows Persistence Overview — unions all persistence-related snapshot tables
+// into a single normalized view for rapid identification of persistence mechanisms.
+//
+// Sources (8 tables):
+//   Autoruns         — Sysinternals Autoruns (Category used as PersistenceType)
+//   ScheduledTask    — Registry-parsed scheduled tasks (Mtime timestamp)
+//   StartupItem      — Startup folder/registry items (deduplicated from 2 artifacts)
+//   WMISubscription  — WMI event filter/consumer bindings
+//   WMIProvider      — Registered WMI providers
+//   LocalAccount     — SAM-parsed local user accounts (CreatedTime, LastLoginDate)
+//   LocalAdmin       — Local Administrators group members
+//
+// Usage:
+//   WindowsPersistenceOverview("DESKTOP-ABC")
+//   WindowsPersistenceOverview("DESKTOP-ABC", filterType="ScheduledTask")
+//   WindowsPersistenceOverview("DESKTOP-ABC", filterType="LocalAccount,LocalAdmin")
+//   WindowsPersistenceOverview("", targetOrg="CaseOrg1")
+
+.create-or-alter function with (folder="Analysis", docstring="Windows persistence overview — unions all persistence snapshot tables into a single view for rapid triage.", skipvalidation="true")
+WindowsPersistenceOverview(
+    targetHostname:string,
+    targetOrg:string = "",
+    filterType:string = ""
+) {
+    let _host = targetHostname;
+    let _org  = targetOrg;
+    let _fTypeList = iff(filterType == "", dynamic([]), split(filterType, ","));
+    // ========================================================================
+    // Autoruns (Sysinternals) — PersistenceType = Category (Logon, Services, etc.)
+    // ========================================================================
+    let _autoruns =
+        WindowsSysinternalsAutoruns
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or Category in (_fTypeList)
+        | project
+            PersistenceType = Category,
+            Name            = Entry,
+            Target          = coalesce(ImagePath, LaunchString, ""),
+            EntryLocation,
+            User            = "",
+            Enabled         = iff(Enabled == "enabled", "enabled", "disabled"),
+            Signer          = coalesce(Signer, ""),
+            Hash            = coalesce(SHA256, SHA1, MD5, ""),
+            LastModified    = Timestamp,
+            Details         = bag_pack(
+                                "Description", Description,
+                                "Company", Company,
+                                "Version", Version,
+                                "Profile", Profile,
+                                "LaunchString", LaunchString,
+                                "MD5", MD5,
+                                "SHA1", SHA1,
+                                "SHA256", SHA256,
+                                "PESHA1", PESHA1,
+                                "PESHA256", PESHA256,
+                                "IMP", IMP
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Scheduled Tasks (Registry) — PersistenceType = "ScheduledTask"
+    // ========================================================================
+    let _scheduledTasks =
+        WindowsRegistryScheduledTasks
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or "ScheduledTask" in (_fTypeList)
+        | project
+            PersistenceType = "ScheduledTask",
+            Name            = URI,
+            Target          = strcat(coalesce(Command, ""), iff(Arguments == "", "", strcat(" ", Arguments))),
+            EntryLocation   = Path,
+            User            = coalesce(UserId, ""),
+            Enabled         = "",
+            Signer          = "",
+            Hash            = coalesce(Hash, ""),
+            LastModified    = Mtime,
+            Details         = bag_pack(
+                                "TaskID", TaskID,
+                                "Description", Description,
+                                "Author", Author,
+                                "ComHandler", ComHandler,
+                                "Triggers", Triggers,
+                                "Actions", Actions,
+                                "Date", Date,
+                                "SecurityDescriptor", SecurityDescriptor,
+                                "DynamicInfo", DynamicInfo
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Startup Items — PersistenceType = "StartupItem"
+    // Deduplicated from Windows.Packs.Persistence and Windows.Sys.StartupItems
+    // ========================================================================
+    let _startupItems =
+        union
+            (WindowsPacksPersistenceStartupItems
+            | where isempty(_host) or Hostname has _host
+            | where isempty(_org) or Organization == _org
+            | project Hostname, Name, OSPath, ItemDetails = Details, Enabled, Source, Artifact, Organization, ClientId, FlowId, IngestionTime),
+            (WindowsSysStartupItems
+            | where isempty(_host) or Hostname has _host
+            | where isempty(_org) or Organization == _org
+            | project Hostname, Name, OSPath, ItemDetails = Details, Enabled, Source = "", Artifact, Organization, ClientId, FlowId, IngestionTime)
+        | summarize arg_max(IngestionTime, *) by Hostname, Name, ItemDetails
+        | where array_length(_fTypeList) == 0 or "StartupItem" in (_fTypeList)
+        | project
+            PersistenceType = "StartupItem",
+            Name,
+            Target          = coalesce(ItemDetails, ""),
+            EntryLocation   = coalesce(OSPath, ""),
+            User            = "",
+            Enabled         = iff(Enabled == "enabled", "enabled", "disabled"),
+            Signer          = "",
+            Hash            = "",
+            LastModified    = datetime(null),
+            Details         = bag_pack(
+                                "Source", Source
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // WMI Event Subscriptions — PersistenceType = "WMISubscription"
+    // ========================================================================
+    let _wmiSubscriptions =
+        WindowsPacksPersistenceWMIEventFilters
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or "WMISubscription" in (_fTypeList)
+        | project
+            PersistenceType = "WMISubscription",
+            Name            = coalesce(ConsumerName, FilterName, ""),
+            Target          = coalesce(FilterQuery, ""),
+            EntryLocation   = coalesce(Namespace, ""),
+            User            = "",
+            Enabled         = "",
+            Signer          = "",
+            Hash            = "",
+            LastModified    = datetime(null),
+            Details         = bag_pack(
+                                "ConsumerName", ConsumerName,
+                                "ConsumerSourceName", ConsumerSourceName,
+                                "ConsumerCategory", ConsumerCategory,
+                                "FilterName", FilterName,
+                                "FilterEventNamespace", FilterEventNamespace,
+                                "FilterQueryLanguage", FilterQueryLanguage,
+                                "ConsumerDetails", ConsumerDetails,
+                                "FilterDetails", FilterDetails
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // WMI Providers — PersistenceType = "WMIProvider"
+    // ========================================================================
+    let _wmiProviders =
+        WindowsSystemWMIProviders
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or "WMIProvider" in (_fTypeList)
+        | project
+            PersistenceType = "WMIProvider",
+            Name,
+            Target          = coalesce(BinaryPath, ""),
+            EntryLocation   = coalesce(CLSID, ""),
+            User            = "",
+            Enabled         = "",
+            Signer          = "",
+            Hash            = "",
+            LastModified    = datetime(null),
+            Details         = bag_pack(
+                                "ServerType", ServerType,
+                                "CLSID", CLSID
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Local Accounts (SAM Parsed) — PersistenceType = "LocalAccount"
+    // ========================================================================
+    let _localAccounts =
+        WindowsForensicsSAMParsed
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or "LocalAccount" in (_fTypeList)
+        | lookup (WindowsForensicsSAMCreateTimes | project Hostname, Username, CreatedTime) on Hostname, Username
+        | project
+            PersistenceType = "LocalAccount",
+            Name            = Username,
+            Target          = coalesce(ProfilePath, LogonScript, ""),
+            EntryLocation   = coalesce(Key, ""),
+            User            = Username,
+            Enabled         = iff(tostring(Flags) has "AccountDisabled", "disabled", "enabled"),
+            Signer          = "",
+            Hash            = coalesce(NtpwdHash, ""),
+            LastModified    = coalesce(CreatedTime, LastLoginDate, PasswordResetDate),
+            Details         = bag_pack(
+                                "RID", RID,
+                                "Fullname", Fullname,
+                                "Comment", Comment,
+                                "AccountType", AccountType,
+                                "CreatedTime", CreatedTime,
+                                "LoginCount", LoginCount,
+                                "FailedLoginCount", FailedLoginCount,
+                                "LastLoginDate", LastLoginDate,
+                                "PasswordResetDate", PasswordResetDate,
+                                "PasswordFailDate", PasswordFailDate,
+                                "Flags", Flags,
+                                "LmpwdHash", LmpwdHash,
+                                "NtpwdHash", NtpwdHash
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Local Administrators — PersistenceType = "LocalAdmin"
+    // ========================================================================
+    let _localAdmins =
+        WindowsSystemLocalAdmins
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fTypeList) == 0 or "LocalAdmin" in (_fTypeList)
+        | project
+            PersistenceType = "LocalAdmin",
+            Name,
+            Target          = "",
+            EntryLocation   = coalesce(SID, ""),
+            User            = Name,
+            Enabled         = "",
+            Signer          = "",
+            Hash            = "",
+            LastModified    = datetime(null),
+            Details         = bag_pack(
+                                "SID", SID,
+                                "PrincipalSource", PrincipalSource
+                            ),
+            SourceArtifact  = Artifact,
+            Hostname,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Union all persistence sources
+    // ========================================================================
+    union
+        _autoruns,
+        _scheduledTasks,
+        _startupItems,
+        _wmiSubscriptions,
+        _wmiProviders,
+        _localAccounts,
+        _localAdmins
+    // ====================================================================
+    // Suspicion flags — each flag is an independent dynamic array append.
+    // To add a new flag: copy any block below, change the condition and label.
+    // Flags only apply to "real" entries (enabled, or disabled with a Name/Target).
+    // ====================================================================
+    | extend _isRealEntry = not(Enabled == "disabled" and Name == "" and Target == "")
+    | extend _flags = dynamic([])
+    // -- Unsigned: Autoruns entry with missing or unverified signature (skip empty placeholders)
+    | extend _flags = iff(_isRealEntry
+        and SourceArtifact has "Autoruns"
+        and (Signer == "" or Signer has "Not verified"),
+        array_concat(_flags, dynamic(["Unsigned"])), _flags)
+    // -- NoMetadata: Autoruns entry with no Description and no Company (skip empty placeholders)
+    | extend _flags = iff(_isRealEntry
+        and SourceArtifact has "Autoruns"
+        and tostring(Details.Description) == ""
+        and tostring(Details.Company) == "",
+        array_concat(_flags, dynamic(["NoMetadata"])), _flags)
+    // -- SuspiciousPath: Target points to a writable / user-controlled location
+    | extend _flags = iff(Target contains @"\Temp\"
+        or Target contains @"\AppData\"
+        or Target contains @"\Public\"
+        or Target contains @"\Downloads\",
+        array_concat(_flags, dynamic(["SuspiciousPath"])), _flags)
+    // -- EncodedCommand: PowerShell with encoded command argument
+    | extend _flags = iff(Target has "powershell"
+        and Target matches regex @".*\s\-e(nc|ncode|ncodedcommand)?\s.*",
+        array_concat(_flags, dynamic(["EncodedCommand"])), _flags)
+    // -- LOLBin: Target references a Living-off-the-Land binary
+    | extend _flags = iff(Target has_any (
+            "certutil", "rundll32", "regsvr32", "mshta", "bitsadmin",
+            "msiexec", "wmic", "cmstp", "installutil", "forfiles",
+            "pcalua", "wscript", "cscript"),
+        array_concat(_flags, dynamic(["LOLBin"])), _flags)
+    // -- WMISubscription: WMI event subscriptions, excluding known Windows defaults
+    | extend _flags = iff(PersistenceType == "WMISubscription"
+        and not(Name in ("SCM Event Log Consumer", "BVTConsumer")),
+        array_concat(_flags, dynamic(["WMISubscription"])), _flags)
+    // -- NonStandardTask: scheduled task outside \Microsoft\Windows\ tree
+    | extend _flags = iff(PersistenceType == "ScheduledTask"
+        and not(Name startswith @"\Microsoft\Windows\"),
+        array_concat(_flags, dynamic(["NonStandardTask"])), _flags)
+    // -- ElevatedUserPath: task runs as SYSTEM but target is in user-writable path
+    | extend _flags = iff(PersistenceType == "ScheduledTask"
+        and (User == "SYSTEM" or User == "LocalSystem" or User == "S-1-5-18")
+        and (Target contains @"\Users\" or Target contains @"\Temp\" or Target contains @"\AppData\"),
+        array_concat(_flags, dynamic(["ElevatedUserPath"])), _flags)
+    // -- NeverLoggedIn: enabled local account with zero logins
+    | extend _flags = iff(PersistenceType == "LocalAccount"
+        and Enabled == "enabled"
+        and toint(tostring(Details.LoginCount)) == 0,
+        array_concat(_flags, dynamic(["NeverLoggedIn"])), _flags)
+    // -- DisabledWithHash: disabled account with a non-default password hash
+    | extend _flags = iff(PersistenceType == "LocalAccount"
+        and Enabled == "disabled"
+        and Hash != ""
+        and Hash != "31d6cfe0d16ae931b73c59d7e0c089c0",
+        array_concat(_flags, dynamic(["DisabledWithHash"])), _flags)
+    // -- Assemble final column and clean up
+    | extend Suspicious = iff(array_length(_flags) > 0, strcat_array(_flags, ", "), "")
+    | project-away _flags, _isRealEntry
+    | project
+        PersistenceType,
+        Name,
+        Target,
+        EntryLocation,
+        User,
+        Enabled,
+        Signer,
+        Hash,
+        Suspicious,
+        Details,
+        LastModified,
+        SourceArtifact,
+        Hostname,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+    | sort by Suspicious desc, PersistenceType asc, Name asc
+}
+
+// Companion function: returns all PersistenceType values and their source tables
+// Usage:
+//   WindowsPersistenceOverviewSchema()
+//   WindowsPersistenceOverviewSchema() | where PersistenceType == "ScheduledTask"
+.create-or-alter function with (folder="Analysis", docstring="Returns all PersistenceType/SourceTable mappings available in WindowsPersistenceOverview().", skipvalidation="true")
+WindowsPersistenceOverviewSchema() {
+    datatable(PersistenceType:string, SourceTable:string, Description:string) [
+        "(Autoruns Category)",  "WindowsSysinternalsAutoruns",               "Sysinternals Autoruns — Category values: Boot Execute, Codecs, Drivers, Explorer, Image Hijacks, KnownDLLs, Logon, LSA Providers, Network Providers, Office, Print Monitors, Scheduled Tasks, Services, Sidebar Gadgets, Winlogon, Winsock Providers",
+        "ScheduledTask",        "WindowsRegistryScheduledTasks",             "Scheduled tasks parsed from registry (Mtime timestamp)",
+        "StartupItem",          "WindowsPacksPersistenceStartupItems + WindowsSysStartupItems", "Startup folder/registry items (deduplicated)",
+        "WMISubscription",      "WindowsPacksPersistenceWMIEventFilters",    "WMI event filter/consumer bindings",
+        "WMIProvider",          "WindowsSystemWMIProviders",                 "Registered WMI providers and their DLL paths",
+        "LocalAccount",         "WindowsForensicsSAMParsed + WindowsForensicsSAMCreateTimes", "Local user accounts from SAM (CreatedTime, LastLoginDate)",
+        "LocalAdmin",           "WindowsSystemLocalAdmins",                  "Local Administrators group members"
+    ]
+}

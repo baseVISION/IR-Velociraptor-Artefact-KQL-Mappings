@@ -1,0 +1,1503 @@
+//ARTIFACT: Windows.Supertimeline.Timeline
+// Windows Supertimeline — unions all Windows artifact tables into a single
+// schema for cross-artifact chronological analysis during incident response.
+//
+// Phase 1: Core forensic timeline (30 union legs) + 10 DetectRaptor detection legs
+//
+// Categories & EventTypes:
+//   Execution       — PrefetchTimeline, PrefetchHit, ProcessCreation, AmcacheInventory,
+//                     AmcacheDetection, AppCompatExecution, UserAssist, SRUMExecution,
+//                     ForensicTimeline, CertUtilDownload, SRUMAppResource
+//   FileSystem      — MFTTimeline, USNChange, RecycleBinDelete, Download
+//   EventLog        — HayabusaAlert, EvtxEvent, HayabusaResult
+//   Detection       — SuspiciousParent, Malfind, DetectRaptorApplications, DetectRaptorEvtx,
+//                     DetectRaptorBinaryRename, DetectRaptorHijackLibs, DetectRaptorAmcache,
+//                     DetectRaptorLolRMM, DetectRaptorMFT, DetectRaptorPSReadline,
+//                     DetectRaptorWebhistory, DetectRaptorYaraProcess
+//   Persistence     — ScheduledTask, Autorun
+//   Authentication  — LateralMovement, SAMAccountCreated, SAMAccountActivity
+//   Network         — SRUMNetworkUsage, SRUMNetworkConnection
+//   UserActivity    — LnkFile, Shellbag, Clipboard
+//
+// Queryable reference: WindowsSupertimelineSchema() returns all category/type/source mappings
+//
+// Usage:
+//   WindowsSupertimeline(ago(30d), now())
+//   WindowsSupertimeline(ago(7d), now(), targetHostname="DESKTOP-ABC")
+//   WindowsSupertimeline(ago(7d), now(), filterEventCategory="Execution")
+//   WindowsSupertimeline(ago(7d), now(), filterEventCategory="Execution,Persistence")
+//   WindowsSupertimeline(ago(7d), now(), filterEventCategory="Execution", filterEventType="Prefetch,Amcache")
+//   WindowsSupertimeline(ago(7d), now(), filterUser="admin")
+//   WindowsSupertimeline(ago(7d), now(), filterDescription="mimikatz")
+//
+// Description convention: [Source] Action | Target | Key Detail | Flags
+
+.create-or-alter function with (folder="Analysis", docstring="Windows supertimeline — unions all Windows artifact tables into a single schema for cross-artifact chronological analysis.", skipvalidation="true")
+WindowsSupertimeline(
+    startTime:datetime,
+    endTime:datetime,
+    targetHostname:string = "",
+    targetOrg:string = "",
+    filterEventCategory:string = "",
+    filterEventType:string = "",
+    filterPath:string = "",
+    filterUser:string = "",
+    filterDescription:string = ""
+) {
+    let _start = startTime;
+    let _end = endTime;
+    let _host = targetHostname;
+    let _org = targetOrg;
+    let _fCategory = filterEventCategory;
+    let _fType = filterEventType;
+    let _fCategoryList = iff(isempty(_fCategory), dynamic([]), split(_fCategory, ","));
+    let _fTypeList     = iff(isempty(_fType), dynamic([]), split(_fType, ","));
+    let _fPath = filterPath;
+    let _fUser = filterUser;
+    let _fDescription = filterDescription;
+    // ========================================================================
+    // Execution
+    // ========================================================================
+    // [Execution] WindowsTimelinePrefetchImproved — Prefetch timeline (already timeline-formatted)
+    let _timelinePrefetch =
+        WindowsTimelinePrefetchImproved
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "PrefetchTimeline" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "PrefetchTimeline",
+            Description    = strcat("[Prefetch] ", Message, " | ", Source, " | Count: ", tostring(PrefetchCount)),
+            User           = "",
+            Path           = coalesce(Source, ""),
+            Hash           = coalesce(PrefetchHash, ""),
+            Details        = bag_pack(
+                                "FileName", FileName,
+                                "PrefetchFile", PrefetchFile,
+                                "PrefetchVersion", PrefetchVersion,
+                                "PrefetchSize", PrefetchSize,
+                                "PrefetchCtime", PrefetchCtime,
+                                "PrefetchMtime", PrefetchMtime,
+                                "Parser", Parser
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsForensicsPrefetch — Prefetch forensic detail
+    let _forensicsPrefetch =
+        WindowsForensicsPrefetch
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "PrefetchHit" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "PrefetchHit",
+            Description    = strcat("[Prefetch] Execution: ", Executable, " | ", coalesce(OSPath, ""), " | Runs: ", tostring(RunCount)),
+            User           = "",
+            Path           = coalesce(ExecutablePath, OSPath, ""),
+            Hash           = coalesce(Hash, ""),
+            Details        = bag_pack(
+                                "RunCount", RunCount,
+                                "LastRunTimes", LastRunTimes,
+                                "PrefetchFileName", PrefetchFileName,
+                                "CreationTime", CreationTime,
+                                "ModificationTime", ModificationTime,
+                                "Binary", Binary,
+                                "Version", Version,
+                                "FilesAccessed", FilesAccessed
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsSystemPslist — Running processes (uses CreateTime, not collection Timestamp)
+    let _pslist =
+        WindowsSystemPslist
+        | where isnotempty(CreateTime)
+        | where CreateTime between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "ProcessCreation" in (_fTypeList)
+        | project
+            EventTime      = CreateTime,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "ProcessCreation",
+            Description    = strcat("[Process] Started | ", Name, " | PID: ", tostring(Pid), " | PPID: ", tostring(Ppid), " | User: ", coalesce(Username, "")),
+            User           = coalesce(Username, ""),
+            Path           = coalesce(Exe, ""),
+            Hash           = coalesce(SHA256, SHA1, MD5, ""),
+            Details        = bag_pack(
+                                "Pid", Pid,
+                                "Ppid", Ppid,
+                                "CommandLine", CommandLine,
+                                "CreateTime", CreateTime,
+                                "Trusted", Trusted,
+                                "Subject", Subject,
+                                "IssuerName", IssuerName,
+                                "TokenIsElevated", TokenIsElevated
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsSystemAmcacheInventoryApplicationFile — Amcache inventory
+    let _amcacheInventory =
+        WindowsSystemAmcacheInventoryApplicationFile
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "AmcacheInventory" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "AmcacheInventory",
+            Description    = strcat("[Amcache] Inventory: ", Name, " | ", coalesce(Binary, ""), " | Publisher: ", coalesce(Publisher, "")),
+            User           = "",
+            Path           = coalesce(Binary, ""),
+            Hash           = coalesce(FileId, ""),
+            Details        = bag_pack(
+                                "Name", Name,
+                                "Size", Size,
+                                "Version", Version,
+                                "BinFileVersion", BinFileVersion,
+                                "ProductName", ProductName,
+                                "Publisher", Publisher,
+                                "LastModified", LastModified,
+                                "Key", Key,
+                                "Hive", Hive
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsDetectionAmcache — Amcache detection
+    let _amcacheDetection =
+        WindowsDetectionAmcache
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "AmcacheDetection" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "AmcacheDetection",
+            Description    = strcat("[Amcache] Detection: ", EntryName, " | ", coalesce(EntryPath, ""), " | Type: ", coalesce(EntryType, "")),
+            User           = "",
+            Path           = coalesce(EntryPath, ""),
+            Hash           = coalesce(SHA1, ""),
+            Details        = bag_pack(
+                                "EntryKey", EntryKey,
+                                "KeyMTime", KeyMTime,
+                                "EntryType", EntryType,
+                                "OriginalFileName", OriginalFileName,
+                                "Publisher", Publisher,
+                                "BinaryType", BinaryType,
+                                "HivePath", HivePath
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsSystemAppCompatPCA — AppCompat program execution
+    let _appCompatPCA =
+        WindowsSystemAppCompatPCA
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "AppCompatExecution" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "AppCompatExecution",
+            Description    = strcat("[AppCompat] Execution: ", coalesce(FullPath, ExePath, "")),
+            User           = "",
+            Path           = coalesce(FullPath, ExePath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "ExePath", ExePath,
+                                "FullPath", FullPath,
+                                "LastExecuted", LastExecuted
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsRegistryUserAssist — User application execution
+    let _userAssist =
+        WindowsRegistryUserAssist
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "UserAssist" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "UserAssist",
+            Description    = strcat("[UserAssist] Execution: ", Name, " | Runs: ", tostring(NumberOfExecutions), " | User: ", coalesce(User, "")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(Name, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "KeyPath", KeyPath,
+                                "LastExecution", LastExecution,
+                                "LastExecutionTS", LastExecutionTS,
+                                "NumberOfExecutions", NumberOfExecutions
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsForensicsSRUMExecutionStats — SRUM execution statistics
+    let _srumExecution =
+        WindowsForensicsSRUMExecutionStats
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SRUMExecution" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "SRUMExecution",
+            Description    = strcat("[SRUM] Execution: ", App, " | User: ", coalesce(User, ""), " | Duration: ", tostring(DurationMS), "ms"),
+            User           = coalesce(User, ""),
+            Path           = coalesce(App, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "App", App,
+                                "UserSid", UserSid,
+                                "EndTime", EndTime,
+                                "DurationMS", DurationMS,
+                                "NetworkBytesRaw", NetworkBytesRaw,
+                                "ID", ID
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsForensicsTimeline — General forensic timeline
+    let _forensicsTimeline =
+        WindowsForensicsTimeline
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "ForensicTimeline" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "ForensicTimeline",
+            Description    = strcat("[Timeline] Execution: ", Application, " | User: ", coalesce(User, "")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(Application, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Application", Application,
+                                "LastExecutionTS", LastExecutionTS,
+                                "LastModifiedTime", tostring(LastModifiedTime)
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsForensicsCertUtil — CertUtil download cache (LOLBin)
+    let _certUtil =
+        WindowsForensicsCertUtil
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "CertUtilDownload" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "CertUtilDownload",
+            Description    = strcat("[CertUtil] Download | URL: ", coalesce(URL, ""), " | TLD: ", coalesce(UrlTLD, ""), " | Size: ", tostring(FileSize)),
+            User           = "",
+            Path           = coalesce(ContentPath, ""),
+            Hash           = coalesce(Hash, ""),
+            Details        = bag_pack(
+                                "URL", URL,
+                                "UrlTLD", UrlTLD,
+                                "FileSize", FileSize,
+                                "VersionInformation", VersionInformation,
+                                "Authenticode", Authenticode,
+                                "MetadataFile", MetadataFile,
+                                "ContentPath", ContentPath
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Execution] WindowsForensicsSRUMApplicationResourceUsage — SRUM app resource usage
+    let _srumAppResource =
+        WindowsForensicsSRUMApplicationResourceUsage
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SRUMAppResource" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "SRUMAppResource",
+            Description    = strcat("[SRUM] AppResource: ", App, " | User: ", coalesce(User, "")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(App, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "App", App,
+                                "UserSid", UserSid,
+                                "SRUMId", SRUMId,
+                                "ForegroundCycleTime", ForegroundCycleTime,
+                                "BackgroundCycleTime", BackgroundCycleTime,
+                                "FaceTime", FaceTime,
+                                "ForegroundBytesRead", ForegroundBytesRead,
+                                "ForegroundBytesWritten", ForegroundBytesWritten,
+                                "BackgroundBytesRead", BackgroundBytesRead,
+                                "BackgroundBytesWritten", BackgroundBytesWritten
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // FileSystem
+    // ========================================================================
+    // [FileSystem] WindowsTimelineMFT — MFT timeline (already timeline-formatted)
+    let _timelineMft =
+        WindowsTimelineMFT
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "MFTTimeline" in (_fTypeList)
+        | extend _flags = strcat_array(
+            array_concat(
+                iff(FNCreatedShift, dynamic(["FNCreatedShift"]), dynamic([])),
+                iff(USecZero,       dynamic(["USecZero"]),       dynamic([])),
+                iff(PossibleCopy,   dynamic(["PossibleCopy"]),   dynamic([])),
+                iff(VolumeCopy,     dynamic(["VolumeCopy"]),     dynamic([]))
+            ), ", ")
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "FileSystem",
+            EventType      = "MFTTimeline",
+            Description    = strcat("[", Source, "] ", Message, " | ", Path,
+                              " | Size: ", tostring(FileSize),
+                              iff(_flags == "", "", strcat(" | Flags: ", _flags))),
+            User           = "",
+            Path,
+            Hash           = "",
+            Details        = bag_pack(
+                                "EntryNumber", EntryNumber,
+                                "ParentEntryNumber", ParentEntryNumber,
+                                "IsDir", IsDir,
+                                "InUse", InUse,
+                                "SI_Created", SI_Created,
+                                "SI_LastModified", SI_LastModified,
+                                "SI_LastAccess", SI_LastAccess,
+                                "SI_LastRecordChange", SI_LastRecordChange,
+                                "FN_Created", FN_Created,
+                                "FN_LastModified", FN_LastModified,
+                                "FN_LastAccess", FN_LastAccess,
+                                "FN_LastRecordChange", FN_LastRecordChange,
+                                "Parser", Parser
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [FileSystem] WindowsForensicsUsn — USN journal changes
+    let _usn =
+        WindowsForensicsUsn
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "USNChange" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "FileSystem",
+            EventType      = "USNChange",
+            Description    = strcat("[USN] Change | ", Filename, " | ", coalesce(OSPath, ""), " | Reason: ", tostring(Reason)),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Filename", Filename,
+                                "MFTId", MFTId,
+                                "Sequence", Sequence,
+                                "ParentMFTId", ParentMFTId,
+                                "ParentSequence", ParentSequence,
+                                "Usn", Usn,
+                                "Reason", Reason,
+                                "FileAttributes", FileAttributes,
+                                "SourceInfo", SourceInfo,
+                                "Links", Links
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [FileSystem] WindowsForensicsRecycleBin — Deleted files
+    let _recycleBin =
+        WindowsForensicsRecycleBin
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "RecycleBinDelete" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "FileSystem",
+            EventType      = "RecycleBinDelete",
+            Description    = strcat("[RecycleBin] Deleted | ", coalesce(OriginalFilePath, ""), " | Size: ", tostring(FileSize)),
+            User           = "",
+            Path           = coalesce(OriginalFilePath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "OriginalFilePath", OriginalFilePath,
+                                "RecyclePath", RecyclePath,
+                                "OSPath", OSPath,
+                                "Name", Name,
+                                "FileSize", FileSize
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [FileSystem] WindowsAnalysisEvidenceOfDownload — Downloaded files (Zone.Identifier)
+    let _evidenceOfDownload =
+        WindowsAnalysisEvidenceOfDownload
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Download" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "FileSystem",
+            EventType      = "Download",
+            Description    = strcat("[ZoneId] Download | ", coalesce(DownloadedFilePath, ""), " | URL: ", coalesce(HostUrl, "")),
+            User           = "",
+            Path           = coalesce(DownloadedFilePath, ""),
+            Hash           = coalesce(FileHashSHA256, FileHashSHA1, FileHashMD5, ""),
+            Details        = bag_pack(
+                                "HostUrl", HostUrl,
+                                "ReferrerUrl", ReferrerUrl,
+                                "ZoneId", ZoneId,
+                                "ZoneIdentifierContent", ZoneIdentifierContent
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // EventLogs / Detections
+    // ========================================================================
+    // [EventLog] WindowsHayabusaRules — Sigma/Hayabusa detection rules
+    let _hayabusaRules =
+        WindowsHayabusaRules
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "HayabusaAlert" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "EventLog",
+            EventType      = "HayabusaAlert",
+            Description    = strcat("[", Channel, "] ", Title, " | EID: ", tostring(EID), " | Level: ", coalesce(Level, "")),
+            User           = "",
+            Path           = "",
+            Hash           = "",
+            Details        = bag_pack(
+                                "Title", Title,
+                                "Level", Level,
+                                "EID", EID,
+                                "Channel", Channel,
+                                "Computer", Computer,
+                                "RecordID", RecordID,
+                                "Details", Details,
+                                "Source", Source,
+                                "Event", Event,
+                                "Enrichment", Enrichment
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [EventLog] WindowsEventLogsEvtx — Raw Windows event logs
+    let _evtx =
+        WindowsEventLogsEvtx
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "EvtxEvent" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "EventLog",
+            EventType      = "EvtxEvent",
+            Description    = strcat("[", Channel, "] ", coalesce(Provider, ""), " | EID: ", tostring(EventID), " | ", replace_string(replace_string(coalesce(Message, ""), "\n", " "), "\r", "")),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "EventID", EventID,
+                                "Channel", Channel,
+                                "Provider", Provider,
+                                "Level", Level,
+                                "Computer", Computer,
+                                "RecordID", EventRecordID,
+                                "EventData", EventData,
+                                "Keywords", Keywords,
+                                "Message", Message
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [EventLog] WindowsEventLogsHayabusaResults — Hayabusa parsed results
+    let _hayabusaResults =
+        WindowsEventLogsHayabusaResults
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "HayabusaResult" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "EventLog",
+            EventType      = "HayabusaResult",
+            Description    = strcat("[", Channel, "] ", RuleTitle, " | EID: ", tostring(EventID), " | Level: ", coalesce(Level, ""), " | ", substring(coalesce(Details, ""), 0, 120), iff(strlen(Details) > 120, "...", "")),
+            User           = trim_end(@"\s", extract(@"User: ([^¦]+)", 1, coalesce(Details, ""))),
+            Path           = trim_end(@"\s", extract(@"Proc: ([^¦]+)", 1, coalesce(Details, ""))),
+            Hash           = "",
+            Details        = bag_pack(
+                                "RuleTitle", RuleTitle,
+                                "RuleID", RuleID,
+                                "Level", Level,
+                                "EventID", EventID,
+                                "Channel", Channel,
+                                "Computer", Computer,
+                                "RecordID", RecordID,
+                                "Details", Details,
+                                "ExtraFieldInfo", ExtraFieldInfo
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] WindowsAttackParentProcess — Suspicious parent-child process relationships
+    let _attackParentProcess =
+        WindowsAttackParentProcess
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SuspiciousParent" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "SuspiciousParent",
+            Description    = strcat("[ParentProc] Suspicious | ", ActualProcessName, " (PID: ", Pid, ") | Parent: ", ActualParentName, " (expected: ", ExpectedParentName, ") | User: ", coalesce(Username, "")),
+            User           = coalesce(Username, ""),
+            Path           = coalesce(Exe, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "ActualProcessName", ActualProcessName,
+                                "ActualParentName", ActualParentName,
+                                "ExpectedParentName", ExpectedParentName,
+                                "Pid", Pid,
+                                "Ppid", Ppid,
+                                "CommandLine", CommandLine,
+                                "CallChain", CallChain,
+                                "StartTime", StartTime,
+                                "EndTime", EndTime
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] WindowsDetectionMalfind — Injected code / suspicious memory sections
+    let _malfind =
+        WindowsDetectionMalfind
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Malfind" in (_fTypeList)
+        | extend _lastProc = ProcessChain[array_length(ProcessChain)-1]
+        | mv-apply _p = ProcessChain on (
+            summarize _chainList = make_list(strcat(replace_regex(tostring(_p.Exe), @"^.*\\", ""), ":", tostring(_p.Pid)))
+        )
+        | extend _chainStr = strcat_array(_chainList, " -> ")
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "Malfind",
+            Description    = strcat("[Malfind] Injection | ", Name, " (PID: ", tostring(Pid), ") | ", _chainStr, " | Yara: ", coalesce(YaraRule, "none")),
+            User           = coalesce(tostring(_lastProc.Username), ""),
+            Path           = coalesce(tostring(_lastProc.Exe), PathSpec, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Name", Name,
+                                "Pid", Pid,
+                                "CreateTime", CreateTime,
+                                "Address", Address,
+                                "AddressRange", AddressRange,
+                                "Protection", Protection,
+                                "SectionSize", SectionSize,
+                                "DataMagic", DataMagic,
+                                "YaraRule", YaraRule,
+                                "YaraStringName", YaraStringName,
+                                "YaraStringData", YaraStringData,
+                                "ProcessChain", ProcessChain
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Persistence
+    // ========================================================================
+    // [Persistence] WindowsRegistryScheduledTasks — Scheduled tasks
+    let _scheduledTasks =
+        WindowsRegistryScheduledTasks
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Persistence" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "ScheduledTask" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Persistence",
+            EventType      = "ScheduledTask",
+            Description    = strcat("[ScheduledTask] Registered | ", coalesce(URI, ""), " | Cmd: ", coalesce(Command, ""), " ", coalesce(Arguments, ""), " | User: ", coalesce(UserId, "")),
+            User           = coalesce(UserId, ""),
+            Path           = coalesce(URI, ""),
+            Hash           = coalesce(Hash, ""),
+            Details        = bag_pack(
+                                "URI", URI,
+                                "TaskID", TaskID,
+                                "Command", Command,
+                                "Arguments", Arguments,
+                                "ComHandler", ComHandler,
+                                "TaskDescription", Description,
+                                "Author", Author,
+                                "Mtime", Mtime,
+                                "Date", Date,
+                                "Triggers", Triggers,
+                                "Actions", Actions,
+                                "OSPath", OSPath
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Persistence] WindowsSysinternalsAutoruns — Autorun entries (Timestamp from Autoruns Time field, can be null)
+    let _autoruns =
+        WindowsSysinternalsAutoruns
+        | where isnotempty(Timestamp)
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Persistence" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Autorun" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Persistence",
+            EventType      = "Autorun",
+            Description    = strcat("[Autoruns] ", coalesce(Category, ""), " | ", coalesce(Entry, ""), " | ", coalesce(LaunchString, ""), " | Signer: ", coalesce(Signer, "")),
+            User           = coalesce(Profile, ""),
+            Path           = coalesce(ImagePath, ""),
+            Hash           = coalesce(SHA256, SHA1, MD5, ""),
+            Details        = bag_pack(
+                                "Category", Category,
+                                "Entry", Entry,
+                                "EntryLocation", EntryLocation,
+                                "Enabled", Enabled,
+                                "LaunchString", LaunchString,
+                                "AutorunDescription", Description,
+                                "Version", Version,
+                                "Company", Company,
+                                "Signer", Signer
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // EXCLUDED: WindowsPacksPersistenceStartupItems — Timestamp is collection time only (no forensic value)
+    // EXCLUDED: WindowsPacksPersistenceWMIEventFilters — Timestamp is collection time only (no forensic value)
+    // ========================================================================
+    // Authentication / Lateral Movement
+    // ========================================================================
+    // [Authentication] WindowsPacksLateralMovementAlternateLogon — Lateral movement logons
+    let _lateralMovement =
+        WindowsPacksLateralMovementAlternateLogon
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "LateralMovement" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Authentication",
+            EventType      = "LateralMovement",
+            Description    = strcat("[LateralMov] Logon | Target: ", coalesce(TargetUserName, ""), " | Source: ", coalesce(SubjectUserName, ""), " | IP: ", coalesce(IpAddress, ""), " | Process: ", coalesce(ProcessName, "")),
+            User           = coalesce(TargetUserName, ""),
+            Path           = coalesce(ProcessName, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "TargetUserName", TargetUserName,
+                                "SubjectUserName", SubjectUserName,
+                                "SubjectUserSid", SubjectUserSid,
+                                "IpAddress", IpAddress,
+                                "Port", Port,
+                                "TargetServerName", TargetServerName,
+                                "SourceEventTime", EventTime,
+                                "LogonTime", LogonTime,
+                                "Source", Source
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Authentication] WindowsForensicsSAMCreateTimes — SAM account creation
+    let _samCreate =
+        WindowsForensicsSAMCreateTimes
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SAMAccountCreated" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Authentication",
+            EventType      = "SAMAccountCreated",
+            Description    = strcat("[SAM] Account Created | User: ", coalesce(Username, "")),
+            User           = coalesce(Username, ""),
+            Path           = "",
+            Hash           = "",
+            Details        = bag_pack(
+                                "Username", Username,
+                                "CreatedTime", CreatedTime
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Authentication] WindowsForensicsSAMParsed — SAM account activity (Timestamp from LastLoginDate, can be null)
+    let _samParsed =
+        WindowsForensicsSAMParsed
+        | where isnotempty(Timestamp)
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SAMAccountActivity" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Authentication",
+            EventType      = "SAMAccountActivity",
+            Description    = strcat("[SAM] Account Activity | User: ", coalesce(Username, ""), " | Logins: ", tostring(LoginCount), " | Failed: ", tostring(FailedLoginCount)),
+            User           = coalesce(Username, ""),
+            Path           = "",
+            Hash           = "",
+            Details        = bag_pack(
+                                "Username", Username,
+                                "RID", RID,
+                                "LoginCount", LoginCount,
+                                "FailedLoginCount", FailedLoginCount,
+                                "LastLoginDate", LastLoginDate,
+                                "PasswordResetDate", PasswordResetDate,
+                                "PasswordFailDate", PasswordFailDate,
+                                "AccountType", AccountType,
+                                "Flags", Flags,
+                                "ProfilePath", ProfilePath,
+                                "LogonScript", LogonScript
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Network
+    // ========================================================================
+    // [Network] WindowsForensicsSRUMNetworkUsage — SRUM network bytes per application
+    let _srumNetworkUsage =
+        WindowsForensicsSRUMNetworkUsage
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Network" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SRUMNetworkUsage" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Network",
+            EventType      = "SRUMNetworkUsage",
+            Description    = strcat("[SRUM] NetUsage: ", App, " | User: ", coalesce(User, ""), " | Sent: ", coalesce(BytesSent, "0"), " | Recv: ", coalesce(BytesRecvd, "0")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(App, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "App", App,
+                                "UserSid", UserSid,
+                                "SRUMId", SRUMId,
+                                "InterfaceLuid", InterfaceLuid,
+                                "BytesSent", BytesSent,
+                                "BytesRecvd", BytesRecvd,
+                                "L2ProfileId", L2ProfileId,
+                                "L2ProfileFlags", L2ProfileFlags
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Network] WindowsForensicsSRUMNetworkConnections — SRUM network connections per application
+    let _srumNetworkConnections =
+        WindowsForensicsSRUMNetworkConnections
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Network" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "SRUMNetworkConnection" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Network",
+            EventType      = "SRUMNetworkConnection",
+            Description    = strcat("[SRUM] NetConn: ", App, " | User: ", coalesce(User, ""), " | Connected: ", coalesce(ConnectedTime, "")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(App, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "App", App,
+                                "UserSid", UserSid,
+                                "SRUMId", SRUMId,
+                                "StartTime", StartTime,
+                                "InterfaceLuid", InterfaceLuid,
+                                "ConnectedTime", ConnectedTime
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // User Activity
+    // ========================================================================
+    // [UserActivity] WindowsForensicsLnk — LNK shortcut files
+    let _lnk =
+        WindowsForensicsLnk
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "LnkFile" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "UserActivity",
+            EventType      = "LnkFile",
+            Description    = strcat("[LNK] Accessed | ", coalesce(SourceFilePath, ""), " | Target: ", coalesce(LinkTargetPath, ""), " | MachineID: ", coalesce(MachineID, "")),
+            User           = "",
+            Path           = coalesce(LinkTargetPath, SourceFilePath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "SourceFilePath", SourceFilePath,
+                                "LinkTargetPath", LinkTargetPath,
+                                "LinkTarget", LinkTarget,
+                                "MachineID", MachineID,
+                                "MacAddress", MacAddress,
+                                "Arguments", Arguments,
+                                "WorkingDir", WorkingDir,
+                                "AccessTime", AccessTime,
+                                "CreationTime", CreationTime,
+                                "WriteTime", WriteTime,
+                                "TrackerCreationTime", TrackerCreationTime,
+                                "FileSize", FileSize
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [UserActivity] WindowsForensicsShellbags — Explorer navigation history
+    let _shellbags =
+        WindowsForensicsShellbags
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Shellbag" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "UserActivity",
+            EventType      = "Shellbag",
+            Description    = strcat("[Shellbag] Navigated | ", replace_string(coalesce(FullPath, ""), " -> ", "\\"), " | Hive: ", coalesce(Hive, "")),
+            User           = "",
+            Path           = coalesce(FullPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "FullPath", FullPath,
+                                "Hive", Hive,
+                                "KeyPath", KeyPath,
+                                "Slot", Slot,
+                                "ModTime", ModTime,
+                                "ShellbagDescription", Description,
+                                "Parsed", Parsed
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [UserActivity] WindowsForensicsClipboard — Clipboard history
+    let _clipboard =
+        WindowsForensicsClipboard
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Clipboard" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "UserActivity",
+            EventType      = "Clipboard",
+            Description    = strcat("[Clipboard] Modified | User: ", coalesce(User, ""), " | ", substring(coalesce(Payload, ClipboardPayload, ""), 0, 80)),
+            User           = coalesce(User, ""),
+            Path           = coalesce(Path, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Payload", Payload,
+                                "ClipboardPayload", ClipboardPayload,
+                                "StartTime", StartTime,
+                                "EndTime", EndTime,
+                                "CreatedTime", CreatedTime,
+                                "LastModifiedTime", LastModifiedTime,
+                                "Mtime", Mtime
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // EXCLUDED: WindowsSystemPowershellPSReadline — Timestamp is file-level Mtime, not per-command (all commands share one timestamp)
+    // ========================================================================
+    // DetectRaptor Detections
+    // ========================================================================
+    // [Detection] DetectRaptorWindowsDetectionApplications — Suspicious installed applications
+    let _drApplications =
+        DetectRaptorWindowsDetectionApplications
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorApplications" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorApplications",
+            Description    = strcat("[DetectRaptor] Application | ", Category, " | ", coalesce(DisplayName, KeyName, ""), " | Version: ", coalesce(DisplayVersion, ""), " | Publisher: ", coalesce(Publisher, "")),
+            User           = "",
+            Path           = coalesce(KeyPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Category", Category,
+                                "KeyName", KeyName,
+                                "DisplayName", DisplayName,
+                                "DisplayVersion", DisplayVersion,
+                                "Publisher", Publisher,
+                                "InstallLocation", InstallLocation,
+                                "InstallDate", InstallDate,
+                                "UninstallString", UninstallString,
+                                "Regex", Regex,
+                                "Comment", Comment
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionEvtx — DetectRaptor event log detections
+    let _drEvtx =
+        DetectRaptorWindowsDetectionEvtx
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorEvtx" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorEvtx",
+            Description    = strcat("[DetectRaptor] Evtx | ", DetectionName, " | EID: ", tostring(EventID), " | Channel: ", coalesce(Channel, ""), " | Computer: ", coalesce(Computer, "")),
+            User           = coalesce(Username, ""),
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "DetectionName", DetectionName,
+                                "DetectionRegex", DetectionRegex,
+                                "DetectionEventId", DetectionEventId,
+                                "EventID", EventID,
+                                "Channel", Channel,
+                                "Computer", Computer,
+                                "UserSID", UserSID,
+                                "EventData", EventData,
+                                "Message", Message
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionBinaryRename — Renamed binary detections
+    let _drBinaryRename =
+        DetectRaptorWindowsDetectionBinaryRename
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorBinaryRename" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorBinaryRename",
+            Description    = strcat("[DetectRaptor] BinaryRename | ", Name, " | Original: ", coalesce(OriginalFilename, ""), " | ", coalesce(OSPath, "")),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = coalesce(SHA256, SHA1, MD5, ""),
+            Details        = bag_pack(
+                                "Name", Name,
+                                "OriginalFilename", OriginalFilename,
+                                "Size", Size,
+                                "CompanyName", CompanyName,
+                                "FileDescription", FileDescription,
+                                "FileVersion", FileVersion,
+                                "ProductName", ProductName,
+                                "VersionInformation", VersionInformation,
+                                "Hash", Hash
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionHijackLibsMFT — DLL hijack detections
+    let _drHijackLibs =
+        DetectRaptorWindowsDetectionHijackLibsMFT
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorHijackLibs" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorHijackLibs",
+            Description    = strcat("[DetectRaptor] HijackLibs | ", HijackType, " | ", coalesce(FileName, ""), " | Vendor: ", coalesce(HijackVendor, ""), " | ", coalesce(OSPath, "")),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = coalesce(DllSHA256, DllSHA1, DllMD5, ""),
+            Details        = bag_pack(
+                                "FileName", FileName,
+                                "HijackType", HijackType,
+                                "HijackDllName", HijackDllName,
+                                "HijackVendor", HijackVendor,
+                                "HijackExecutablePath", HijackExecutablePath,
+                                "HijackUrl", HijackUrl,
+                                "DllAuthenticodeTrusted", DllAuthenticodeTrusted,
+                                "DllImpHash", DllImpHash,
+                                "DllPDB", DllPDB,
+                                "HijackLibInfo", HijackLibInfo
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionAmcache — Amcache-based suspicious binary detections
+    let _drAmcache =
+        DetectRaptorWindowsDetectionAmcache
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorAmcache" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorAmcache",
+            Description    = strcat("[DetectRaptor] Amcache | ", DetectionName, " [", coalesce(DetectionCriticality, ""), "] | ", coalesce(EntryName, ""), " | ", coalesce(EntryPath, "")),
+            User           = "",
+            Path           = coalesce(EntryPath, ""),
+            Hash           = coalesce(SHA1, ""),
+            Details        = bag_pack(
+                                "DetectionName", DetectionName,
+                                "DetectionCriticality", DetectionCriticality,
+                                "DetectionKeywordRegex", DetectionKeywordRegex,
+                                "DetectionReference", DetectionReference,
+                                "Publisher", Publisher,
+                                "OriginalFileName", OriginalFileName,
+                                "KeyMTime", KeyMTime
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionLolRMM — Remote management tool detections
+    let _drLolRMM =
+        DetectRaptorWindowsDetectionLolRMM
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorLolRMM" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorLolRMM",
+            Description    = strcat("[DetectRaptor] LolRMM | ", Name, " | ", coalesce(Description, ""), " | Source: ", coalesce(Source, "")),
+            User           = "",
+            Path           = coalesce(EventInstallLocation, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Name", Name,
+                                "Description", Description,
+                                "Source", Source,
+                                "LolRMMLink", LolRMMLink,
+                                "HitPathRegex", HitPathRegex,
+                                "HitDomainRegex", HitDomainRegex,
+                                "EventDisplayName", EventDisplayName,
+                                "EventPublisher", EventPublisher,
+                                "EventInstallDate", EventInstallDate,
+                                "Event", Event
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionMFT — MFT-based suspicious file detections
+    let _drMFT =
+        DetectRaptorWindowsDetectionMFT
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorMFT" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorMFT",
+            Description    = strcat("[DetectRaptor] MFT | ", DetectionName, " [", coalesce(DetectionCriticality, ""), "] | ", coalesce(OSPath, ""), " | Size: ", tostring(FileSize)),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "DetectionName", DetectionName,
+                                "DetectionCriticality", DetectionCriticality,
+                                "DetectionStringHit", DetectionStringHit,
+                                "EntryNumber", EntryNumber,
+                                "InUse", InUse,
+                                "SICreated", SICreated,
+                                "SILastModified", SILastModified,
+                                "FNCreated", FNCreated,
+                                "FNLastModified", FNLastModified,
+                                "SITimestamps", SITimestamps,
+                                "FNTimestamps", FNTimestamps
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionPowershellPSReadline — Suspicious PowerShell command detections
+    let _drPSReadline =
+        DetectRaptorWindowsDetectionPowershellPSReadline
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorPSReadline" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorPSReadline",
+            Description    = strcat("[DetectRaptor] PSReadline | ", RuleName, " | User: ", coalesce(Username, ""), " | Line: ", coalesce(Line, "")),
+            User           = coalesce(Username, ""),
+            Path           = "",
+            Hash           = "",
+            Details        = bag_pack(
+                                "RuleID", RuleID,
+                                "RuleName", RuleName,
+                                "RuleRegex", RuleRegex,
+                                "LineNum", LineNum,
+                                "Line", Line,
+                                "FileMtime", FileMtime,
+                                "FileSize", FileSize
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionWebhistory — Suspicious web browsing detections
+    let _drWebhistory =
+        DetectRaptorWindowsDetectionWebhistory
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorWebhistory" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorWebhistory",
+            Description    = strcat("[DetectRaptor] Webhistory | ", DetectionCategory, " | ", coalesce(Domain, ""), " | ", coalesce(URL, ""), " | User: ", coalesce(User, "")),
+            User           = coalesce(User, ""),
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "DetectionCategory", DetectionCategory,
+                                "DetectionDomainRegex", DetectionDomainRegex,
+                                "DetectionComment", DetectionComment,
+                                "Domain", Domain,
+                                "Category", Category,
+                                "BrowserArtifact", BrowserArtifact,
+                                "URL", URL,
+                                "Title", Title,
+                                "VisitDate", VisitDate,
+                                "LastVisitDate", LastVisitDate
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionYaraProcessWin — YARA process memory scan detections
+    let _drYaraProcess =
+        DetectRaptorWindowsDetectionYaraProcessWin
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname has _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorYaraProcess" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorYaraProcess",
+            Description    = strcat("[DetectRaptor] YaraProcess | ", Rule, " | ", coalesce(ProcessName, ""), " (PID: ", tostring(Pid), ") | ", coalesce(ExePath, "")),
+            User           = "",
+            Path           = coalesce(ExePath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "Rule", Rule,
+                                "ProcessName", ProcessName,
+                                "Pid", Pid,
+                                "CommandLine", CommandLine,
+                                "Namespace", Namespace,
+                                "YaraString", YaraString,
+                                "MetaDescription", MetaDescription,
+                                "MetaAuthor", MetaAuthor,
+                                "MetaReference", MetaReference,
+                                "MetaScore", MetaScore,
+                                "Meta", Meta
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // ========================================================================
+    // Union all legs + post-filter
+    // ========================================================================
+    union isfuzzy=true
+        // Execution
+        _timelinePrefetch,
+        _forensicsPrefetch,
+        _pslist,
+        _amcacheInventory,
+        _amcacheDetection,
+        _appCompatPCA,
+        _userAssist,
+        _srumExecution,
+        _forensicsTimeline,
+        _certUtil,
+        _srumAppResource,
+        // FileSystem
+        _timelineMft,
+        _usn,
+        _recycleBin,
+        _evidenceOfDownload,
+        // EventLogs / Detections
+        _hayabusaRules,
+        _evtx,
+        _hayabusaResults,
+        // Detection
+        _attackParentProcess,
+        _malfind,
+        // DetectRaptor Detections
+        _drApplications,
+        _drEvtx,
+        _drBinaryRename,
+        _drHijackLibs,
+        _drAmcache,
+        _drLolRMM,
+        _drMFT,
+        _drPSReadline,
+        _drWebhistory,
+        _drYaraProcess,
+        // Persistence
+        _scheduledTasks,
+        _autoruns,
+        // Authentication / Lateral Movement
+        _lateralMovement,
+        _samCreate,
+        _samParsed,
+        // Network
+        _srumNetworkUsage,
+        _srumNetworkConnections,
+        // User Activity
+        _lnk,
+        _shellbags,
+        _clipboard
+    | extend Path = replace_string(Path, " -> ", "\\")
+    | where array_length(_fCategoryList) == 0 or EventCategory has_any (_fCategoryList)
+    | where array_length(_fTypeList)     == 0 or EventType     has_any (_fTypeList)
+    | where isempty(_fPath) or Path          contains _fPath
+    | where isempty(_fUser) or User          contains _fUser
+    | where isempty(_fDescription) or Description   has _fDescription
+    | order by EventTime asc
+}
+
+// Companion function: returns all valid EventCategory / EventType combinations
+// Usage:
+//   WindowsSupertimelineSchema()
+//   WindowsSupertimelineSchema() | where EventCategory == "Execution"
+//   WindowsSupertimelineSchema() | summarize Types=make_list(EventType) by EventCategory
+.create-or-alter function with (folder="Analysis", docstring="Returns all EventCategory/EventType/SourceTable mappings available in WindowsSupertimeline().", skipvalidation="true")
+WindowsSupertimelineSchema() {
+    datatable(EventCategory:string, EventType:string, SourceTable:string, Description:string) [
+        "Execution",      "PrefetchTimeline",    "WindowsTimelinePrefetchImproved",                "Prefetch timeline (pre-formatted MACB events)",
+        "Execution",      "PrefetchHit",         "WindowsForensicsPrefetch",                       "Prefetch forensic detail per executable",
+        "Execution",      "ProcessCreation",     "WindowsSystemPslist",                            "Running processes (kernel CreateTime)",
+        "Execution",      "AmcacheInventory",    "WindowsSystemAmcacheInventoryApplicationFile",   "Amcache application inventory",
+        "Execution",      "AmcacheDetection",    "WindowsDetectionAmcache",                        "Amcache-based execution detection",
+        "Execution",      "AppCompatExecution",  "WindowsSystemAppCompatPCA",                      "AppCompat PCA program execution",
+        "Execution",      "UserAssist",          "WindowsRegistryUserAssist",                      "User-launched application (Explorer)",
+        "Execution",      "SRUMExecution",       "WindowsForensicsSRUMExecutionStats",             "SRUM execution statistics",
+        "Execution",      "ForensicTimeline",    "WindowsForensicsTimeline",                       "General forensic timeline events",
+        "Execution",      "CertUtilDownload",    "WindowsForensicsCertUtil",                       "CertUtil download cache (LOLBin)",
+        "Execution",      "SRUMAppResource",     "WindowsForensicsSRUMApplicationResourceUsage",   "SRUM application resource usage",
+        "FileSystem",     "MFTTimeline",         "WindowsTimelineMFT",                             "MFT timeline (MACB decomposed, $MFT/$LogFile/$UsnJrnl)",
+        "FileSystem",     "USNChange",           "WindowsForensicsUsn",                            "USN journal change records",
+        "FileSystem",     "RecycleBinDelete",    "WindowsForensicsRecycleBin",                     "Recycle Bin deleted files",
+        "FileSystem",     "Download",            "WindowsAnalysisEvidenceOfDownload",              "Downloaded files (Zone.Identifier ADS)",
+        "EventLog",       "HayabusaAlert",       "WindowsHayabusaRules",                           "Sigma/Hayabusa detection rule matches",
+        "EventLog",       "EvtxEvent",           "WindowsEventLogsEvtx",                           "Raw Windows event log entries",
+        "EventLog",       "HayabusaResult",      "WindowsEventLogsHayabusaResults",                "Hayabusa parsed results",
+        "Detection",      "SuspiciousParent",    "WindowsAttackParentProcess",                     "Suspicious parent-child process relationships",
+        "Detection",      "Malfind",             "WindowsDetectionMalfind",                        "Injected code / suspicious memory sections",
+        "Detection",      "DetectRaptorApplications", "DetectRaptorWindowsDetectionApplications",  "DetectRaptor suspicious installed applications",
+        "Detection",      "DetectRaptorEvtx",    "DetectRaptorWindowsDetectionEvtx",               "DetectRaptor event log detections",
+        "Detection",      "DetectRaptorBinaryRename", "DetectRaptorWindowsDetectionBinaryRename",  "DetectRaptor renamed binary detections",
+        "Detection",      "DetectRaptorHijackLibs", "DetectRaptorWindowsDetectionHijackLibsMFT",   "DetectRaptor DLL hijack detections",
+        "Detection",      "DetectRaptorAmcache", "DetectRaptorWindowsDetectionAmcache",            "DetectRaptor Amcache suspicious binary detections",
+        "Detection",      "DetectRaptorLolRMM",  "DetectRaptorWindowsDetectionLolRMM",             "DetectRaptor remote management tool detections",
+        "Detection",      "DetectRaptorMFT",     "DetectRaptorWindowsDetectionMFT",                "DetectRaptor MFT suspicious file detections",
+        "Detection",      "DetectRaptorPSReadline", "DetectRaptorWindowsDetectionPowershellPSReadline", "DetectRaptor suspicious PowerShell commands",
+        "Detection",      "DetectRaptorWebhistory", "DetectRaptorWindowsDetectionWebhistory",      "DetectRaptor suspicious web browsing detections",
+        "Detection",      "DetectRaptorYaraProcess", "DetectRaptorWindowsDetectionYaraProcessWin", "DetectRaptor YARA process memory scan detections",
+        "Persistence",    "ScheduledTask",       "WindowsRegistryScheduledTasks",                  "Scheduled tasks (registry Mtime)",
+        "Persistence",    "Autorun",             "WindowsSysinternalsAutoruns",                    "Autorun persistence entries",
+        "Authentication", "LateralMovement",     "WindowsPacksLateralMovementAlternateLogon",      "Lateral movement alternate logon events",
+        "Authentication", "SAMAccountCreated",   "WindowsForensicsSAMCreateTimes",                 "SAM account creation times",
+        "Authentication", "SAMAccountActivity",  "WindowsForensicsSAMParsed",                      "SAM account last login activity",
+        "Network",        "SRUMNetworkUsage",    "WindowsForensicsSRUMNetworkUsage",               "SRUM network bytes per application",
+        "Network",        "SRUMNetworkConnection","WindowsForensicsSRUMNetworkConnections",        "SRUM network connection records",
+        "UserActivity",   "LnkFile",             "WindowsForensicsLnk",                            "LNK shortcut file timestamps",
+        "UserActivity",   "Shellbag",            "WindowsForensicsShellbags",                      "Explorer folder navigation history",
+        "UserActivity",   "Clipboard",           "WindowsForensicsClipboard",                      "Clipboard history entries"
+    ]
+}

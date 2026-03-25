@@ -6,6 +6,7 @@
 
 # Default values
 MAPPINGS_DIR="mappings"
+ANALYSIS_DIR="analysis"
 OUTPUT_FILE="all_mappings.kql"
 LIST_ARTIFACTS=false
 
@@ -45,7 +46,7 @@ if [ "$LIST_ARTIFACTS" = true ]; then
     echo "## Current Parsed Artifacts"
     echo ""
     for file in "$MAPPINGS_DIR"/*.kql; do
-        [ ! -e "$file" ] && echo "No .kql files found in $MAPPINGS_DIR" && exit 1
+        [ ! -e "$file" ] && continue
         
         # Extract artifact name from //ARTIFACT: comment
         artifact=$(grep -m 1 "^//ARTIFACT:" "$file" | sed 's/^\/\/ARTIFACT: //')
@@ -75,10 +76,10 @@ EOF
 
 file_count=0
 
-# Loop through all .kql files in mappings directory
-for file in "$MAPPINGS_DIR"/*.kql; do
+# Loop through all .kql files in mappings and analysis directories
+for file in "$MAPPINGS_DIR"/*.kql "$ANALYSIS_DIR"/*.kql; do
     # Check if glob matched any files
-    [ ! -e "$file" ] && echo "No .kql files found in $MAPPINGS_DIR" && exit 1
+    [ ! -e "$file" ] && continue
     
     echo "Processing: $file"
     
