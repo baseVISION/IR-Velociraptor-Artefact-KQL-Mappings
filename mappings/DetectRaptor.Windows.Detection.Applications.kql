@@ -1,0 +1,69 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.Applications
+.create table DetectRaptorWindowsDetectionApplications (
+    Timestamp: datetime,
+    Hostname: string,
+    Category: string,
+    KeyName: string,
+    KeyLastWriteTimestamp: datetime,
+    DisplayName: string,
+    DisplayVersion: string,
+    Publisher: string,
+    InstallLocation: string,
+    InstallSource: string,
+    InstallDate: string,
+    Language: string,
+    UninstallString: string,
+    KeyPath: string,
+    Regex: string,
+    Comment: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionApplications() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Applications"
+    | extend 
+        Category = tostring(RawData.Category),
+        KeyName = tostring(RawData.KeyName),
+        KeyLastWriteTimestamp = todatetime(RawData.KeyLastWriteTimestamp),
+        DisplayName = tostring(RawData.DisplayName),
+        DisplayVersion = tostring(RawData.DisplayVersion),
+        Publisher = tostring(RawData.Publisher),
+        InstallLocation = tostring(RawData.InstallLocation),
+        InstallSource = tostring(RawData.InstallSource),
+        InstallDate = tostring(RawData.InstallDate),
+        Language = tostring(RawData.Language),
+        UninstallString = tostring(RawData.UninstallString),
+        KeyPath = tostring(RawData.KeyPath),
+        Regex = tostring(RawData.Regex),
+        Comment = tostring(RawData.Comment)
+    | extend Timestamp = KeyLastWriteTimestamp
+    | project 
+        Timestamp, 
+        Hostname, 
+        Category,
+        KeyName,
+        KeyLastWriteTimestamp,
+        DisplayName,
+        DisplayVersion,
+        Publisher,
+        InstallLocation,
+        InstallSource,
+        InstallDate,
+        Language,
+        UninstallString,
+        KeyPath,
+        Regex,
+        Comment,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionApplications policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionApplications()", "IsEnabled": "True", "IsTransactional": true}]'

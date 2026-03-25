@@ -1,0 +1,71 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.LolRMM
+.create table DetectRaptorWindowsDetectionLolRMM (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    Source: string,
+    LolRMMLink: string,
+    HitPathRegex: string,
+    HitDomainRegex: string,
+    EventDisplayName: string,
+    EventDisplayVersion: string,
+    EventPublisher: string,
+    EventInstallLocation: string,
+    EventInstallSource: string,
+    EventInstallDate: string,
+    EventUninstallString: string,
+    HitRegex: dynamic,
+    Event: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionLolRMM() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.LolRMM"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        Source = tostring(RawData.Source),
+        LolRMMLink = tostring(RawData.LolRMMLink),
+        HitPathRegex = tostring(RawData.HitRegex.PathRegex),
+        HitDomainRegex = tostring(RawData.HitRegex.DomainRegex),
+        EventDisplayName = tostring(RawData.Event.DisplayName),
+        EventDisplayVersion = tostring(RawData.Event.DisplayVersion),
+        EventPublisher = tostring(RawData.Event.Publisher),
+        EventInstallLocation = tostring(RawData.Event.InstallLocation),
+        EventInstallSource = tostring(RawData.Event.InstallSource),
+        EventInstallDate = tostring(RawData.Event.InstallDate),
+        EventUninstallString = tostring(RawData.Event.UninstallString),
+        HitRegex = RawData.HitRegex,
+        Event = RawData.Event
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        Source,
+        LolRMMLink,
+        HitPathRegex,
+        HitDomainRegex,
+        EventDisplayName,
+        EventDisplayVersion,
+        EventPublisher,
+        EventInstallLocation,
+        EventInstallSource,
+        EventInstallDate,
+        EventUninstallString,
+        HitRegex,
+        Event,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionLolRMM policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolRMM()", "IsEnabled": "True", "IsTransactional": true}]'

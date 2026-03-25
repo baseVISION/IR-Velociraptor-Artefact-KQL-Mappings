@@ -1,0 +1,72 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.Webhistory
+.create table DetectRaptorWindowsDetectionWebhistory (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionCategory: string,
+    DetectionDomainRegex: string,
+    DetectionAllowRegex: string,
+    DetectionComment: string,
+    Domain: string,
+    Category: string,
+    BrowserArtifact: string,
+    URL: string,
+    Title: string,
+    User: string,
+    VisitDate: datetime,
+    LastVisitDate: datetime,
+    OSPath: string,
+    ArtifactData: dynamic,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionWebhistory() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Webhistory"
+    | extend 
+        DetectionCategory = tostring(RawData.Detection.Category),
+        DetectionDomainRegex = tostring(RawData.Detection.DomainRegex),
+        DetectionAllowRegex = tostring(RawData.Detection.AllowRegex),
+        DetectionComment = tostring(RawData.Detection.Comment),
+        Domain = tostring(RawData.Domain),
+        Category = tostring(RawData.Category),
+        BrowserArtifact = tostring(RawData.BrowserArtifact),
+        URL = tostring(RawData.ArtifactData.URL),
+        Title = tostring(RawData.ArtifactData.Title),
+        User = tostring(RawData.ArtifactData.User),
+        VisitDate = todatetime(RawData.ArtifactData.Visit_Date),
+        LastVisitDate = todatetime(RawData.ArtifactData.Last_Visit_Date),
+        OSPath = tostring(RawData.ArtifactData.OSPath),
+        ArtifactData = RawData.ArtifactData,
+        Detection = RawData.Detection
+    | extend Timestamp = VisitDate
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionCategory,
+        DetectionDomainRegex,
+        DetectionAllowRegex,
+        DetectionComment,
+        Domain,
+        Category,
+        BrowserArtifact,
+        URL,
+        Title,
+        User,
+        VisitDate,
+        LastVisitDate,
+        OSPath,
+        ArtifactData,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionWebhistory policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionWebhistory()", "IsEnabled": "True", "IsTransactional": true}]'

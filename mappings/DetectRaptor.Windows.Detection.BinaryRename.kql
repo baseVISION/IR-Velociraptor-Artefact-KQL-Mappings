@@ -1,0 +1,87 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.BinaryRename
+.create table DetectRaptorWindowsDetectionBinaryRename (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    OSPath: string,
+    Size: long,
+    Mtime: datetime,
+    Ctime: datetime,
+    Atime: datetime,
+    Btime: datetime,
+    CompanyName: string,
+    FileDescription: string,
+    FileVersion: string,
+    InternalName: string,
+    LegalCopyright: string,
+    OriginalFilename: string,
+    ProductName: string,
+    ProductVersion: string,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    VersionInformation: dynamic,
+    Hash: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionBinaryRename() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.BinaryRename"
+    | extend 
+        Name = tostring(RawData.Name),
+        OSPath = tostring(RawData.OSPath),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Ctime = todatetime(RawData.Ctime),
+        Atime = todatetime(RawData.Atime),
+        Btime = todatetime(RawData.Btime),
+        CompanyName = tostring(RawData.VersionInformation.CompanyName),
+        FileDescription = tostring(RawData.VersionInformation.FileDescription),
+        FileVersion = tostring(RawData.VersionInformation.FileVersion),
+        InternalName = tostring(RawData.VersionInformation.InternalName),
+        LegalCopyright = tostring(RawData.VersionInformation.LegalCopyright),
+        OriginalFilename = tostring(RawData.VersionInformation.OriginalFilename),
+        ProductName = tostring(RawData.VersionInformation.ProductName),
+        ProductVersion = tostring(RawData.VersionInformation.ProductVersion),
+        MD5 = tostring(RawData.Hash.MD5),
+        SHA1 = tostring(RawData.Hash.SHA1),
+        SHA256 = tostring(RawData.Hash.SHA256),
+        VersionInformation = RawData.VersionInformation,
+        Hash = RawData.Hash
+    | extend Timestamp = Mtime
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        OSPath,
+        Size,
+        Mtime,
+        Ctime,
+        Atime,
+        Btime,
+        CompanyName,
+        FileDescription,
+        FileVersion,
+        InternalName,
+        LegalCopyright,
+        OriginalFilename,
+        ProductName,
+        ProductVersion,
+        MD5,
+        SHA1,
+        SHA256,
+        VersionInformation,
+        Hash,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionBinaryRename policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionBinaryRename()", "IsEnabled": "True", "IsTransactional": true}]'

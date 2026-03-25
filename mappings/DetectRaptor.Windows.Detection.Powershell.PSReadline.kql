@@ -1,0 +1,60 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.Powershell.PSReadline
+.create table DetectRaptorWindowsDetectionPowershellPSReadline (
+    Timestamp: datetime,
+    Hostname: string,
+    RuleID: string,
+    RuleName: string,
+    RuleRegex: string,
+    Username: string,
+    LineNum: long,
+    Line: string,
+    FileMtime: datetime,
+    FileCtime: datetime,
+    FileBtime: datetime,
+    FileSize: long,
+    FileInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionPowershellPSReadline() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Powershell.PSReadline"
+    | extend 
+        RuleID = tostring(RawData.RuleID),
+        RuleName = tostring(RawData.RuleName),
+        RuleRegex = tostring(RawData.RuleRegex),
+        Username = tostring(RawData.Username),
+        LineNum = tolong(RawData.LineNum),
+        Line = tostring(RawData.Line),
+        FileMtime = todatetime(RawData.FileInfo.Mtime),
+        FileCtime = todatetime(RawData.FileInfo.Ctime),
+        FileBtime = todatetime(RawData.FileInfo.Btime),
+        FileSize = tolong(RawData.FileInfo.Size),
+        FileInfo = RawData.FileInfo
+    | extend Timestamp = FileMtime
+    | project 
+        Timestamp, 
+        Hostname, 
+        RuleID,
+        RuleName,
+        RuleRegex,
+        Username,
+        LineNum,
+        Line,
+        FileMtime,
+        FileCtime,
+        FileBtime,
+        FileSize,
+        FileInfo,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionPowershellPSReadline policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionPowershellPSReadline()", "IsEnabled": "True", "IsTransactional": true}]'

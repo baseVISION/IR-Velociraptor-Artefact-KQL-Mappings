@@ -14,6 +14,16 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - **`.github/.copilot-instructions.md`** - Development guidelines for creating new mappings
 
 ## Current Parsed Artifacts
+- `DetectRaptor.Windows.Detection.Amcache`
+- `DetectRaptor.Windows.Detection.Applications`
+- `DetectRaptor.Windows.Detection.BinaryRename`
+- `DetectRaptor.Windows.Detection.Evtx`
+- `DetectRaptor.Windows.Detection.HijackLibsMFT`
+- `DetectRaptor.Windows.Detection.LolRMM`
+- `DetectRaptor.Windows.Detection.MFT`
+- `DetectRaptor.Windows.Detection.Powershell.PSReadline`
+- `DetectRaptor.Windows.Detection.Webhistory`
+- `DetectRaptor.Windows.Detection.YaraProcessWin`
 - `Generic.Applications.Chrome.SessionStorage`
 - `Generic.Applications.Office.Keywords`
 - `Generic.Client.DiskSpace`

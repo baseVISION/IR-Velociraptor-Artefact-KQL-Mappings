@@ -35,9 +35,7 @@
     RawVelociraptorEvents
     | where Artifact == "Windows.Timeline.MFT"
     | extend 
-        EventTime = todatetime(RawData.event_time)
-    | extend
-        Timestamp = EventTime,
+        EventTime = todatetime(RawData.event_time),
         Path = tostring(RawData.path),
         Message = tostring(RawData.message),
         IsDir = tobool(RawData.optional_1.IsDir),
@@ -59,6 +57,17 @@
         ParentEntryNumber = tolong(RawData.optional_1.ParentEntryNumber),
         Parser = tostring(RawData.parser),
         Source = tostring(RawData.source)
+    | extend Timestamp = case(
+        Message has "0x10" and Message has "Created",          SI_Created,
+        Message has "0x10" and Message has "LastModified",     SI_LastModified,
+        Message has "0x10" and Message has "LastAccess",       SI_LastAccess,
+        Message has "0x10" and Message has "LastRecordChange", SI_LastRecordChange,
+        Message has "0x30" and Message has "Created",          FN_Created,
+        Message has "0x30" and Message has "LastModified",     FN_LastModified,
+        Message has "0x30" and Message has "LastAccess",       FN_LastAccess,
+        Message has "0x30" and Message has "LastRecordChange", FN_LastRecordChange,
+        EventTime
+    )
     | project 
         Timestamp,
         Hostname,

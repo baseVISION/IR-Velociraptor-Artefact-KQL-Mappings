@@ -1,7 +1,807 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Tue 24 Mar 16:11:59 CET 2026
+// Generated on: Wed 25 Mar 14:10:07 CET 2026
 // Source directory: mappings
 
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.Amcache.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.Amcache
+.create table DetectRaptorWindowsDetectionAmcache (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionName: string,
+    DetectionCriticality: string,
+    DetectionKeywordRegex: string,
+    DetectionReference: string,
+    KeyMTime: datetime,
+    SHA1: string,
+    Publisher: string,
+    EntryName: string,
+    EntryPath: string,
+    OriginalFileName: string,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionAmcache() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Amcache"
+    | extend 
+        DetectionName = tostring(RawData.Detection.Name),
+        DetectionCriticality = tostring(RawData.Detection.Criticality),
+        DetectionKeywordRegex = tostring(RawData.Detection.KeywordRegex),
+        DetectionReference = tostring(RawData.Detection.Reference),
+        KeyMTime = todatetime(RawData.KeyMTime),
+        SHA1 = tostring(RawData.SHA1),
+        Publisher = tostring(RawData.Publisher),
+        EntryName = tostring(RawData.EntryName),
+        EntryPath = tostring(RawData.EntryPath),
+        OriginalFileName = tostring(RawData.OriginalFileName),
+        Detection = RawData.Detection
+    | extend Timestamp = KeyMTime
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionName,
+        DetectionCriticality,
+        DetectionKeywordRegex,
+        DetectionReference,
+        KeyMTime,
+        SHA1,
+        Publisher,
+        EntryName,
+        EntryPath,
+        OriginalFileName,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionAmcache policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionAmcache()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.Applications.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.Applications
+.create table DetectRaptorWindowsDetectionApplications (
+    Timestamp: datetime,
+    Hostname: string,
+    Category: string,
+    KeyName: string,
+    KeyLastWriteTimestamp: datetime,
+    DisplayName: string,
+    DisplayVersion: string,
+    Publisher: string,
+    InstallLocation: string,
+    InstallSource: string,
+    InstallDate: string,
+    Language: string,
+    UninstallString: string,
+    KeyPath: string,
+    Regex: string,
+    Comment: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionApplications() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Applications"
+    | extend 
+        Category = tostring(RawData.Category),
+        KeyName = tostring(RawData.KeyName),
+        KeyLastWriteTimestamp = todatetime(RawData.KeyLastWriteTimestamp),
+        DisplayName = tostring(RawData.DisplayName),
+        DisplayVersion = tostring(RawData.DisplayVersion),
+        Publisher = tostring(RawData.Publisher),
+        InstallLocation = tostring(RawData.InstallLocation),
+        InstallSource = tostring(RawData.InstallSource),
+        InstallDate = tostring(RawData.InstallDate),
+        Language = tostring(RawData.Language),
+        UninstallString = tostring(RawData.UninstallString),
+        KeyPath = tostring(RawData.KeyPath),
+        Regex = tostring(RawData.Regex),
+        Comment = tostring(RawData.Comment)
+    | extend Timestamp = KeyLastWriteTimestamp
+    | project 
+        Timestamp, 
+        Hostname, 
+        Category,
+        KeyName,
+        KeyLastWriteTimestamp,
+        DisplayName,
+        DisplayVersion,
+        Publisher,
+        InstallLocation,
+        InstallSource,
+        InstallDate,
+        Language,
+        UninstallString,
+        KeyPath,
+        Regex,
+        Comment,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionApplications policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionApplications()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.BinaryRename.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.BinaryRename
+.create table DetectRaptorWindowsDetectionBinaryRename (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    OSPath: string,
+    Size: long,
+    Mtime: datetime,
+    Ctime: datetime,
+    Atime: datetime,
+    Btime: datetime,
+    CompanyName: string,
+    FileDescription: string,
+    FileVersion: string,
+    InternalName: string,
+    LegalCopyright: string,
+    OriginalFilename: string,
+    ProductName: string,
+    ProductVersion: string,
+    MD5: string,
+    SHA1: string,
+    SHA256: string,
+    VersionInformation: dynamic,
+    Hash: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionBinaryRename() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.BinaryRename"
+    | extend 
+        Name = tostring(RawData.Name),
+        OSPath = tostring(RawData.OSPath),
+        Size = tolong(RawData.Size),
+        Mtime = todatetime(RawData.Mtime),
+        Ctime = todatetime(RawData.Ctime),
+        Atime = todatetime(RawData.Atime),
+        Btime = todatetime(RawData.Btime),
+        CompanyName = tostring(RawData.VersionInformation.CompanyName),
+        FileDescription = tostring(RawData.VersionInformation.FileDescription),
+        FileVersion = tostring(RawData.VersionInformation.FileVersion),
+        InternalName = tostring(RawData.VersionInformation.InternalName),
+        LegalCopyright = tostring(RawData.VersionInformation.LegalCopyright),
+        OriginalFilename = tostring(RawData.VersionInformation.OriginalFilename),
+        ProductName = tostring(RawData.VersionInformation.ProductName),
+        ProductVersion = tostring(RawData.VersionInformation.ProductVersion),
+        MD5 = tostring(RawData.Hash.MD5),
+        SHA1 = tostring(RawData.Hash.SHA1),
+        SHA256 = tostring(RawData.Hash.SHA256),
+        VersionInformation = RawData.VersionInformation,
+        Hash = RawData.Hash
+    | extend Timestamp = Mtime
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        OSPath,
+        Size,
+        Mtime,
+        Ctime,
+        Atime,
+        Btime,
+        CompanyName,
+        FileDescription,
+        FileVersion,
+        InternalName,
+        LegalCopyright,
+        OriginalFilename,
+        ProductName,
+        ProductVersion,
+        MD5,
+        SHA1,
+        SHA256,
+        VersionInformation,
+        Hash,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionBinaryRename policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionBinaryRename()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.Evtx.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.Evtx
+.create table DetectRaptorWindowsDetectionEvtx (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionName: string,
+    DetectionRegex: string,
+    DetectionEventId: string,
+    DetectionIgnore: string,
+    EventTime: datetime,
+    EventID: int,
+    Channel: string,
+    Computer: string,
+    Username: string,
+    UserSID: string,
+    OSPath: string,
+    Message: string,
+    EventData: dynamic,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionEvtx() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Evtx"
+    | extend 
+        DetectionName = tostring(RawData.Detection.Name),
+        DetectionRegex = tostring(RawData.Detection.Regex),
+        DetectionEventId = tostring(RawData.Detection.EventId),
+        DetectionIgnore = tostring(RawData.Detection.Ignore),
+        EventTime = todatetime(RawData.EventTime),
+        EventID = toint(RawData.EventID),
+        Channel = tostring(RawData.Channel),
+        Computer = tostring(RawData.Computer),
+        Username = tostring(RawData.Username),
+        UserSID = tostring(RawData.UserSID),
+        OSPath = tostring(RawData.OSPath),
+        Message = tostring(RawData.Message),
+        EventData = RawData.EventData,
+        Detection = RawData.Detection
+    | extend Timestamp = EventTime
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionName,
+        DetectionRegex,
+        DetectionEventId,
+        DetectionIgnore,
+        EventTime,
+        EventID,
+        Channel,
+        Computer,
+        Username,
+        UserSID,
+        OSPath,
+        Message,
+        EventData,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionEvtx policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionEvtx()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.HijackLibsMFT.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.HijackLibsMFT
+.create table DetectRaptorWindowsDetectionHijackLibsMFT (
+    Timestamp: datetime,
+    Hostname: string,
+    FileName: string,
+    OSPath: string,
+    FileSize: long,
+    HijackType: string,
+    HijackDllName: string,
+    HijackVendor: string,
+    HijackExecutablePath: string,
+    HijackExpectedLocation: string,
+    HijackUrl: string,
+    DllMD5: string,
+    DllSHA1: string,
+    DllSHA256: string,
+    DllImpHash: string,
+    DllPDB: string,
+    DllAuthenticodeTrusted: string,
+    DllAuthenticodeSubjectName: string,
+    DllTimeDateStamp: datetime,
+    DllMachine: string,
+    HijackLibInfo: dynamic,
+    DllInfo: dynamic,
+    DllHash: dynamic,
+    DllAuthenticode: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionHijackLibsMFT() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.HijackLibsMFT"
+    | extend 
+        FileName = tostring(RawData.FileName),
+        OSPath = tostring(RawData.OSPath),
+        FileSize = tolong(RawData.FileSize),
+        HijackType = tostring(RawData.HijackLibInfo.Type),
+        HijackDllName = tostring(RawData.HijackLibInfo.DllName),
+        HijackVendor = tostring(RawData.HijackLibInfo.Vendor),
+        HijackExecutablePath = tostring(RawData.HijackLibInfo.ExecutablePath),
+        HijackExpectedLocation = tostring(RawData.HijackLibInfo.ExpectedLocation),
+        HijackUrl = tostring(RawData.HijackLibInfo.Url),
+        DllMD5 = tostring(RawData.DllHash.MD5),
+        DllSHA1 = tostring(RawData.DllHash.SHA1),
+        DllSHA256 = tostring(RawData.DllHash.SHA256),
+        DllImpHash = tostring(RawData.DllInfo.ImpHash),
+        DllPDB = tostring(RawData.DllInfo.PDB),
+        DllAuthenticodeTrusted = tostring(RawData.DllAuthenticode.Trusted),
+        DllAuthenticodeSubjectName = tostring(RawData.DllAuthenticode.SubjectName),
+        DllTimeDateStamp = todatetime(RawData.DllInfo.FileHeader.TimeDateStamp),
+        DllMachine = tostring(RawData.DllInfo.FileHeader.Machine),
+        HijackLibInfo = RawData.HijackLibInfo,
+        DllInfo = RawData.DllInfo,
+        DllHash = RawData.DllHash,
+        DllAuthenticode = RawData.DllAuthenticode
+    | project 
+        Timestamp, 
+        Hostname, 
+        FileName,
+        OSPath,
+        FileSize,
+        HijackType,
+        HijackDllName,
+        HijackVendor,
+        HijackExecutablePath,
+        HijackExpectedLocation,
+        HijackUrl,
+        DllMD5,
+        DllSHA1,
+        DllSHA256,
+        DllImpHash,
+        DllPDB,
+        DllAuthenticodeTrusted,
+        DllAuthenticodeSubjectName,
+        DllTimeDateStamp,
+        DllMachine,
+        HijackLibInfo,
+        DllInfo,
+        DllHash,
+        DllAuthenticode,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionHijackLibsMFT policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionHijackLibsMFT()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.LolRMM.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.LolRMM
+.create table DetectRaptorWindowsDetectionLolRMM (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    Source: string,
+    LolRMMLink: string,
+    HitPathRegex: string,
+    HitDomainRegex: string,
+    EventDisplayName: string,
+    EventDisplayVersion: string,
+    EventPublisher: string,
+    EventInstallLocation: string,
+    EventInstallSource: string,
+    EventInstallDate: string,
+    EventUninstallString: string,
+    HitRegex: dynamic,
+    Event: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionLolRMM() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.LolRMM"
+    | extend 
+        Name = tostring(RawData.Name),
+        Description = tostring(RawData.Description),
+        Source = tostring(RawData.Source),
+        LolRMMLink = tostring(RawData.LolRMMLink),
+        HitPathRegex = tostring(RawData.HitRegex.PathRegex),
+        HitDomainRegex = tostring(RawData.HitRegex.DomainRegex),
+        EventDisplayName = tostring(RawData.Event.DisplayName),
+        EventDisplayVersion = tostring(RawData.Event.DisplayVersion),
+        EventPublisher = tostring(RawData.Event.Publisher),
+        EventInstallLocation = tostring(RawData.Event.InstallLocation),
+        EventInstallSource = tostring(RawData.Event.InstallSource),
+        EventInstallDate = tostring(RawData.Event.InstallDate),
+        EventUninstallString = tostring(RawData.Event.UninstallString),
+        HitRegex = RawData.HitRegex,
+        Event = RawData.Event
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        Description,
+        Source,
+        LolRMMLink,
+        HitPathRegex,
+        HitDomainRegex,
+        EventDisplayName,
+        EventDisplayVersion,
+        EventPublisher,
+        EventInstallLocation,
+        EventInstallSource,
+        EventInstallDate,
+        EventUninstallString,
+        HitRegex,
+        Event,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionLolRMM policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolRMM()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.MFT.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.MFT
+.create table DetectRaptorWindowsDetectionMFT (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionName: string,
+    DetectionCriticality: string,
+    DetectionKeywordRegex: string,
+    DetectionPathRegex: string,
+    DetectionIgnoreRegex: string,
+    DetectionStringHit: string,
+    OSPath: string,
+    FileSize: long,
+    IsDir: bool,
+    EntryNumber: long,
+    InUse: bool,
+    SICreated: datetime,
+    SILastModified: datetime,
+    SILastRecordChange: datetime,
+    SILastAccess: datetime,
+    FNCreated: datetime,
+    FNLastModified: datetime,
+    FNLastRecordChange: datetime,
+    FNLastAccess: datetime,
+    Detection: dynamic,
+    SITimestamps: dynamic,
+    FNTimestamps: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionMFT() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.MFT"
+    | extend 
+        DetectionName = tostring(RawData.Detection.Name),
+        DetectionCriticality = tostring(RawData.Detection.Criticality),
+        DetectionKeywordRegex = tostring(RawData.Detection.KeywordRegex),
+        DetectionPathRegex = tostring(RawData.Detection.PathRegex),
+        DetectionIgnoreRegex = tostring(RawData.Detection.IgnoreRegex),
+        DetectionStringHit = tostring(RawData.Detection.StringHit),
+        OSPath = tostring(RawData.OSPath),
+        FileSize = tolong(RawData.FileSize),
+        IsDir = tobool(RawData.IsDir),
+        EntryNumber = tolong(RawData.EntryNumber),
+        InUse = tobool(RawData.InUse),
+        SICreated = todatetime(RawData.SITimestamps["Created0x10"]),
+        SILastModified = todatetime(RawData.SITimestamps["LastModified0x10"]),
+        SILastRecordChange = todatetime(RawData.SITimestamps["LastRecordChange0x10"]),
+        SILastAccess = todatetime(RawData.SITimestamps["LastAccess0x10"]),
+        FNCreated = todatetime(RawData.FNTimestamps["Created0x30"]),
+        FNLastModified = todatetime(RawData.FNTimestamps["LastModified0x30"]),
+        FNLastRecordChange = todatetime(RawData.FNTimestamps["LastRecordChange0x30"]),
+        FNLastAccess = todatetime(RawData.FNTimestamps["LastAccess0x30"]),
+        Detection = RawData.Detection,
+        SITimestamps = RawData.SITimestamps,
+        FNTimestamps = RawData.FNTimestamps
+    | extend Timestamp = SILastModified
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionName,
+        DetectionCriticality,
+        DetectionKeywordRegex,
+        DetectionPathRegex,
+        DetectionIgnoreRegex,
+        DetectionStringHit,
+        OSPath,
+        FileSize,
+        IsDir,
+        EntryNumber,
+        InUse,
+        SICreated,
+        SILastModified,
+        SILastRecordChange,
+        SILastAccess,
+        FNCreated,
+        FNLastModified,
+        FNLastRecordChange,
+        FNLastAccess,
+        Detection,
+        SITimestamps,
+        FNTimestamps,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionMFT policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionMFT()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.Powershell.PSReadline.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.Powershell.PSReadline
+.create table DetectRaptorWindowsDetectionPowershellPSReadline (
+    Timestamp: datetime,
+    Hostname: string,
+    RuleID: string,
+    RuleName: string,
+    RuleRegex: string,
+    Username: string,
+    LineNum: long,
+    Line: string,
+    FileMtime: datetime,
+    FileCtime: datetime,
+    FileBtime: datetime,
+    FileSize: long,
+    FileInfo: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionPowershellPSReadline() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Powershell.PSReadline"
+    | extend 
+        RuleID = tostring(RawData.RuleID),
+        RuleName = tostring(RawData.RuleName),
+        RuleRegex = tostring(RawData.RuleRegex),
+        Username = tostring(RawData.Username),
+        LineNum = tolong(RawData.LineNum),
+        Line = tostring(RawData.Line),
+        FileMtime = todatetime(RawData.FileInfo.Mtime),
+        FileCtime = todatetime(RawData.FileInfo.Ctime),
+        FileBtime = todatetime(RawData.FileInfo.Btime),
+        FileSize = tolong(RawData.FileInfo.Size),
+        FileInfo = RawData.FileInfo
+    | extend Timestamp = FileMtime
+    | project 
+        Timestamp, 
+        Hostname, 
+        RuleID,
+        RuleName,
+        RuleRegex,
+        Username,
+        LineNum,
+        Line,
+        FileMtime,
+        FileCtime,
+        FileBtime,
+        FileSize,
+        FileInfo,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionPowershellPSReadline policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionPowershellPSReadline()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.Webhistory.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.Webhistory
+.create table DetectRaptorWindowsDetectionWebhistory (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionCategory: string,
+    DetectionDomainRegex: string,
+    DetectionAllowRegex: string,
+    DetectionComment: string,
+    Domain: string,
+    Category: string,
+    BrowserArtifact: string,
+    URL: string,
+    Title: string,
+    User: string,
+    VisitDate: datetime,
+    LastVisitDate: datetime,
+    OSPath: string,
+    ArtifactData: dynamic,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionWebhistory() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Webhistory"
+    | extend 
+        DetectionCategory = tostring(RawData.Detection.Category),
+        DetectionDomainRegex = tostring(RawData.Detection.DomainRegex),
+        DetectionAllowRegex = tostring(RawData.Detection.AllowRegex),
+        DetectionComment = tostring(RawData.Detection.Comment),
+        Domain = tostring(RawData.Domain),
+        Category = tostring(RawData.Category),
+        BrowserArtifact = tostring(RawData.BrowserArtifact),
+        URL = tostring(RawData.ArtifactData.URL),
+        Title = tostring(RawData.ArtifactData.Title),
+        User = tostring(RawData.ArtifactData.User),
+        VisitDate = todatetime(RawData.ArtifactData.Visit_Date),
+        LastVisitDate = todatetime(RawData.ArtifactData.Last_Visit_Date),
+        OSPath = tostring(RawData.ArtifactData.OSPath),
+        ArtifactData = RawData.ArtifactData,
+        Detection = RawData.Detection
+    | extend Timestamp = VisitDate
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionCategory,
+        DetectionDomainRegex,
+        DetectionAllowRegex,
+        DetectionComment,
+        Domain,
+        Category,
+        BrowserArtifact,
+        URL,
+        Title,
+        User,
+        VisitDate,
+        LastVisitDate,
+        OSPath,
+        ArtifactData,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionWebhistory policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionWebhistory()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/DetectRaptor.Windows.Detection.YaraProcessWin.kql
+// ============================================
+
+//ARTIFACT: DetectRaptor.Windows.Detection.YaraProcessWin
+.create table DetectRaptorWindowsDetectionYaraProcessWin (
+    Timestamp: datetime,
+    Hostname: string,
+    Rule: string,
+    ProcessName: string,
+    ExePath: string,
+    Pid: int,
+    CommandLine: string,
+    Namespace: string,
+    YaraString: string,
+    HitOffset: long,
+    MetaDescription: string,
+    MetaAuthor: string,
+    MetaReference: string,
+    MetaScore: int,
+    MetaId: string,
+    MetaDate: datetime,
+    MetaModified: datetime,
+    Meta: dynamic,
+    HitContext: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionYaraProcessWin() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.YaraProcessWin"
+    | extend 
+        Rule = tostring(RawData.Rule),
+        ProcessName = tostring(RawData.ProcessName),
+        ExePath = tostring(RawData.ExePath),
+        Pid = toint(RawData.Pid),
+        CommandLine = tostring(RawData.CommandLine),
+        Namespace = tostring(RawData.Namespace),
+        YaraString = tostring(RawData.YaraString),
+        HitOffset = tolong(RawData.HitOffset),
+        MetaDescription = tostring(RawData.Meta.description),
+        MetaAuthor = tostring(RawData.Meta.author),
+        MetaReference = tostring(RawData.Meta.reference),
+        MetaScore = toint(RawData.Meta.score),
+        MetaId = tostring(RawData.Meta.id),
+        MetaDate = todatetime(RawData.Meta["date"]),
+        MetaModified = todatetime(RawData.Meta["modified"]),
+        Meta = RawData.Meta,
+        HitContext = RawData.HitContext
+    | project 
+        Timestamp, 
+        Hostname, 
+        Rule,
+        ProcessName,
+        ExePath,
+        Pid,
+        CommandLine,
+        Namespace,
+        YaraString,
+        HitOffset,
+        MetaDescription,
+        MetaAuthor,
+        MetaReference,
+        MetaScore,
+        MetaId,
+        MetaDate,
+        MetaModified,
+        Meta,
+        HitContext,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionYaraProcessWin policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionYaraProcessWin()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Generic.Applications.Chrome.SessionStorage.kql
@@ -8153,9 +8953,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     RawVelociraptorEvents
     | where Artifact == "Windows.Timeline.MFT"
     | extend 
-        EventTime = todatetime(RawData.event_time)
-    | extend
-        Timestamp = EventTime,
+        EventTime = todatetime(RawData.event_time),
         Path = tostring(RawData.path),
         Message = tostring(RawData.message),
         IsDir = tobool(RawData.optional_1.IsDir),
@@ -8177,6 +8975,17 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         ParentEntryNumber = tolong(RawData.optional_1.ParentEntryNumber),
         Parser = tostring(RawData.parser),
         Source = tostring(RawData.source)
+    | extend Timestamp = case(
+        Message has "0x10" and Message has "Created",          SI_Created,
+        Message has "0x10" and Message has "LastModified",     SI_LastModified,
+        Message has "0x10" and Message has "LastAccess",       SI_LastAccess,
+        Message has "0x10" and Message has "LastRecordChange", SI_LastRecordChange,
+        Message has "0x30" and Message has "Created",          FN_Created,
+        Message has "0x30" and Message has "LastModified",     FN_LastModified,
+        Message has "0x30" and Message has "LastAccess",       FN_LastAccess,
+        Message has "0x30" and Message has "LastRecordChange", FN_LastRecordChange,
+        EventTime
+    )
     | project 
         Timestamp,
         Hostname,

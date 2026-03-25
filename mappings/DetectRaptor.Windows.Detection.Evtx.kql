@@ -1,0 +1,69 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.Evtx
+.create table DetectRaptorWindowsDetectionEvtx (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionName: string,
+    DetectionRegex: string,
+    DetectionEventId: string,
+    DetectionIgnore: string,
+    EventTime: datetime,
+    EventID: int,
+    Channel: string,
+    Computer: string,
+    Username: string,
+    UserSID: string,
+    OSPath: string,
+    Message: string,
+    EventData: dynamic,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionEvtx() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Evtx"
+    | extend 
+        DetectionName = tostring(RawData.Detection.Name),
+        DetectionRegex = tostring(RawData.Detection.Regex),
+        DetectionEventId = tostring(RawData.Detection.EventId),
+        DetectionIgnore = tostring(RawData.Detection.Ignore),
+        EventTime = todatetime(RawData.EventTime),
+        EventID = toint(RawData.EventID),
+        Channel = tostring(RawData.Channel),
+        Computer = tostring(RawData.Computer),
+        Username = tostring(RawData.Username),
+        UserSID = tostring(RawData.UserSID),
+        OSPath = tostring(RawData.OSPath),
+        Message = tostring(RawData.Message),
+        EventData = RawData.EventData,
+        Detection = RawData.Detection
+    | extend Timestamp = EventTime
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionName,
+        DetectionRegex,
+        DetectionEventId,
+        DetectionIgnore,
+        EventTime,
+        EventID,
+        Channel,
+        Computer,
+        Username,
+        UserSID,
+        OSPath,
+        Message,
+        EventData,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionEvtx policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionEvtx()", "IsEnabled": "True", "IsTransactional": true}]'

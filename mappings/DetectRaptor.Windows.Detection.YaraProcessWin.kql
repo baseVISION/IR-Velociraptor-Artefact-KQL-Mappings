@@ -1,0 +1,77 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.YaraProcessWin
+.create table DetectRaptorWindowsDetectionYaraProcessWin (
+    Timestamp: datetime,
+    Hostname: string,
+    Rule: string,
+    ProcessName: string,
+    ExePath: string,
+    Pid: int,
+    CommandLine: string,
+    Namespace: string,
+    YaraString: string,
+    HitOffset: long,
+    MetaDescription: string,
+    MetaAuthor: string,
+    MetaReference: string,
+    MetaScore: int,
+    MetaId: string,
+    MetaDate: datetime,
+    MetaModified: datetime,
+    Meta: dynamic,
+    HitContext: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionYaraProcessWin() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.YaraProcessWin"
+    | extend 
+        Rule = tostring(RawData.Rule),
+        ProcessName = tostring(RawData.ProcessName),
+        ExePath = tostring(RawData.ExePath),
+        Pid = toint(RawData.Pid),
+        CommandLine = tostring(RawData.CommandLine),
+        Namespace = tostring(RawData.Namespace),
+        YaraString = tostring(RawData.YaraString),
+        HitOffset = tolong(RawData.HitOffset),
+        MetaDescription = tostring(RawData.Meta.description),
+        MetaAuthor = tostring(RawData.Meta.author),
+        MetaReference = tostring(RawData.Meta.reference),
+        MetaScore = toint(RawData.Meta.score),
+        MetaId = tostring(RawData.Meta.id),
+        MetaDate = todatetime(RawData.Meta["date"]),
+        MetaModified = todatetime(RawData.Meta["modified"]),
+        Meta = RawData.Meta,
+        HitContext = RawData.HitContext
+    | project 
+        Timestamp, 
+        Hostname, 
+        Rule,
+        ProcessName,
+        ExePath,
+        Pid,
+        CommandLine,
+        Namespace,
+        YaraString,
+        HitOffset,
+        MetaDescription,
+        MetaAuthor,
+        MetaReference,
+        MetaScore,
+        MetaId,
+        MetaDate,
+        MetaModified,
+        Meta,
+        HitContext,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionYaraProcessWin policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionYaraProcessWin()", "IsEnabled": "True", "IsTransactional": true}]'

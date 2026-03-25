@@ -1,0 +1,60 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.Amcache
+.create table DetectRaptorWindowsDetectionAmcache (
+    Timestamp: datetime,
+    Hostname: string,
+    DetectionName: string,
+    DetectionCriticality: string,
+    DetectionKeywordRegex: string,
+    DetectionReference: string,
+    KeyMTime: datetime,
+    SHA1: string,
+    Publisher: string,
+    EntryName: string,
+    EntryPath: string,
+    OriginalFileName: string,
+    Detection: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionAmcache() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.Amcache"
+    | extend 
+        DetectionName = tostring(RawData.Detection.Name),
+        DetectionCriticality = tostring(RawData.Detection.Criticality),
+        DetectionKeywordRegex = tostring(RawData.Detection.KeywordRegex),
+        DetectionReference = tostring(RawData.Detection.Reference),
+        KeyMTime = todatetime(RawData.KeyMTime),
+        SHA1 = tostring(RawData.SHA1),
+        Publisher = tostring(RawData.Publisher),
+        EntryName = tostring(RawData.EntryName),
+        EntryPath = tostring(RawData.EntryPath),
+        OriginalFileName = tostring(RawData.OriginalFileName),
+        Detection = RawData.Detection
+    | extend Timestamp = KeyMTime
+    | project 
+        Timestamp, 
+        Hostname, 
+        DetectionName,
+        DetectionCriticality,
+        DetectionKeywordRegex,
+        DetectionReference,
+        KeyMTime,
+        SHA1,
+        Publisher,
+        EntryName,
+        EntryPath,
+        OriginalFileName,
+        Detection,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionAmcache policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionAmcache()", "IsEnabled": "True", "IsTransactional": true}]'
