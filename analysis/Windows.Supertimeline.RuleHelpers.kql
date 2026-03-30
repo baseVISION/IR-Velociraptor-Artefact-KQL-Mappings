@@ -1,0 +1,27 @@
+//ARTIFACT: Windows.Supertimeline.RuleHelpers
+// Helper functions for managing and testing baseline rules.
+//
+// Baseline development workflow:
+//   1. Materialise timeline:
+//        .set stored_query_result Timeline_Host1 with (expiresAfter=7d) <|
+//            WindowsSupertimeline(ago(7d), now(), targetHostname="HOST1")
+//
+//   2. Find noise candidates:
+//        stored_query_result("Timeline_Host1")
+//        | summarize Count=count() by EventCategory, EventType, Path
+//        | order by Count desc | take 50
+//
+//   3. Preview a candidate rule inline (copy the compiled expression from the generated KQL):
+//        stored_query_result("Timeline_Host1")
+//        | where EventCategory == "Execution" and Path has "svchost.exe" and User == "SYSTEM"
+//        | summarize Count=count(), Samples=make_list(Description, 5) by EventCategory, EventType
+//
+//   4. Add rule to the baseline CSV, regenerate and deploy:
+//        cd cmd/baseline-gen
+//        go run . -in baseline_rules_example.csv -out ../../analysis/generated/Windows.Supertimeline.Baseline.kql
+//
+//   5. Validate:
+//        stored_query_result("Timeline_Host1")
+//        | invoke ApplyTimelineBaseline()
+//        | summarize Total=count(), BaselineCount=countif(IsBaseline), PassCount=countif(not(IsBaseline))
+

@@ -71,7 +71,19 @@
         FlowId,
         IngestionTime
 }
-Pid = tolong(RawData.ProcessInfo.Pid),
+
+.create-or-alter function RouteLinuxNetworkNetstatTCP6() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.Netstat/TCP6"
+    | extend 
+        LocalAddr = tostring(RawData.LocalAddr),
+        LocalPort = tostring(RawData.LocalPort),
+        RemoteAddr = tostring(RawData.RemoteAddr),
+        RemotePort = tostring(RawData.RemotePort),
+        State = tostring(RawData.State),
+        Inode = tostring(RawData.inode),
+        Uid = tostring(RawData.uid),
+        ProcessPid = tolong(RawData.ProcessInfo.Pid),
         ProcessCommand = tostring(RawData.ProcessInfo.Command),
         ProcessCommandLine = tostring(RawData.ProcessInfo.CommandLine),
         ProcessFilename = tostring(RawData.ProcessInfo.Filename),
@@ -95,19 +107,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         ProcessCommandLine,
         ProcessFilename,
         ProcessType,
-        ProcessInodecessInfo = RawData.ProcessInfo,
-        Type = tostring(RawData.Type),
-        Protocol = "TCP6"
-    | project
-        Timestamp,
-        Hostname,
-        LocalAddr,
-        LocalPort,
-        RemoteAddr,
-        RemotePort,
-        State,
-        Inode,
-        Uid,
+        ProcessInode,
         ProcessInfo,
         Type,
         Protocol,
@@ -118,8 +118,4 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         IngestionTime
 }
 
-.alter table LinuxNetworkNetstat policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP4()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP6()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxNetworkNetstat policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxNetworkNetstatTCP4()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxNetworkNetstatTCP6()","IsTransactional":false,"PropagateIngestionProperties":false}]'

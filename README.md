@@ -2,7 +2,7 @@
 
 KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explorer tables. Automatically routes per artifacts from raw ingestion to structured tables.
 
-> **Disclaimer:** This project covers a subset of available Velociraptor artifacts. Mappings are provided as-is and may contain errors. Always validate against your data before production use.
+> **Disclaimer:** This project is a work in progress and covers a subset of available Velociraptor artifacts. Mappings are provided as-is and may contain errors. Always validate against your data before production use.
 
 
 ## Structure
@@ -172,11 +172,36 @@ Reports missing/obsolete fields. Expected optional fields (auto-ignored): `times
 
 Run in Azure Data Explorer, adjust time filter (default: `ago(1h)`), save output as `samples.txt`
 
-**`combine_mappings.sh`** - Merges all `mappings/*.kql` files into `all_mappings.kql` for deployment
+**`combine_mappings.sh`** - Merges all `mappings/*.kql` and `analysis/**/*.kql` files into `all_mappings.kql` for deployment
 
 ```bash
+# Default: includes all mappings + all analysis files (including analysis/generated/)
 ./helper_scripts/combine_mappings.sh
+
+# Exclude a subdirectory (repeatable)
+./helper_scripts/combine_mappings.sh --exclude-dir analysis/generated
+
+# Custom mappings directory
+./helper_scripts/combine_mappings.sh --dir custom_mappings/
+
+# List all artifact names found in mappings/ (requires //ARTIFACT: header in each file)
+./helper_scripts/combine_mappings.sh --list-artifacts
 ```
+
+**Flags:**
+
+| Flag | Argument | Description |
+|---|---|---|
+| `-d`, `--dir` | `DIR` | Source directory for artifact mappings (default: `mappings/`) |
+| `--exclude-dir` | `DIR` | Exclude a directory from processing; repeatable. Path relative to repo root (e.g. `analysis/generated`) |
+| `--list-artifacts` | — | Print `//ARTIFACT:` names from `mappings/` and exit. Does not scan `analysis/`. |
+| `-h`, `--help` | — | Print usage and exit |
+
+**Notes:**
+- `analysis/` is scanned **recursively** (includes subdirectories such as `analysis/generated/`). Use `--exclude-dir analysis/generated` to omit generated files.
+- `mappings/` is scanned **non-recursively** (flat directory only).
+- The output `all_mappings.kql` is always overwritten on each run.
+- `--list-artifacts` does not apply `--exclude-dir` filtering (safe: `mappings/` has no subdirectories).
 
 ## Analysis Functions
 
@@ -213,4 +238,86 @@ WindowsPersistenceOverview("", targetOrg="CaseOrg1")
 Suspicion flags (in the `Suspicious` column): `Unsigned`, `NoMetadata`, `SuspiciousPath`, `EncodedCommand`, `LOLBin`, `WMISubscription`, `NonStandardTask`, `ElevatedUserPath`, `NeverLoggedIn`, `DisabledWithHash`
 
 Companion: `WindowsPersistenceOverviewSchema()` — lists all PersistenceType values and their source tables.
+
+### `ApplyTimelineBaseline` — `analysis/Windows.Supertimeline.Baseline.kql`
+
+Post-processing invoke function for noise reduction on Supertimeline results. Adds an `IsBaseline` column; filter it out for a clean timeline. Rule data is stored in the ADX lookup table `BaselineRules`, populated separately from a private source — not included in this repo.
+
+```kusto
+// Materialise once, then apply filters cheaply on the cached result
+.set stored_query_result Timeline_Host1 with (expiresAfter=7d) <|
+    WindowsSupertimeline(datetime(2026-03-20), datetime(2026-03-27), targetHostname="HOST1")
+
+// Noise-free view (baseline removed)
+stored_query_result("Timeline_Host1") | invoke ApplyTimelineBaseline() | where not(IsBaseline)
+
+// Complete raw view (no invoke = no filtering)
+stored_query_result("Timeline_Host1") | order by EventTime asc
+```
+
+**Rule schema** (`BaselineRules` CSV columns):
+
+| Column | Description | Valid values |
+|---|---|---|
+| `RuleId` | Unique integer | 1, 2, 3… |
+| `RuleName` | Human-readable label | Any string |
+| `Scope` | Target function | `Supertimeline` |
+| `EventCategory` | Scoping filter | Empty = all categories |
+| `EventType` | Scoping filter | Empty = all types |
+| `Column1` | Primary match column | `Path`, `Description`, `Details`, `User`, `Hash`, `SourceArtifact` |
+| `Mode1` | Primary match operator | `has`, `contains`, `==`, `startswith` |
+| `Value1` | Primary match value | Any string |
+| `Column2` | Second condition column (AND logic) | Same as Column1, or empty |
+| `Mode2` | Second condition operator | Same as Mode1, or empty |
+| `Value2` | Second condition value | Any string, or empty |
+| `IsEnabled` | Toggle without deleting | `true`, `false` |
+
+**Rule examples:**
+```csv
+RuleId,RuleName,Scope,EventCategory,EventType,Column1,Mode1,Value1,Column2,Mode2,Value2,IsEnabled
+1,SRUM_svchost,Supertimeline,Execution,SRUMExecution,Path,has,svchost.exe,,,,true
+2,Prefetch_System32,Supertimeline,Execution,PrefetchHit,Path,startswith,C:\Windows\System32\,,,,true
+3,WinUpdate_Detail,Supertimeline,EventLog,EvtxEvent,Description,has,Windows Update,Details,has,WindowsUpdateClient,true
+```
+
+**Rule management helpers** (`analysis/Windows.Supertimeline.RuleHelpers.kql`):
+- `TestBaselineRule("storedResult", "Path", "has", "svchost.exe", "Execution", "SRUMExecution")` — preview which rows a candidate rule would filter
+- `BaselineRulesSummary()` — rule statistics by scope and column
+
+**Loading rules from Azure Blob Storage** (Phase 2 deployment):
+```kusto
+.set-or-replace BaselineRules <|
+externaldata(RuleId:int, RuleName:string, Scope:string, EventCategory:string, EventType:string,
+             Column1:string, Mode1:string, Value1:string, Column2:string, Mode2:string,
+             Value2:string, IsEnabled:bool)
+[h@"https://yourstorage.blob.core.windows.net/rules/baseline_rules.csv;SAS_TOKEN"]
+with (format="csv", ignoreFirstRecord=true)
+```
+
+### Materialising a session result (`stored_query_result`)
+
+Run the expensive union once and query the cached result cheaply. Default expiry is 24h; use `expiresAfter` to extend up to 7 days.
+
+```kusto
+// Materialise — run once at start of investigation session (expires after 7 days)
+.set stored_query_result Timeline_ComputerXY with (expiresAfter=7d) <|
+    WindowsSupertimeline(datetime(2026-03-20), datetime(2026-03-26), targetHostname="ComputerXY")
+
+// Query the cache (no table scans)
+stored_query_result("Timeline_ComputerXY")
+| where EventCategory == "Execution"
+| order by EventTime asc
+
+// List all stored results in the database
+.show stored_query_results
+
+// Drop when done
+.drop stored_query_result Timeline_ComputerXY
+```
+
+Optional — add `distributed=true` for large results:
+```kusto
+.set stored_query_result Timeline_ComputerXY with (expiresAfter=7d, distributed=true) <|
+    WindowsSupertimeline(...)
+```
 

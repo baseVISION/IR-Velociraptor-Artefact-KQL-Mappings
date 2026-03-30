@@ -50,9 +50,8 @@
         UploadAccessor = tostring(RawData.Upload.Accessor),
         UploadComponents = tostring(RawData.Upload.Components),
         UploadStoredName = tostring(RawData.Upload.StoredName),
-        ArtifactParts = split(Artifact, "/"),
-        Category = tostring(split(Artifact, ".")[2]),  // Autoruns, BrowserHistory, etc.
-        SubArtifact = tostring(array_length(split(Artifact, "/")) > 1 ? split(Artifact, "/")[1] : "")
+        Category = tostring(split(Artifact, ".")[2]),
+        SubArtifact = tostring(iff(array_length(split(Artifact, "/")) > 1, split(Artifact, "/")[1], ""))
     | project 
         Timestamp = todatetime(RawData.timestamp),
         Hostname,

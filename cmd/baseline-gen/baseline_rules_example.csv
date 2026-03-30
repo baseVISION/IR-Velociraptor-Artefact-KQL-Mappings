@@ -1,0 +1,12 @@
+RuleName,Scope,EventCategory,EventType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3,IsEnabled
+svchost_system,Supertimeline,Execution,ProcessExec,Path,has,svchost.exe,User,==,SYSTEM,,,,true
+windows_prefetch,Supertimeline,,,Path,contains,\Windows\Prefetch\,,,,,,,true
+wmi_provider,Supertimeline,Execution,,Description,has,WmiPrvSE.exe,,,,,,,true
+trusted_installer,Supertimeline,,,User,==,NT SERVICE\TrustedInstaller,,,,,,,true
+mrt_hash,Supertimeline,,,Hash,==,abc123def456abc123def456abc123de,,,,,,,true
+chrome_cache,Supertimeline,FileSystem,,Path,startswith,C:\Users\,Path,contains,\AppData\Local\Google\Chrome\User Data\,,,,true
+edge_telemetry,Supertimeline,,,Description,contains,MicrosoftEdgeUpdate,,,,,,,true
+windows_defender_scan,Supertimeline,,,Path,has,MpCmdRun.exe,,,,,,,true
+search_indexer_safe,Supertimeline,Execution,ProcessExec,Path,has,SearchIndexer.exe,User,==,SYSTEM,Description,!contains,suspicious,true
+disabled_rule_example,Supertimeline,,,Path,has,notepad.exe,,,,,,,false
+persistence_scope_example,PersistenceOverview,,,Path,has,something.exe,,,,,,,true

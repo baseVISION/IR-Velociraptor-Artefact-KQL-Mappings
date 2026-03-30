@@ -106,8 +106,4 @@
         IngestionTime
 }
 
-.alter table LinuxForensicsEnvironmentVariables policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesModifierDetection()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxForensicsEnvironmentVariables policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxForensicsEnvironmentVariablesModifierDetection()","IsTransactional":false,"PropagateIngestionProperties":false}]'

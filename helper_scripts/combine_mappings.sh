@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to combine all KQL files from a directory into one file
-# Usage: ./combine_mappings.sh [-d|--dir DIRECTORY] [--list-artifacts]
+# Usage: ./combine_mappings.sh [-d|--dir DIRECTORY] [--list-artifacts] [--exclude-dir DIR]
 # Output file: all_mappings.kql
 
 # Default values
@@ -9,12 +9,23 @@ MAPPINGS_DIR="mappings"
 ANALYSIS_DIR="analysis"
 OUTPUT_FILE="all_mappings.kql"
 LIST_ARTIFACTS=false
+EXCLUDE_DIRS=()
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         -d|--dir)
+            if [[ -z "$2" || "$2" == --* ]]; then
+                echo "Error: --dir requires a directory argument" >&2; exit 1
+            fi
             MAPPINGS_DIR="$2"
+            shift 2
+            ;;
+        --exclude-dir)
+            if [[ -z "$2" || "$2" == --* ]]; then
+                echo "Error: --exclude-dir requires a directory argument" >&2; exit 1
+            fi
+            EXCLUDE_DIRS+=("$2")
             shift 2
             ;;
         --list-artifacts)
@@ -22,8 +33,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 [-d|--dir DIRECTORY] [--list-artifacts]"
+            echo "Usage: $0 [-d|--dir DIRECTORY] [--list-artifacts] [--exclude-dir DIR]..."
             echo "  -d, --dir           Source directory containing .kql files (default: mappings)"
+            echo "  --exclude-dir DIR   Exclude a directory from processing (repeatable)"
+            echo "                      e.g. --exclude-dir analysis/generated"
             echo "  --list-artifacts    Output artifact list in README markdown format"
             exit 0
             ;;
@@ -35,9 +48,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if mappings directory exists
+# Check source directories exist
 if [ ! -d "$MAPPINGS_DIR" ]; then
-    echo "Error: $MAPPINGS_DIR directory not found"
+    echo "Error: mappings directory '$MAPPINGS_DIR' not found" >&2
+    exit 1
+fi
+if [ ! -d "$ANALYSIS_DIR" ]; then
+    echo "Error: analysis directory '$ANALYSIS_DIR' not found" >&2
     exit 1
 fi
 
@@ -76,14 +93,9 @@ EOF
 
 file_count=0
 
-# Loop through all .kql files in mappings and analysis directories
-for file in "$MAPPINGS_DIR"/*.kql "$ANALYSIS_DIR"/*.kql; do
-    # Check if glob matched any files
-    [ ! -e "$file" ] && continue
-    
+_process_file() {
+    local file="$1"
     echo "Processing: $file"
-    
-    # Add separator and filename with single heredoc
     cat >> "$OUTPUT_FILE" << EOF
 
 // ============================================
@@ -91,11 +103,33 @@ for file in "$MAPPINGS_DIR"/*.kql "$ANALYSIS_DIR"/*.kql; do
 // ============================================
 
 EOF
-    
-    # Append file content
     cat "$file" >> "$OUTPUT_FILE"
-    
     file_count=$((file_count + 1))
+}
+
+# Mappings directory (non-recursive, no exclusions needed)
+for file in "$MAPPINGS_DIR"/*.kql; do
+    [ ! -e "$file" ] && continue
+    _process_file "$file"
 done
+
+# Analysis directory (recursive so generated/ subdir is included by default)
+while IFS= read -r -d '' file; do
+    # Strip leading ./ for consistent prefix matching
+    file="${file#./}"
+
+    # Skip files inside excluded directories
+    skip=false
+    for excl in "${EXCLUDE_DIRS[@]}"; do
+        excl="${excl%/}"
+        if [[ "$file" == "$excl/"* ]]; then
+            skip=true
+            break
+        fi
+    done
+    [ "$skip" = true ] && continue
+
+    _process_file "$file"
+done < <(find "$ANALYSIS_DIR" -name '*.kql' -type f -print0 | sort -z)
 
 echo -e "\nSuccessfully combined $file_count file(s) into $OUTPUT_FILE"

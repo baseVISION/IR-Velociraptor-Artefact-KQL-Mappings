@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Thu 26 Mar 16:25:02 CET 2026
+// Generated on: Mon 30 Mar 16:52:38 CEST 2026
 // Source directory: mappings
 
 
@@ -1973,9 +1973,8 @@
         UploadAccessor = tostring(RawData.Upload.Accessor),
         UploadComponents = tostring(RawData.Upload.Components),
         UploadStoredName = tostring(RawData.Upload.StoredName),
-        ArtifactParts = split(Artifact, "/"),
-        Category = tostring(split(Artifact, ".")[2]),  // Autoruns, BrowserHistory, etc.
-        SubArtifact = tostring(array_length(split(Artifact, "/")) > 1 ? split(Artifact, "/")[1] : "")
+        Category = tostring(split(Artifact, ".")[2]),
+        SubArtifact = tostring(iff(array_length(split(Artifact, "/")) > 1, split(Artifact, "/")[1], ""))
     | project 
         Timestamp = todatetime(RawData.timestamp),
         Hostname,
@@ -2131,11 +2130,7 @@
         IngestionTime
 }
 
-.alter table LinuxDetectionBruteForce policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcebtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcewtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxDetectionBruteForce policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxDetectionBruteForcebtmplogs()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxDetectionBruteForcewtmplogs()","IsTransactional":false,"PropagateIngestionProperties":false}]'
 
 // ============================================
 // Source: mappings/Linux.Detection.IncorrectPermissions.kql
@@ -2371,11 +2366,7 @@
         IngestionTime
 }
 
-.alter table LinuxForensicsEnvironmentVariables policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxForensicsEnvironmentVariablesModifierDetection()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxForensicsEnvironmentVariables policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxForensicsEnvironmentVariablesLoginScriptsDetection()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxForensicsEnvironmentVariablesModifierDetection()","IsTransactional":false,"PropagateIngestionProperties":false}]'
 
 // ============================================
 // Source: mappings/Linux.Forensics.Journal.kql
@@ -2886,7 +2877,19 @@
         FlowId,
         IngestionTime
 }
-Pid = tolong(RawData.ProcessInfo.Pid),
+
+.create-or-alter function RouteLinuxNetworkNetstatTCP6() {
+    RawVelociraptorEvents
+    | where Artifact == "Linux.Network.Netstat/TCP6"
+    | extend 
+        LocalAddr = tostring(RawData.LocalAddr),
+        LocalPort = tostring(RawData.LocalPort),
+        RemoteAddr = tostring(RawData.RemoteAddr),
+        RemotePort = tostring(RawData.RemotePort),
+        State = tostring(RawData.State),
+        Inode = tostring(RawData.inode),
+        Uid = tostring(RawData.uid),
+        ProcessPid = tolong(RawData.ProcessInfo.Pid),
         ProcessCommand = tostring(RawData.ProcessInfo.Command),
         ProcessCommandLine = tostring(RawData.ProcessInfo.CommandLine),
         ProcessFilename = tostring(RawData.ProcessInfo.Filename),
@@ -2910,19 +2913,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         ProcessCommandLine,
         ProcessFilename,
         ProcessType,
-        ProcessInodecessInfo = RawData.ProcessInfo,
-        Type = tostring(RawData.Type),
-        Protocol = "TCP6"
-    | project
-        Timestamp,
-        Hostname,
-        LocalAddr,
-        LocalPort,
-        RemoteAddr,
-        RemotePort,
-        State,
-        Inode,
-        Uid,
+        ProcessInode,
         ProcessInfo,
         Type,
         Protocol,
@@ -2933,11 +2924,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         IngestionTime
 }
 
-.alter table LinuxNetworkNetstat policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP4()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxNetworkNetstatTCP6()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxNetworkNetstat policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxNetworkNetstatTCP4()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxNetworkNetstatTCP6()","IsTransactional":false,"PropagateIngestionProperties":false}]'
 
 // ============================================
 // Source: mappings/Linux.Network.Netstat.Watcher.kql
@@ -8922,6 +8909,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
     Hostname: string,
     Path: string,
     Message: string,
+    TimestampType: string,
     IsDir: bool,
     InUse: bool,
     FileSize: long,
@@ -8986,11 +8974,23 @@ Pid = tolong(RawData.ProcessInfo.Pid),
         Message has "0x30" and Message has "LastRecordChange", FN_LastRecordChange,
         EventTime
     )
+    | extend TimestampType = case(
+        Message has "0x10" and Message has "Created",          "SI_Created",
+        Message has "0x10" and Message has "LastModified",     "SI_LastModified",
+        Message has "0x10" and Message has "LastAccess",       "SI_LastAccess",
+        Message has "0x10" and Message has "LastRecordChange", "SI_LastRecordChange",
+        Message has "0x30" and Message has "Created",          "FN_Created",
+        Message has "0x30" and Message has "LastModified",     "FN_LastModified",
+        Message has "0x30" and Message has "LastAccess",       "FN_LastAccess",
+        Message has "0x30" and Message has "LastRecordChange", "FN_LastRecordChange",
+        ""
+    )
     | project 
         Timestamp,
         Hostname,
         Path,
         Message,
+        TimestampType,
         IsDir,
         InUse,
         FileSize,
@@ -9350,17 +9350,17 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 // ============================================
 
 //ARTIFACT: Windows.Persistence.Overview
-// Windows Persistence Overview — unions all persistence-related snapshot tables
+// Windows Persistence Overview  -  unions all persistence-related snapshot tables
 // into a single normalized view for rapid identification of persistence mechanisms.
 //
 // Sources (8 tables):
-//   Autoruns         — Sysinternals Autoruns (Category used as PersistenceType)
-//   ScheduledTask    — Registry-parsed scheduled tasks (Mtime timestamp)
-//   StartupItem      — Startup folder/registry items (deduplicated from 2 artifacts)
-//   WMISubscription  — WMI event filter/consumer bindings
-//   WMIProvider      — Registered WMI providers
-//   LocalAccount     — SAM-parsed local user accounts (CreatedTime, LastLoginDate)
-//   LocalAdmin       — Local Administrators group members
+//   Autoruns          -  Sysinternals Autoruns (Category used as PersistenceType)
+//   ScheduledTask     -  Registry-parsed scheduled tasks (Mtime timestamp)
+//   StartupItem       -  Startup folder/registry items (deduplicated from 2 artifacts)
+//   WMISubscription   -  WMI event filter/consumer bindings
+//   WMIProvider       -  Registered WMI providers
+//   LocalAccount      -  SAM-parsed local user accounts (CreatedTime, LastLoginDate)
+//   LocalAdmin        -  Local Administrators group members
 //
 // Usage:
 //   WindowsPersistenceOverview("DESKTOP-ABC")
@@ -9368,7 +9368,7 @@ Pid = tolong(RawData.ProcessInfo.Pid),
 //   WindowsPersistenceOverview("DESKTOP-ABC", filterType="LocalAccount,LocalAdmin")
 //   WindowsPersistenceOverview("", targetOrg="CaseOrg1")
 
-.create-or-alter function with (folder="Analysis", docstring="Windows persistence overview — unions all persistence snapshot tables into a single view for rapid triage.", skipvalidation="true")
+.create-or-alter function with (folder="Analysis", docstring="Windows persistence overview  -  unions all persistence snapshot tables into a single view for rapid triage.", skipvalidation="true")
 WindowsPersistenceOverview(
     targetHostname:string,
     targetOrg:string = "",
@@ -9378,7 +9378,7 @@ WindowsPersistenceOverview(
     let _org  = targetOrg;
     let _fTypeList = iff(filterType == "", dynamic([]), split(filterType, ","));
     // ========================================================================
-    // Autoruns (Sysinternals) — PersistenceType = Category (Logon, Services, etc.)
+    // Autoruns (Sysinternals)  -  PersistenceType = Category (Logon, Services, etc.)
     // ========================================================================
     let _autoruns =
         WindowsSysinternalsAutoruns
@@ -9415,7 +9415,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // Scheduled Tasks (Registry) — PersistenceType = "ScheduledTask"
+    // Scheduled Tasks (Registry)  -  PersistenceType = "ScheduledTask"
     // ========================================================================
     let _scheduledTasks =
         WindowsRegistryScheduledTasks
@@ -9450,7 +9450,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // Startup Items — PersistenceType = "StartupItem"
+    // Startup Items  -  PersistenceType = "StartupItem"
     // Deduplicated from Windows.Packs.Persistence and Windows.Sys.StartupItems
     // ========================================================================
     let _startupItems =
@@ -9485,7 +9485,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // WMI Event Subscriptions — PersistenceType = "WMISubscription"
+    // WMI Event Subscriptions  -  PersistenceType = "WMISubscription"
     // ========================================================================
     let _wmiSubscriptions =
         WindowsPacksPersistenceWMIEventFilters
@@ -9519,7 +9519,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // WMI Providers — PersistenceType = "WMIProvider"
+    // WMI Providers  -  PersistenceType = "WMIProvider"
     // ========================================================================
     let _wmiProviders =
         WindowsSystemWMIProviders
@@ -9547,7 +9547,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // Local Accounts (SAM Parsed) — PersistenceType = "LocalAccount"
+    // Local Accounts (SAM Parsed)  -  PersistenceType = "LocalAccount"
     // ========================================================================
     let _localAccounts =
         WindowsForensicsSAMParsed
@@ -9587,7 +9587,7 @@ WindowsPersistenceOverview(
             FlowId,
             IngestionTime;
     // ========================================================================
-    // Local Administrators — PersistenceType = "LocalAdmin"
+    // Local Administrators  -  PersistenceType = "LocalAdmin"
     // ========================================================================
     let _localAdmins =
         WindowsSystemLocalAdmins
@@ -9626,7 +9626,7 @@ WindowsPersistenceOverview(
         _localAccounts,
         _localAdmins
     // ====================================================================
-    // Suspicion flags — each flag is an independent dynamic array append.
+    // Suspicion flags  -  each flag is an independent dynamic array append.
     // To add a new flag: copy any block below, change the condition and label.
     // Flags only apply to "real" entries (enabled, or disabled with a Name/Target).
     // ====================================================================
@@ -9714,7 +9714,7 @@ WindowsPersistenceOverview(
 .create-or-alter function with (folder="Analysis", docstring="Returns all PersistenceType/SourceTable mappings available in WindowsPersistenceOverview().", skipvalidation="true")
 WindowsPersistenceOverviewSchema() {
     datatable(PersistenceType:string, SourceTable:string, Description:string) [
-        "(Autoruns Category)",  "WindowsSysinternalsAutoruns",               "Sysinternals Autoruns — Category values: Boot Execute, Codecs, Drivers, Explorer, Image Hijacks, KnownDLLs, Logon, LSA Providers, Network Providers, Office, Print Monitors, Scheduled Tasks, Services, Sidebar Gadgets, Winlogon, Winsock Providers",
+        "(Autoruns Category)",  "WindowsSysinternalsAutoruns",               "Sysinternals Autoruns  -  Category values: Boot Execute, Codecs, Drivers, Explorer, Image Hijacks, KnownDLLs, Logon, LSA Providers, Network Providers, Office, Print Monitors, Scheduled Tasks, Services, Sidebar Gadgets, Winlogon, Winsock Providers",
         "ScheduledTask",        "WindowsRegistryScheduledTasks",             "Scheduled tasks parsed from registry (Mtime timestamp)",
         "StartupItem",          "WindowsPacksPersistenceStartupItems + WindowsSysStartupItems", "Startup folder/registry items (deduplicated)",
         "WMISubscription",      "WindowsPacksPersistenceWMIEventFilters",    "WMI event filter/consumer bindings",
@@ -9725,29 +9725,61 @@ WindowsPersistenceOverviewSchema() {
 }
 
 // ============================================
+// Source: analysis/Windows.Supertimeline.RuleHelpers.kql
+// ============================================
+
+//ARTIFACT: Windows.Supertimeline.RuleHelpers
+// Helper functions for managing and testing baseline rules.
+//
+// Baseline development workflow:
+//   1. Materialise timeline:
+//        .set stored_query_result Timeline_Host1 with (expiresAfter=7d) <|
+//            WindowsSupertimeline(ago(7d), now(), targetHostname="HOST1")
+//
+//   2. Find noise candidates:
+//        stored_query_result("Timeline_Host1")
+//        | summarize Count=count() by EventCategory, EventType, Path
+//        | order by Count desc | take 50
+//
+//   3. Preview a candidate rule inline (copy the compiled expression from the generated KQL):
+//        stored_query_result("Timeline_Host1")
+//        | where EventCategory == "Execution" and Path has "svchost.exe" and User == "SYSTEM"
+//        | summarize Count=count(), Samples=make_list(Description, 5) by EventCategory, EventType
+//
+//   4. Add rule to the baseline CSV, regenerate and deploy:
+//        cd cmd/baseline-gen
+//        go run . -in baseline_rules_example.csv -out ../../analysis/generated/Windows.Supertimeline.Baseline.kql
+//
+//   5. Validate:
+//        stored_query_result("Timeline_Host1")
+//        | invoke ApplyTimelineBaseline()
+//        | summarize Total=count(), BaselineCount=countif(IsBaseline), PassCount=countif(not(IsBaseline))
+
+
+// ============================================
 // Source: analysis/Windows.Supertimeline.Timeline.kql
 // ============================================
 
 //ARTIFACT: Windows.Supertimeline.Timeline
-// Windows Supertimeline — unions all Windows artifact tables into a single
+// Windows Supertimeline  -  unions all Windows artifact tables into a single
 // schema for cross-artifact chronological analysis during incident response.
 //
 // Phase 1: Core forensic timeline (30 union legs) + 10 DetectRaptor detection legs
 //
 // Categories & EventTypes:
-//   Execution       — PrefetchTimeline, PrefetchHit, ProcessCreation, AmcacheInventory,
+//   Execution        -  PrefetchTimeline, PrefetchHit, ProcessCreation, AmcacheInventory,
 //                     AmcacheDetection, AppCompatExecution, UserAssist, SRUMExecution,
 //                     ForensicTimeline, CertUtilDownload, SRUMAppResource
-//   FileSystem      — MFTTimeline, USNChange, RecycleBinDelete, Download
-//   EventLog        — HayabusaAlert, EvtxEvent, HayabusaResult
-//   Detection       — SuspiciousParent, Malfind, DetectRaptorApplications, DetectRaptorEvtx,
+//   FileSystem       -  MFTTimeline, USNChange, RecycleBinDelete, Download
+//   EventLog         -  HayabusaAlert, EvtxEvent, HayabusaResult
+//   Detection        -  SuspiciousParent, Malfind, DetectRaptorApplications, DetectRaptorEvtx,
 //                     DetectRaptorBinaryRename, DetectRaptorHijackLibs, DetectRaptorAmcache,
 //                     DetectRaptorLolRMM, DetectRaptorMFT, DetectRaptorPSReadline,
 //                     DetectRaptorWebhistory, DetectRaptorYaraProcess
-//   Persistence     — ScheduledTask, Autorun
-//   Authentication  — LateralMovement, SAMAccountCreated, SAMAccountActivity
-//   Network         — SRUMNetworkUsage, SRUMNetworkConnection
-//   UserActivity    — LnkFile, Shellbag, Clipboard
+//   Persistence      -  ScheduledTask
+//   Authentication   -  LateralMovement, SAMAccountCreated, SAMAccountActivity
+//   Network          -  SRUMNetworkUsage, SRUMNetworkConnection
+//   UserActivity     -  LnkFile, Shellbag, Clipboard
 //
 // Queryable reference: WindowsSupertimelineSchema() returns all category/type/source mappings
 //
@@ -9762,7 +9794,7 @@ WindowsPersistenceOverviewSchema() {
 //
 // Description convention: [Source] Action | Target | Key Detail | Flags
 
-.create-or-alter function with (folder="Analysis", docstring="Windows supertimeline — unions all Windows artifact tables into a single schema for cross-artifact chronological analysis.", skipvalidation="true")
+.create-or-alter function with (folder="Analysis", docstring="Windows supertimeline  -  unions all Windows artifact tables into a single schema for cross-artifact chronological analysis.", skipvalidation="true")
 WindowsSupertimeline(
     startTime:datetime,
     endTime:datetime,
@@ -9788,7 +9820,7 @@ WindowsSupertimeline(
     // ========================================================================
     // Execution
     // ========================================================================
-    // [Execution] WindowsTimelinePrefetchImproved — Prefetch timeline (already timeline-formatted)
+    // [Execution] WindowsTimelinePrefetchImproved  -  Prefetch timeline (already timeline-formatted)
     let _timelinePrefetch =
         WindowsTimelinePrefetchImproved
         | where Timestamp between (_start .. _end)
@@ -9819,7 +9851,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsForensicsPrefetch — Prefetch forensic detail
+    // [Execution] WindowsForensicsPrefetch  -  Prefetch forensic detail
     let _forensicsPrefetch =
         WindowsForensicsPrefetch
         | where Timestamp between (_start .. _end)
@@ -9851,7 +9883,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsSystemPslist — Running processes (uses CreateTime, not collection Timestamp)
+    // [Execution] WindowsSystemPslist  -  Running processes (uses CreateTime, not collection Timestamp)
     let _pslist =
         WindowsSystemPslist
         | where isnotempty(CreateTime)
@@ -9884,7 +9916,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsSystemAmcacheInventoryApplicationFile — Amcache inventory
+    // [Execution] WindowsSystemAmcacheInventoryApplicationFile  -  Amcache inventory
     let _amcacheInventory =
         WindowsSystemAmcacheInventoryApplicationFile
         | where Timestamp between (_start .. _end)
@@ -9917,7 +9949,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsDetectionAmcache — Amcache detection
+    // [Execution] WindowsDetectionAmcache  -  Amcache detection
     let _amcacheDetection =
         WindowsDetectionAmcache
         | where Timestamp between (_start .. _end)
@@ -9948,7 +9980,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsSystemAppCompatPCA — AppCompat program execution
+    // [Execution] WindowsSystemAppCompatPCA  -  AppCompat program execution
     let _appCompatPCA =
         WindowsSystemAppCompatPCA
         | where Timestamp between (_start .. _end)
@@ -9975,7 +10007,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsRegistryUserAssist — User application execution
+    // [Execution] WindowsRegistryUserAssist  -  User application execution
     let _userAssist =
         WindowsRegistryUserAssist
         | where Timestamp between (_start .. _end)
@@ -10003,7 +10035,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsForensicsSRUMExecutionStats — SRUM execution statistics
+    // [Execution] WindowsForensicsSRUMExecutionStats  -  SRUM execution statistics
     let _srumExecution =
         WindowsForensicsSRUMExecutionStats
         | where Timestamp between (_start .. _end)
@@ -10033,7 +10065,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsForensicsTimeline — General forensic timeline
+    // [Execution] WindowsForensicsTimeline  -  General forensic timeline
     let _forensicsTimeline =
         WindowsForensicsTimeline
         | where Timestamp between (_start .. _end)
@@ -10060,7 +10092,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsForensicsCertUtil — CertUtil download cache (LOLBin)
+    // [Execution] WindowsForensicsCertUtil  -  CertUtil download cache (LOLBin)
     let _certUtil =
         WindowsForensicsCertUtil
         | where Timestamp between (_start .. _end)
@@ -10091,7 +10123,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsForensicsSRUMApplicationResourceUsage — SRUM app resource usage
+    // [Execution] WindowsForensicsSRUMApplicationResourceUsage  -  SRUM app resource usage
     let _srumAppResource =
         WindowsForensicsSRUMApplicationResourceUsage
         | where Timestamp between (_start .. _end)
@@ -10128,7 +10160,7 @@ WindowsSupertimeline(
     // ========================================================================
     // FileSystem
     // ========================================================================
-    // [FileSystem] WindowsTimelineMFT — MFT timeline (already timeline-formatted)
+    // [FileSystem] WindowsTimelineMFT  -  MFT timeline (already timeline-formatted)
     let _timelineMft =
         WindowsTimelineMFT
         | where Timestamp between (_start .. _end)
@@ -10167,14 +10199,15 @@ WindowsSupertimeline(
                                 "FN_LastModified", FN_LastModified,
                                 "FN_LastAccess", FN_LastAccess,
                                 "FN_LastRecordChange", FN_LastRecordChange,
-                                "Parser", Parser
+                                "Parser", Parser,
+                                "CollectionTime", Timestamp
                             ),
             SourceArtifact = Artifact,
             Organization,
             ClientId,
             FlowId,
             IngestionTime;
-    // [FileSystem] WindowsForensicsUsn — USN journal changes
+    // [FileSystem] WindowsForensicsUsn  -  USN journal changes
     let _usn =
         WindowsForensicsUsn
         | where Timestamp between (_start .. _end)
@@ -10208,7 +10241,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [FileSystem] WindowsForensicsRecycleBin — Deleted files
+    // [FileSystem] WindowsForensicsRecycleBin  -  Deleted files
     let _recycleBin =
         WindowsForensicsRecycleBin
         | where Timestamp between (_start .. _end)
@@ -10237,7 +10270,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [FileSystem] WindowsAnalysisEvidenceOfDownload — Downloaded files (Zone.Identifier)
+    // [FileSystem] WindowsAnalysisEvidenceOfDownload  -  Downloaded files (Zone.Identifier)
     let _evidenceOfDownload =
         WindowsAnalysisEvidenceOfDownload
         | where Timestamp between (_start .. _end)
@@ -10268,7 +10301,7 @@ WindowsSupertimeline(
     // ========================================================================
     // EventLogs / Detections
     // ========================================================================
-    // [EventLog] WindowsHayabusaRules — Sigma/Hayabusa detection rules
+    // [EventLog] WindowsHayabusaRules  -  Sigma/Hayabusa detection rules
     let _hayabusaRules =
         WindowsHayabusaRules
         | where Timestamp between (_start .. _end)
@@ -10302,7 +10335,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [EventLog] WindowsEventLogsEvtx — Raw Windows event logs
+    // [EventLog] WindowsEventLogsEvtx  -  Raw Windows event logs
     let _evtx =
         WindowsEventLogsEvtx
         | where Timestamp between (_start .. _end)
@@ -10335,7 +10368,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [EventLog] WindowsEventLogsHayabusaResults — Hayabusa parsed results
+    // [EventLog] WindowsEventLogsHayabusaResults  -  Hayabusa parsed results
     let _hayabusaResults =
         WindowsEventLogsHayabusaResults
         | where Timestamp between (_start .. _end)
@@ -10349,8 +10382,8 @@ WindowsSupertimeline(
             EventCategory  = "EventLog",
             EventType      = "HayabusaResult",
             Description    = strcat("[", Channel, "] ", RuleTitle, " | EID: ", tostring(EventID), " | Level: ", coalesce(Level, ""), " | ", substring(coalesce(Details, ""), 0, 120), iff(strlen(Details) > 120, "...", "")),
-            User           = trim_end(@"\s", extract(@"User: ([^¦]+)", 1, coalesce(Details, ""))),
-            Path           = trim_end(@"\s", extract(@"Proc: ([^¦]+)", 1, coalesce(Details, ""))),
+            User           = trim_end(@"\s", extract(@"User: ([^\x{a6}]+)", 1, coalesce(Details, ""))),
+            Path           = trim_end(@"\s", extract(@"Proc: ([^\x{a6}]+)", 1, coalesce(Details, ""))),
             Hash           = "",
             Details        = bag_pack(
                                 "RuleTitle", RuleTitle,
@@ -10368,7 +10401,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] WindowsAttackParentProcess — Suspicious parent-child process relationships
+    // [Detection] WindowsAttackParentProcess  -  Suspicious parent-child process relationships
     let _attackParentProcess =
         WindowsAttackParentProcess
         | where Timestamp between (_start .. _end)
@@ -10401,7 +10434,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] WindowsDetectionMalfind — Injected code / suspicious memory sections
+    // [Detection] WindowsDetectionMalfind  -  Injected code / suspicious memory sections
     let _malfind =
         WindowsDetectionMalfind
         | where Timestamp between (_start .. _end)
@@ -10445,7 +10478,7 @@ WindowsSupertimeline(
     // ========================================================================
     // Persistence
     // ========================================================================
-    // [Persistence] WindowsRegistryScheduledTasks — Scheduled tasks
+    // [Persistence] WindowsRegistryScheduledTasks  -  Scheduled tasks
     let _scheduledTasks =
         WindowsRegistryScheduledTasks
         | where Timestamp between (_start .. _end)
@@ -10481,46 +10514,13 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Persistence] WindowsSysinternalsAutoruns — Autorun entries (Timestamp from Autoruns Time field, can be null)
-    let _autoruns =
-        WindowsSysinternalsAutoruns
-        | where isnotempty(Timestamp)
-        | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
-        | where isempty(_org) or Organization == _org
-        | where array_length(_fCategoryList) == 0 or "Persistence" in (_fCategoryList)
-        | where array_length(_fTypeList)     == 0 or "Autorun" in (_fTypeList)
-        | project
-            EventTime      = Timestamp,
-            Hostname,
-            EventCategory  = "Persistence",
-            EventType      = "Autorun",
-            Description    = strcat("[Autoruns] ", coalesce(Category, ""), " | ", coalesce(Entry, ""), " | ", coalesce(LaunchString, ""), " | Signer: ", coalesce(Signer, "")),
-            User           = coalesce(Profile, ""),
-            Path           = coalesce(ImagePath, ""),
-            Hash           = coalesce(SHA256, SHA1, MD5, ""),
-            Details        = bag_pack(
-                                "Category", Category,
-                                "Entry", Entry,
-                                "EntryLocation", EntryLocation,
-                                "Enabled", Enabled,
-                                "LaunchString", LaunchString,
-                                "AutorunDescription", Description,
-                                "Version", Version,
-                                "Company", Company,
-                                "Signer", Signer
-                            ),
-            SourceArtifact = Artifact,
-            Organization,
-            ClientId,
-            FlowId,
-            IngestionTime;
-    // EXCLUDED: WindowsPacksPersistenceStartupItems — Timestamp is collection time only (no forensic value)
-    // EXCLUDED: WindowsPacksPersistenceWMIEventFilters — Timestamp is collection time only (no forensic value)
+    // EXCLUDED: WindowsSysinternalsAutoruns  -  Timestamp is binary Mtime, not persistence event time (use Persistence Overview instead)
+    // EXCLUDED: WindowsPacksPersistenceStartupItems  -  Timestamp is collection time only (no forensic value)
+    // EXCLUDED: WindowsPacksPersistenceWMIEventFilters  -  Timestamp is collection time only (no forensic value)
     // ========================================================================
     // Authentication / Lateral Movement
     // ========================================================================
-    // [Authentication] WindowsPacksLateralMovementAlternateLogon — Lateral movement logons
+    // [Authentication] WindowsPacksLateralMovementAlternateLogon  -  Lateral movement logons
     let _lateralMovement =
         WindowsPacksLateralMovementAlternateLogon
         | where Timestamp between (_start .. _end)
@@ -10553,7 +10553,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Authentication] WindowsForensicsSAMCreateTimes — SAM account creation
+    // [Authentication] WindowsForensicsSAMCreateTimes  -  SAM account creation
     let _samCreate =
         WindowsForensicsSAMCreateTimes
         | where Timestamp between (_start .. _end)
@@ -10579,7 +10579,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Authentication] WindowsForensicsSAMParsed — SAM account activity (Timestamp from LastLoginDate, can be null)
+    // [Authentication] WindowsForensicsSAMParsed  -  SAM account activity (Timestamp from LastLoginDate, can be null)
     let _samParsed =
         WindowsForensicsSAMParsed
         | where isnotempty(Timestamp)
@@ -10618,7 +10618,7 @@ WindowsSupertimeline(
     // ========================================================================
     // Network
     // ========================================================================
-    // [Network] WindowsForensicsSRUMNetworkUsage — SRUM network bytes per application
+    // [Network] WindowsForensicsSRUMNetworkUsage  -  SRUM network bytes per application
     let _srumNetworkUsage =
         WindowsForensicsSRUMNetworkUsage
         | where Timestamp between (_start .. _end)
@@ -10650,16 +10650,16 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Network] WindowsForensicsSRUMNetworkConnections — SRUM network connections per application
+    // [Network] WindowsForensicsSRUMNetworkConnections  -  SRUM network connections per application
     let _srumNetworkConnections =
         WindowsForensicsSRUMNetworkConnections
-        | where Timestamp between (_start .. _end)
+        | where StartTime between (_start .. _end)
         | where isempty(_host) or Hostname has _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Network" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SRUMNetworkConnection" in (_fTypeList)
         | project
-            EventTime      = Timestamp,
+            EventTime      = StartTime,
             Hostname,
             EventCategory  = "Network",
             EventType      = "SRUMNetworkConnection",
@@ -10672,6 +10672,7 @@ WindowsSupertimeline(
                                 "UserSid", UserSid,
                                 "SRUMId", SRUMId,
                                 "StartTime", StartTime,
+                                "FlushTime", Timestamp,
                                 "InterfaceLuid", InterfaceLuid,
                                 "ConnectedTime", ConnectedTime
                             ),
@@ -10683,7 +10684,7 @@ WindowsSupertimeline(
     // ========================================================================
     // User Activity
     // ========================================================================
-    // [UserActivity] WindowsForensicsLnk — LNK shortcut files
+    // [UserActivity] WindowsForensicsLnk  -  LNK shortcut files
     let _lnk =
         WindowsForensicsLnk
         | where Timestamp between (_start .. _end)
@@ -10719,7 +10720,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [UserActivity] WindowsForensicsShellbags — Explorer navigation history
+    // [UserActivity] WindowsForensicsShellbags  -  Explorer navigation history
     let _shellbags =
         WindowsForensicsShellbags
         | where Timestamp between (_start .. _end)
@@ -10750,7 +10751,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [UserActivity] WindowsForensicsClipboard — Clipboard history
+    // [UserActivity] WindowsForensicsClipboard  -  Clipboard history
     let _clipboard =
         WindowsForensicsClipboard
         | where Timestamp between (_start .. _end)
@@ -10781,11 +10782,11 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // EXCLUDED: WindowsSystemPowershellPSReadline — Timestamp is file-level Mtime, not per-command (all commands share one timestamp)
+    // EXCLUDED: WindowsSystemPowershellPSReadline  -  Timestamp is file-level Mtime, not per-command (all commands share one timestamp)
     // ========================================================================
     // DetectRaptor Detections
     // ========================================================================
-    // [Detection] DetectRaptorWindowsDetectionApplications — Suspicious installed applications
+    // [Detection] DetectRaptorWindowsDetectionApplications  -  Suspicious installed applications
     let _drApplications =
         DetectRaptorWindowsDetectionApplications
         | where Timestamp between (_start .. _end)
@@ -10821,7 +10822,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionEvtx — DetectRaptor event log detections
+    // [Detection] DetectRaptorWindowsDetectionEvtx  -  DetectRaptor event log detections
     let _drEvtx =
         DetectRaptorWindowsDetectionEvtx
         | where Timestamp between (_start .. _end)
@@ -10854,7 +10855,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionBinaryRename — Renamed binary detections
+    // [Detection] DetectRaptorWindowsDetectionBinaryRename  -  Renamed binary detections
     let _drBinaryRename =
         DetectRaptorWindowsDetectionBinaryRename
         | where Timestamp between (_start .. _end)
@@ -10887,7 +10888,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionHijackLibsMFT — DLL hijack detections
+    // [Detection] DetectRaptorWindowsDetectionHijackLibsMFT  -  DLL hijack detections
     let _drHijackLibs =
         DetectRaptorWindowsDetectionHijackLibsMFT
         | where Timestamp between (_start .. _end)
@@ -10921,7 +10922,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionAmcache — Amcache-based suspicious binary detections
+    // [Detection] DetectRaptorWindowsDetectionAmcache  -  Amcache-based suspicious binary detections
     let _drAmcache =
         DetectRaptorWindowsDetectionAmcache
         | where Timestamp between (_start .. _end)
@@ -10953,7 +10954,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionLolRMM — Remote management tool detections
+    // [Detection] DetectRaptorWindowsDetectionLolRMM  -  Remote management tool detections
     let _drLolRMM =
         DetectRaptorWindowsDetectionLolRMM
         | where Timestamp between (_start .. _end)
@@ -10987,7 +10988,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionMFT — MFT-based suspicious file detections
+    // [Detection] DetectRaptorWindowsDetectionMFT  -  MFT-based suspicious file detections
     let _drMFT =
         DetectRaptorWindowsDetectionMFT
         | where Timestamp between (_start .. _end)
@@ -11023,7 +11024,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionPowershellPSReadline — Suspicious PowerShell command detections
+    // [Detection] DetectRaptorWindowsDetectionPowershellPSReadline  -  Suspicious PowerShell command detections
     let _drPSReadline =
         DetectRaptorWindowsDetectionPowershellPSReadline
         | where Timestamp between (_start .. _end)
@@ -11054,7 +11055,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionWebhistory — Suspicious web browsing detections
+    // [Detection] DetectRaptorWindowsDetectionWebhistory  -  Suspicious web browsing detections
     let _drWebhistory =
         DetectRaptorWindowsDetectionWebhistory
         | where Timestamp between (_start .. _end)
@@ -11088,7 +11089,7 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Detection] DetectRaptorWindowsDetectionYaraProcessWin — YARA process memory scan detections
+    // [Detection] DetectRaptorWindowsDetectionYaraProcessWin  -  YARA process memory scan detections
     let _drYaraProcess =
         DetectRaptorWindowsDetectionYaraProcessWin
         | where Timestamp between (_start .. _end)
@@ -11164,7 +11165,6 @@ WindowsSupertimeline(
         _drYaraProcess,
         // Persistence
         _scheduledTasks,
-        _autoruns,
         // Authentication / Lateral Movement
         _lateralMovement,
         _samCreate,
@@ -11224,7 +11224,6 @@ WindowsSupertimelineSchema() {
         "Detection",      "DetectRaptorWebhistory", "DetectRaptorWindowsDetectionWebhistory",      "DetectRaptor suspicious web browsing detections",
         "Detection",      "DetectRaptorYaraProcess", "DetectRaptorWindowsDetectionYaraProcessWin", "DetectRaptor YARA process memory scan detections",
         "Persistence",    "ScheduledTask",       "WindowsRegistryScheduledTasks",                  "Scheduled tasks (registry Mtime)",
-        "Persistence",    "Autorun",             "WindowsSysinternalsAutoruns",                    "Autorun persistence entries",
         "Authentication", "LateralMovement",     "WindowsPacksLateralMovementAlternateLogon",      "Lateral movement alternate logon events",
         "Authentication", "SAMAccountCreated",   "WindowsForensicsSAMCreateTimes",                 "SAM account creation times",
         "Authentication", "SAMAccountActivity",  "WindowsForensicsSAMParsed",                      "SAM account last login activity",

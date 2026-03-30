@@ -67,8 +67,4 @@
         IngestionTime
 }
 
-.alter table LinuxDetectionBruteForce policy update 
-@'[
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcebtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false},
-    { "IsEnabled": true, "Source": "RawVelociraptorEvents", "Query": "RouteLinuxDetectionBruteForcewtmplogs()", "IsTransactional": false, "PropagateIngestionProperties": false}
-]'
+.alter table LinuxDetectionBruteForce policy update @'[{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxDetectionBruteForcebtmplogs()","IsTransactional":false,"PropagateIngestionProperties":false},{"IsEnabled":true,"Source":"RawVelociraptorEvents","Query":"RouteLinuxDetectionBruteForcewtmplogs()","IsTransactional":false,"PropagateIngestionProperties":false}]'

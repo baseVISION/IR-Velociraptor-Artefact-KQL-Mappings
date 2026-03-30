@@ -4,6 +4,7 @@
     Hostname: string,
     Path: string,
     Message: string,
+    TimestampType: string,
     IsDir: bool,
     InUse: bool,
     FileSize: long,
@@ -68,11 +69,23 @@
         Message has "0x30" and Message has "LastRecordChange", FN_LastRecordChange,
         EventTime
     )
+    | extend TimestampType = case(
+        Message has "0x10" and Message has "Created",          "SI_Created",
+        Message has "0x10" and Message has "LastModified",     "SI_LastModified",
+        Message has "0x10" and Message has "LastAccess",       "SI_LastAccess",
+        Message has "0x10" and Message has "LastRecordChange", "SI_LastRecordChange",
+        Message has "0x30" and Message has "Created",          "FN_Created",
+        Message has "0x30" and Message has "LastModified",     "FN_LastModified",
+        Message has "0x30" and Message has "LastAccess",       "FN_LastAccess",
+        Message has "0x30" and Message has "LastRecordChange", "FN_LastRecordChange",
+        ""
+    )
     | project 
         Timestamp,
         Hostname,
         Path,
         Message,
+        TimestampType,
         IsDir,
         InUse,
         FileSize,
