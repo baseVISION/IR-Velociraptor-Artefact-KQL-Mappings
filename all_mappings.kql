@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Mon 30 Mar 16:52:38 CEST 2026
+// Generated on: Tue 31 Mar 11:59:20 CEST 2026
 // Source directory: mappings
 
 
@@ -6653,8 +6653,8 @@
 
 //ARTIFACT: Windows.Forensics.SRUM/Execution Stats
 .create table WindowsForensicsSRUMExecutionStats (
-    Hostname: string,
     Timestamp: datetime,
+    Hostname: string,
     ID: long,
     App: string,
     UserSid: string,
@@ -6682,8 +6682,8 @@
         DurationMS = tolong(RawData.DurationMS),
         NetworkBytesRaw = tostring(RawData.NetworkBytesRaw)
     | project 
-        Hostname, 
         Timestamp,
+        Hostname,
         ID,
         App,
         UserSid,
@@ -6702,8 +6702,8 @@
 
 //ARTIFACT: Windows.Forensics.SRUM/Application Resource Usage
 .create table WindowsForensicsSRUMApplicationResourceUsage (
-    Hostname: string,
     Timestamp: datetime,
+    Hostname: string,
     App: string,
     UserSid: string,
     User: string,
@@ -6755,8 +6755,8 @@
         BackgroundNumWriteOperations = tostring(RawData.BackgroundNumWriteOperations),
         BackgroundNumberOfFlushes = tostring(RawData.BackgroundNumberOfFlushes)
     | project 
-        Hostname, 
         Timestamp,
+        Hostname,
         App,
         UserSid,
         User,
@@ -6787,8 +6787,8 @@
 
 //ARTIFACT: Windows.Forensics.SRUM/Network Usage
 .create table WindowsForensicsSRUMNetworkUsage (
-    Hostname: string,
     Timestamp: datetime,
+    Hostname: string,
     App: string,
     UserSid: string,
     User: string,
@@ -6822,8 +6822,8 @@
         L2ProfileId = tostring(RawData.L2ProfileId),
         L2ProfileFlags = tostring(RawData.L2ProfileFlags)
     | project 
-        Hostname, 
         Timestamp,
+        Hostname,
         App,
         UserSid,
         User,
@@ -6845,8 +6845,8 @@
 
 //ARTIFACT: Windows.Forensics.SRUM/Network Connections
 .create table WindowsForensicsSRUMNetworkConnections (
-    Hostname: string,
     Timestamp: datetime,
+    Hostname: string,
     App: string,
     UserSid: string,
     User: string,
@@ -6874,8 +6874,8 @@
         InterfaceLuid = tostring(RawData.InterfaceLuid),
         ConnectedTime = tostring(RawData.ConnectedTime)
     | project 
-        Hostname, 
         Timestamp,
+        Hostname,
         App,
         UserSid,
         User,
