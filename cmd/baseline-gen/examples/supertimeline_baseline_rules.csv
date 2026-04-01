@@ -1,0 +1,15 @@
+RuleName,Scope,EventCategory,EventType,PersistenceType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3
+srum_null_appresource,Supertimeline,Execution,SRUMAppResource,,Description,==,[SRUM] AppResource:  | User:
+srum_registry_appresource,Supertimeline,Execution,SRUMAppResource,,Description,==,[SRUM] AppResource: Registry | User:
+srum_memory_compression,Supertimeline,Execution,SRUMAppResource,,Description,==,[SRUM] AppResource: Memory Compression | User:
+srum_kernel_appresource,Supertimeline,Execution,SRUMAppResource,,Description,contains,!!,Description,contains,1970/01/01:00:00:00
+usn_driverstore_logs,Supertimeline,FileSystem,USNChange,,Path,contains,\Windows\System32\DriverStore\FileRepository\,Path,endswith,.log
+usn_sru_log,Supertimeline,FileSystem,USNChange,,Path,contains,\Windows\System32\sru\SRU.log
+usn_setupapi_dev_log,Supertimeline,FileSystem,USNChange,,Path,contains,\Windows\INF\setupapi.dev.log
+usn_edge_http_cache,Supertimeline,FileSystem,USNChange,,Path,contains,\AppData\Local\Microsoft\Edge\User Data\,Path,contains,\Cache\Cache_Data\
+usn_edge_code_cache_js,Supertimeline,FileSystem,USNChange,,Path,contains,\AppData\Local\Microsoft\Edge\User Data\,Path,contains,\Code Cache\js\
+mft_edge_cache_data,Supertimeline,FileSystem,MFTTimeline,,Path,contains,\AppData\Local\Microsoft\Edge\User Data\Default\Cache\Cache_Data\
+mft_volumecopy,Supertimeline,FileSystem,MFTTimeline,,Description,contains,Flags: VolumeCopy
+svchost_system,Supertimeline,Execution,ProcessExec,,Path,has,svchost.exe,User,==,SYSTEM
+search_indexer_safe,Supertimeline,Execution,ProcessExec,,Path,has,SearchIndexer.exe,User,==,SYSTEM,Description,!contains,suspicious
+windows_defender_scan,Supertimeline,,,,Path,has,MpCmdRun.exe

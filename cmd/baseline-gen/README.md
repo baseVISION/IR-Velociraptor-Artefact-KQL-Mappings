@@ -25,19 +25,23 @@ go run . -in baseline_rules_example.csv
 ## CSV schema
 
 ```
-RuleName,Scope,EventCategory,EventType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3,IsEnabled
+RuleName,Scope,EventCategory,EventType,PersistenceType,Column1,Mode1,Value1,...,ColumnN,ModeN,ValueN
 ```
 
-| Column           | Required | Notes |
-|------------------|----------|-------|
-| `RuleName`       | yes      | Unique identifier, no spaces |
-| `Scope`          | no       | Defaults to `Supertimeline` if empty |
-| `EventCategory`  | no       | Leave empty to match all categories |
-| `EventType`      | no       | Requires `EventCategory` if set |
-| `Column1–3`      | Col1 required | `Path`, `Description`, `Details`, `User`, `Hash`, `SourceArtifact` |
-| `Mode1–3`        | Col1 required | See operators below |
-| `Value1–3`       | Col1 required | Match value; empty Col means that slot is skipped |
-| `IsEnabled`      | no       | `true`/`false`; defaults to `true` if empty |
+Rows starting with `#` are treated as comments and skipped.
+
+| Column              | Required | Notes |
+|---------------------|----------|-------|
+| `RuleName`          | yes      | Unique identifier, no spaces |
+| `Scope`             | no       | `Supertimeline` (default) or `PersistenceOverview` |
+| `EventCategory`     | no       | Leave empty to match all categories |
+| `EventType`         | no       | Requires `EventCategory` if set |
+| `PersistenceType`   | no       | Scope guard for `PersistenceOverview` rules (e.g. `Logon`, `Boot Execute`) |
+| `Column1–N`         | Col1 required | **Supertimeline:** `Path`, `Description`, `Details`, `User`, `Hash`, `SourceArtifact`<br>**PersistenceOverview:** `Name`, `Target`, `EntryLocation`, `User`, `Enabled`, `Signer`, `Hash`, `Suspicious`, `SourceArtifact` |
+| `Mode1–N`           | Col1 required | See operators below |
+| `Value1–N`          | Col1 required | Match value; empty Col means that triplet is skipped; empty value only allowed for `==` and `!=` |
+
+Add more condition triplets by appending `Column4,Mode4,Value4` etc. — no fixed limit. To disable a rule, delete or comment out the row.
 
 ### Supported operators
 
@@ -72,7 +76,7 @@ Multiple conditions (Col1–3) are combined with `and`.
    TestBaselineRule("Timeline_Host1", "Path", "has", "svchost.exe", "Execution", "SRUMExecution")
    ```
 
-3. Add the rule to `baseline_rules_example.csv` with `IsEnabled=true`.
+3. Add the rule to the appropriate CSV.
 
 4. Regenerate and deploy:
    ```sh

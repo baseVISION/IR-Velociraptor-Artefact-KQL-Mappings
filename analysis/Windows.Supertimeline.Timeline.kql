@@ -9,7 +9,10 @@
 //                     AmcacheDetection, AppCompatExecution, UserAssist, SRUMExecution,
 //                     ForensicTimeline, CertUtilDownload, SRUMAppResource
 //   FileSystem       -  MFTTimeline, USNChange, RecycleBinDelete, Download
-//   EventLog         -  HayabusaAlert, EvtxEvent, HayabusaResult
+//   EventLog         -  HayabusaAlert, HayabusaResult,
+//                     Sysmon, SecurityLog, SystemLog, PowerShell, AppLocker,
+//                     TaskScheduler, TerminalServices, WMI, BitsClient, DNSClient,
+//                     EvtxEvent (all other channels/providers)
 //   Detection        -  SuspiciousParent, Malfind, DetectRaptorApplications, DetectRaptorEvtx,
 //                     DetectRaptorBinaryRename, DetectRaptorHijackLibs, DetectRaptorAmcache,
 //                     DetectRaptorLolRMM, DetectRaptorMFT, DetectRaptorPSReadline,
@@ -29,8 +32,33 @@
 //   WindowsSupertimeline(ago(7d), now(), filterEventCategory="Execution", filterEventType="Prefetch,Amcache")
 //   WindowsSupertimeline(ago(7d), now(), filterUser="admin")
 //   WindowsSupertimeline(ago(7d), now(), filterDescription="mimikatz")
+//   WindowsSupertimeline(ago(7d), now(), filterHash="SHA256:abc123")
 //
 // Description convention: [Source] Action | Target | Key Detail | Flags
+//
+// Security EIDs covered (validated against detection.wiki field schemas):
+//   Process:      4688 (create, +TokenElevationType), 4689 (terminate)
+//   Logon/Logoff: 4624 (logon, decoded LogonType+Auth), 4625 (failed, Status+SubStatus),
+//                 4634 (logoff), 4647 (user-initiated logoff), 4648 (explicit creds),
+//                 4778 (session reconnect/RDP), 4779 (session disconnect/RDP)
+//   Privileges:   4672 (special privs, [!HVP] flag for attack-relevant privs)
+//   Kerberos:     4768 (TGT, EncType+PreAuth), 4769 (TGS, EncType), 4771 (pre-auth fail)
+//   NTLM:         4776 (credential validation)
+//   Account mgmt: 4720/4722/4725/4726 (lifecycle), 4728/4729/4732/4733/4756/4757 (group add/remove, typed Local/Global/Universal), 4740 (lockout)
+//   Tasks/Svc:    4697 (Security svc install), 4698/4702 (sched task), 7045 (System svc install, +StartType+Account)
+//   Shares:       5140 (share access, +ShareLocalPath)
+//   Audit:        1102 (log cleared), 4794 (DSRM password set), 4964 (special groups logon)
+//   Credential:   5379/5380/5381/5382 (Credential Manager access, +TargetName+ReadOp)
+//   PowerShell:   4104 (script block)
+//   Device:       6416 (new external device, USB tracking)
+// System EIDs:    7036 (svc state change), 7040 (start type changed), 1074 (shutdown/restart),
+//                 6005/6006 (event log svc start/stop)
+// Application:    1000 (app error), 1001 (WER), 1002 (app hang)
+// Defender:       1116/1117 (threat detected/action), 1118/1119 (remediation), 1006/1007 (scan)
+// TaskScheduler:  106 (registered), 107-119 (triggered), 129 (started w/PID), 140/141 (updated/deleted), 200-202 (action lifecycle)
+// AppLocker:      8003/8004 (EXE/DLL audit-block/block), 8006/8007 (Script/MSI), 8022 (Package)
+// TerminalSvc:    21/22/23/24/25 (RDP logon/shell/logoff/disconnect/reconnect, +source Address)
+// WMI Activity:   5857 (provider load), 5858 (query error), 5860 (temp subscription), 5861 (permanent subscription/persistence)
 
 .create-or-alter function with (folder="Analysis", docstring="Windows supertimeline  -  unions all Windows artifact tables into a single schema for cross-artifact chronological analysis.", skipvalidation="true")
 WindowsSupertimeline(
@@ -42,7 +70,8 @@ WindowsSupertimeline(
     filterEventType:string = "",
     filterPath:string = "",
     filterUser:string = "",
-    filterDescription:string = ""
+    filterDescription:string = "",
+    filterHash:string = ""
 ) {
     let _start = startTime;
     let _end = endTime;
@@ -55,6 +84,7 @@ WindowsSupertimeline(
     let _fPath = filterPath;
     let _fUser = filterUser;
     let _fDescription = filterDescription;
+    let _fHash = filterHash;
     // ========================================================================
     // Execution
     // ========================================================================
@@ -74,7 +104,7 @@ WindowsSupertimeline(
             Description    = strcat("[Prefetch] ", Message, " | ", Source, " | Count: ", tostring(PrefetchCount)),
             User           = "",
             Path           = coalesce(Source, ""),
-            Hash           = coalesce(PrefetchHash, ""),
+            Hash           = case(strlen(coalesce(PrefetchHash, "")) == 64, strcat("SHA256:", PrefetchHash), strlen(coalesce(PrefetchHash, "")) == 40, strcat("SHA1:", PrefetchHash), strlen(coalesce(PrefetchHash, "")) == 32, strcat("MD5:", PrefetchHash), coalesce(PrefetchHash, "")),
             Details        = bag_pack(
                                 "FileName", FileName,
                                 "PrefetchFile", PrefetchFile,
@@ -105,7 +135,7 @@ WindowsSupertimeline(
             Description    = strcat("[Prefetch] Execution: ", Executable, " | ", coalesce(OSPath, ""), " | Runs: ", tostring(RunCount)),
             User           = "",
             Path           = coalesce(ExecutablePath, OSPath, ""),
-            Hash           = coalesce(Hash, ""),
+            Hash           = case(strlen(coalesce(Hash, "")) == 64, strcat("SHA256:", Hash), strlen(coalesce(Hash, "")) == 40, strcat("SHA1:", Hash), strlen(coalesce(Hash, "")) == 32, strcat("MD5:", Hash), coalesce(Hash, "")),
             Details        = bag_pack(
                                 "RunCount", RunCount,
                                 "LastRunTimes", LastRunTimes,
@@ -138,7 +168,7 @@ WindowsSupertimeline(
             Description    = strcat("[Process] Started | ", Name, " | PID: ", tostring(Pid), " | PPID: ", tostring(Ppid), " | User: ", coalesce(Username, "")),
             User           = coalesce(Username, ""),
             Path           = coalesce(Exe, ""),
-            Hash           = coalesce(SHA256, SHA1, MD5, ""),
+            Hash           = coalesce(iff(isnotempty(SHA256), strcat("SHA256:", SHA256), ""), iff(isnotempty(SHA1), strcat("SHA1:", SHA1), ""), iff(isnotempty(MD5), strcat("MD5:", MD5), ""), ""),
             Details        = bag_pack(
                                 "Pid", Pid,
                                 "Ppid", Ppid,
@@ -203,7 +233,7 @@ WindowsSupertimeline(
             Description    = strcat("[Amcache] Detection: ", EntryName, " | ", coalesce(EntryPath, ""), " | Type: ", coalesce(EntryType, "")),
             User           = "",
             Path           = coalesce(EntryPath, ""),
-            Hash           = coalesce(SHA1, ""),
+            Hash           = iff(isnotempty(SHA1), strcat("SHA1:", SHA1), ""),
             Details        = bag_pack(
                                 "EntryKey", EntryKey,
                                 "KeyMTime", KeyMTime,
@@ -346,7 +376,7 @@ WindowsSupertimeline(
             Description    = strcat("[CertUtil] Download | URL: ", coalesce(URL, ""), " | TLD: ", coalesce(UrlTLD, ""), " | Size: ", tostring(FileSize)),
             User           = "",
             Path           = coalesce(ContentPath, ""),
-            Hash           = coalesce(Hash, ""),
+            Hash           = case(strlen(coalesce(Hash, "")) == 64, strcat("SHA256:", Hash), strlen(coalesce(Hash, "")) == 40, strcat("SHA1:", Hash), strlen(coalesce(Hash, "")) == 32, strcat("MD5:", Hash), coalesce(Hash, "")),
             Details        = bag_pack(
                                 "URL", URL,
                                 "UrlTLD", UrlTLD,
@@ -524,7 +554,7 @@ WindowsSupertimeline(
             Description    = strcat("[ZoneId] Download | ", coalesce(DownloadedFilePath, ""), " | URL: ", coalesce(HostUrl, "")),
             User           = "",
             Path           = coalesce(DownloadedFilePath, ""),
-            Hash           = coalesce(FileHashSHA256, FileHashSHA1, FileHashMD5, ""),
+            Hash           = coalesce(iff(isnotempty(FileHashSHA256), strcat("SHA256:", FileHashSHA256), ""), iff(isnotempty(FileHashSHA1), strcat("SHA1:", FileHashSHA1), ""), iff(isnotempty(FileHashMD5), strcat("MD5:", FileHashMD5), ""), ""),
             Details        = bag_pack(
                                 "HostUrl", HostUrl,
                                 "ReferrerUrl", ReferrerUrl,
@@ -580,16 +610,313 @@ WindowsSupertimeline(
         | where isempty(_host) or Hostname has _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
-        | where array_length(_fTypeList)     == 0 or "EvtxEvent" in (_fTypeList)
+        | extend _evtxType = case(
+            Provider == "Microsoft-Windows-Sysmon",                                      "Sysmon",
+            Channel == "Security",                                                        "SecurityLog",
+            Channel == "System",                                                          "SystemLog",
+            Provider startswith "Microsoft-Windows-PowerShell",                          "PowerShell",
+            Provider startswith "Microsoft-Windows-AppLocker",                           "AppLocker",
+            Provider startswith "Microsoft-Windows-TaskScheduler",                       "TaskScheduler",
+            Provider startswith "Microsoft-Windows-TerminalServices",                    "TerminalServices",
+            Provider startswith "Microsoft-Windows-WMI-Activity",                        "WMI",
+            Provider startswith "Microsoft-Windows-Bits-Client",                         "BitsClient",
+            Provider startswith "Microsoft-Windows-DNS-Client",                          "DNSClient",
+            Provider startswith "Microsoft-Windows-Windows Defender",                    "DefenderAV",
+            Channel == "Application",                                                     "Application",
+            coalesce(Provider, Channel, "EvtxEvent")
+          )
+        // Pre-compute Sysmon hash fields once to avoid redundant extract() calls
+        | extend _sysmonHashes = iff(Provider == "Microsoft-Windows-Sysmon", tostring(EventData.Hashes), "")
+        | extend _sysmonSHA256 = extract(@"SHA256=([0-9A-Fa-f]+)", 1, _sysmonHashes)
+        | extend _sysmonMD5    = extract(@"MD5=([0-9A-Fa-f]+)",    1, _sysmonHashes)
+        // Pre-compute PrivilegeList string once (used twice in 4672 HVP check + output)
+        | extend _privsList = tostring(EventData.PrivilegeList)
+        | where array_length(_fTypeList) == 0 or _evtxType in (_fTypeList)
         | project
             EventTime      = Timestamp,
             Hostname,
             EventCategory  = "EventLog",
-            EventType      = "EvtxEvent",
-            Description    = strcat("[", Channel, "] ", coalesce(Provider, ""), " | EID: ", tostring(EventID), " | ", replace_string(replace_string(coalesce(Message, ""), "\n", " "), "\r", "")),
-            User           = "",
-            Path           = coalesce(OSPath, ""),
-            Hash           = "",
+            EventType      = _evtxType,
+            Description    = iff(
+                                Provider == "Microsoft-Windows-Sysmon",
+                                case(
+                                    // EID 1: Process Create
+                                    EventID == 1,
+                                        strcat("[Sysmon] EID:1 | Process Create | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Parent: ", extract(@"[^\\]+$", 0, tostring(EventData.ParentImage)), " (", tostring(EventData.ParentProcessId), ") | ", tostring(EventData.CommandLine), " | User: ", tostring(EventData.User)),
+                                    // EID 5: Process Terminated
+                                    EventID == 5,
+                                        strcat("[Sysmon] EID:5 | Process Terminated | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | User: ", tostring(EventData.User)),
+                                    // EID 3: Network Connection
+                                    EventID == 3,
+                                        strcat("[Sysmon] EID:3 | Network Connect | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Src: ", tostring(EventData.SourceIp), ":", tostring(EventData.SourcePort), " -> Dst: ", tostring(EventData.DestinationIp), ":", tostring(EventData.DestinationPort), " (", tostring(EventData.DestinationHostname), ") | User: ", tostring(EventData.User)),
+                                    // EID 7: Image Loaded
+                                    EventID == 7,
+                                        strcat("[Sysmon] EID:7 | Image Loaded | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Loaded: ", extract(@"[^\\]+$", 0, tostring(EventData.ImageLoaded)), " | Signed: ", tostring(EventData.Signed), " | User: ", tostring(EventData.User)),
+                                    // EID 8: CreateRemoteThread
+                                    EventID == 8,
+                                        strcat("[Sysmon] EID:8 | Remote Thread | ", extract(@"[^\\]+$", 0, tostring(EventData.SourceImage)), " (", tostring(EventData.SourceProcessId), ") -> ", extract(@"[^\\]+$", 0, tostring(EventData.TargetImage)), " (", tostring(EventData.TargetProcessId), ") | User: ", tostring(EventData.User)),
+                                    // EID 10: ProcessAccess
+                                    EventID == 10,
+                                        strcat("[Sysmon] EID:10 | Process Access | ", extract(@"[^\\]+$", 0, tostring(EventData.SourceImage)), " (", tostring(EventData.SourceProcessId), ") -> ", extract(@"[^\\]+$", 0, tostring(EventData.TargetImage)), " (", tostring(EventData.TargetProcessId), ") | Access: ", tostring(EventData.GrantedAccess), " | User: ", tostring(EventData.User)),
+                                    // EID 11: FileCreate
+                                    EventID == 11,
+                                        strcat("[Sysmon] EID:11 | File Created | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // EID 12: RegistryEvent (Object create and delete)
+                                    EventID == 12,
+                                        strcat("[Sysmon] EID:12 | Registry Create/Delete | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetObject), " | User: ", tostring(EventData.User)),
+                                    // EID 13: RegistryEvent (Value Set) — Details contains written value for DWORD/QWORD
+                                    EventID == 13,
+                                        strcat("[Sysmon] EID:13 | Registry Set Value | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetObject), iff(isnotempty(tostring(EventData.Details)) and tostring(EventData.Details) != "-", strcat(" = ", tostring(EventData.Details)), ""), " | User: ", tostring(EventData.User)),
+                                    // EID 14: RegistryEvent (Key and Value Rename) — NewName is the renamed target
+                                    EventID == 14,
+                                        strcat("[Sysmon] EID:14 | Registry Renamed | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetObject), " -> ", tostring(EventData.NewName), " | User: ", tostring(EventData.User)),
+                                    // EID 15: FileCreateStreamHash (ADS)
+                                    EventID == 15,
+                                        strcat("[Sysmon] EID:15 | File Stream (ADS) | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // EID 17/18: PipeEvent
+                                    EventID in (17, 18),
+                                        strcat("[Sysmon] EID:", tostring(EventID), " | Pipe ", iff(EventID == 17, "Created", "Connected"), " | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Pipe: ", tostring(EventData.PipeName), " | User: ", tostring(EventData.User)),
+                                    // EID 22: DNSQuery
+                                    EventID == 22,
+                                        strcat("[Sysmon] EID:22 | DNS Query | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Query: ", tostring(EventData.QueryName), " | User: ", tostring(EventData.User)),
+                                    // EID 23: FileDelete / EID 26: FileDeleteDetected
+                                    EventID in (23, 26),
+                                        strcat("[Sysmon] EID:", tostring(EventID), " | File ", iff(EventID == 23, "Deleted", "Delete Detected"), " | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // EID 25: ProcessTampering
+                                    EventID == 25,
+                                        strcat("[Sysmon] EID:25 | Process Tamper | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Type: ", tostring(EventData.Type), " | User: ", tostring(EventData.User)),
+                                    // EID 2: FileCreateTime (timestomping) — Image, TargetFilename, CreationUtcTime, PreviousCreationUtcTime
+                                    EventID == 2,
+                                        strcat("[Sysmon] EID:2 | File Time Changed | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | New: ", tostring(EventData.CreationUtcTime), " | Was: ", tostring(EventData.PreviousCreationUtcTime), " | User: ", tostring(EventData.User)),
+                                    // EID 6: DriverLoad — ImageLoaded, Hashes, Signed, Signature (no User field in schema)
+                                    EventID == 6,
+                                        strcat("[Sysmon] EID:6 | Driver Loaded | ", tostring(EventData.ImageLoaded), " | Signed: ", tostring(EventData.Signed), " | Sig: ", tostring(EventData.Signature)),
+                                    // EID 9: RawAccessRead — Image (source process), Device (target device)
+                                    EventID == 9,
+                                        strcat("[Sysmon] EID:9 | Raw Disk Read | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | Device: ", tostring(EventData.Device), " | User: ", tostring(EventData.User)),
+                                    // EID 19: WmiEventFilter — EventNamespace, Name, Query
+                                    EventID == 19,
+                                        strcat("[Sysmon] EID:19 | WMI Filter | Name: ", tostring(EventData.Name), " | NS: ", tostring(EventData.EventNamespace), " | Query: ", tostring(EventData.Query)),
+                                    // EID 20: WmiEventConsumer — Name, Type, Destination
+                                    EventID == 20,
+                                        strcat("[Sysmon] EID:20 | WMI Consumer | Name: ", tostring(EventData.Name), " | Type: ", tostring(EventData.Type), " | Dest: ", tostring(EventData.Destination)),
+                                    // EID 21: WmiEventConsumerToFilter — Consumer, Filter
+                                    EventID == 21,
+                                        strcat("[Sysmon] EID:21 | WMI Binding | Consumer: ", tostring(EventData.Consumer), " | Filter: ", tostring(EventData.Filter)),
+                                    // EID 27: FileBlockExecutable — Image, TargetFilename, User
+                                    EventID == 27,
+                                        strcat("[Sysmon] EID:27 | File Block Executable | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // EID 28: FileBlockShredding — Image, TargetFilename, User
+                                    EventID == 28,
+                                        strcat("[Sysmon] EID:28 | File Block Shredding | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // EID 29: FileExecutableDetected — Image, TargetFilename, User
+                                    EventID == 29,
+                                        strcat("[Sysmon] EID:29 | File Executable Detected | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ") | ", tostring(EventData.TargetFilename), " | User: ", tostring(EventData.User)),
+                                    // Fallback for other Sysmon EIDs
+                                    strcat("[Sysmon] EID:", tostring(EventID), " | ", extract(@"[^\\]+$", 0, tostring(EventData.Image)), " (", tostring(EventData.ProcessId), ")", iff(isnotempty(tostring(EventData.CommandLine)) and tostring(EventData.CommandLine) != "-", strcat(" | Cmd: ", tostring(EventData.CommandLine)), ""), " | User: ", tostring(EventData.User))
+                                ),
+                                // Non-Sysmon: structured for common Security/System EIDs, raw fallback
+                                case(
+                                    // 4688: Process Creation (Security)
+                                    // TokenElevationType: %%1936=FullToken(UAC off/admin/service), %%1937=ElevatedToken(RunAsAdmin), %%1938=LimitedToken(UAC filtered)
+                                    EventID == 4688,
+                                        strcat("[Security] Process Create | ", extract(@"[^\\]+$", 0, tostring(EventData.NewProcessName)), " | ", tostring(EventData.CommandLine), " | User: ", iff(isnotempty(tostring(EventData.TargetUserName)) and tostring(EventData.TargetUserName) != "-", strcat(tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName)), strcat(tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName))), " | Elevation: ", case(tostring(EventData.TokenElevationType) == "%%1936", "FullToken", tostring(EventData.TokenElevationType) == "%%1937", "ElevatedToken(RunAsAdmin)", tostring(EventData.TokenElevationType) == "%%1938", "LimitedToken(UAC)", tostring(EventData.TokenElevationType)), " | Parent: ", extract(@"[^\\]+$", 0, tostring(EventData.ParentProcessName))),
+                                    // 4689: Process Termination (Security)
+                                    EventID == 4689,
+                                        strcat("[Security] Process Terminated | ", extract(@"[^\\]+$", 0, tostring(EventData.ProcessName)), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 4624: Logon — LogonType decoded; WorkstationName=source hostname; AuthenticationPackageName=Kerberos/NTLM/Negotiate; ElevatedToken
+                                    EventID == 4624,
+                                        strcat("[Security] Logon | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | Type: ", case(toint(EventData.LogonType) == 2, "2-Interactive", toint(EventData.LogonType) == 3, "3-Network", toint(EventData.LogonType) == 4, "4-Batch", toint(EventData.LogonType) == 5, "5-Service", toint(EventData.LogonType) == 7, "7-Unlock", toint(EventData.LogonType) == 8, "8-NetworkCleartext", toint(EventData.LogonType) == 9, "9-NewCredentials(PtH?)", toint(EventData.LogonType) == 10, "10-RemoteInteractive(RDP)", toint(EventData.LogonType) == 11, "11-CachedInteractive", strcat("Type", tostring(EventData.LogonType))), " | Auth: ", tostring(EventData.AuthenticationPackageName), " | FromIP: ", tostring(EventData.IpAddress), " | FromHost: ", tostring(EventData.WorkstationName), " | Process: ", extract(@"[^\\]+$", 0, tostring(EventData.ProcessName))),
+                                    // 4625: Logon Failure — SubStatus is more reliable than FailureReason (raw %%nnnn strings); WorkstationName=source hostname
+                                    EventID == 4625,
+                                        strcat("[Security] Logon FAILED | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | Type: ", case(toint(EventData.LogonType) == 2, "2-Interactive", toint(EventData.LogonType) == 3, "3-Network", toint(EventData.LogonType) == 9, "9-NewCredentials", toint(EventData.LogonType) == 10, "10-RemoteInteractive(RDP)", strcat("Type", tostring(EventData.LogonType))), " | Auth: ", tostring(EventData.AuthenticationPackageName), " | FromIP: ", tostring(EventData.IpAddress), " | FromHost: ", tostring(EventData.WorkstationName), " | Status: ", tostring(EventData.Status), " | SubStatus: ", tostring(EventData.SubStatus)),
+                                    // 4634: Logoff — TargetUserName=logged-off account, LogonType indicates session type
+                                    EventID == 4634,
+                                        strcat("[Security] Logoff | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | Type: ", case(toint(EventData.LogonType) == 2, "2-Interactive", toint(EventData.LogonType) == 3, "3-Network", toint(EventData.LogonType) == 10, "10-RemoteInteractive(RDP)", strcat("Type", tostring(EventData.LogonType))), " | LogonId: ", tostring(EventData.TargetLogonId)),
+                                    // 4647: User-initiated logoff — no LogonType field; use LogonId to correlate with 4624
+                                    EventID == 4647,
+                                        strcat("[Security] User Logoff (initiated) | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | LogonId: ", tostring(EventData.TargetLogonId)),
+                                    // 4778: RDP/Window Station session reconnected — AccountName/AccountDomain (not Subject/Target), ClientName=source hostname
+                                    EventID == 4778,
+                                        strcat("[Security] Session Reconnected | User: ", tostring(EventData.AccountDomain), "\\", tostring(EventData.AccountName), " | Session: ", tostring(EventData.SessionName), " | From: ", tostring(EventData.ClientName), " (", tostring(EventData.ClientAddress), ")"),
+                                    // 4779: RDP/Window Station session disconnected — same fields as 4778
+                                    EventID == 4779,
+                                        strcat("[Security] Session Disconnected | User: ", tostring(EventData.AccountDomain), "\\", tostring(EventData.AccountName), " | Session: ", tostring(EventData.SessionName), " | From: ", tostring(EventData.ClientName), " (", tostring(EventData.ClientAddress), ")"),
+                                    // 4648: Explicit credential logon
+                                    EventID == 4648,
+                                        strcat("[Security] Explicit Creds | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName), " -> ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | Target: ", tostring(EventData.TargetServerName), " | Process: ", extract(@"[^\\]+$", 0, tostring(EventData.ProcessName))),
+                                    // 4672: Special privileges assigned — flag high-value attack privileges
+                                    EventID == 4672,
+                                        strcat("[Security] Special Privileges", iff(_privsList has_any ("SeDebugPrivilege", "SeBackupPrivilege", "SeRestorePrivilege", "SeLoadDriverPrivilege", "SeTcbPrivilege", "SeCreateTokenPrivilege", "SeTakeOwnershipPrivilege"), " [!HVP]", ""), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName), " | Privileges: ", _privsList),
+                                    // 4698/4702: Scheduled task created/modified
+                                    EventID in (4698, 4702),
+                                        strcat("[Security] Sched Task ", iff(EventID == 4698, "Created", "Modified"), " | Task: ", tostring(EventData.TaskName), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 4720/4722/4725/4726: User account lifecycle (created/enabled/disabled/deleted)
+                                    EventID in (4720, 4722, 4725, 4726),
+                                        strcat("[Security] Account ", case(EventID == 4720, "Created", EventID == 4722, "Enabled", EventID == 4725, "Disabled", "Deleted"), " | Account: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | By: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 4732/4728/4756: Member added to local/global/universal security group; 4733/4729/4757: member removed
+                                    EventID in (4728, 4729, 4732, 4733, 4756, 4757),
+                                        strcat("[Security] Group Member ", iff(EventID in (4728, 4732, 4756), "Added", "Removed"), " (", case(EventID in (4728, 4729), "Global", EventID in (4732, 4733), "Local", "Universal"), ") | Member: ", coalesce(extract(@"CN=([^,]+)", 1, tostring(EventData.MemberName)), tostring(EventData.MemberName)), " -> Group: ", tostring(EventData.TargetUserName), " | By: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 7045: New service installed (System) — StartType and AccountName are persistence indicators
+                                    EventID == 7045,
+                                        strcat("[System] Service Installed | ", tostring(EventData.ServiceName), " | Path: ", tostring(EventData.ImagePath), " | Type: ", tostring(EventData.ServiceType), " | Start: ", tostring(EventData.StartType), " | Account: ", tostring(EventData.AccountName)),
+                                    // 4776: NTLM Credential Validation — Status=NTSTATUS (0x0=OK, 0xC000006D=AuthFail, 0xC0000064=NoSuchUser, 0xC000006A=WrongPwd, 0xC0000234=LockedOut)
+                                    EventID == 4776,
+                                        strcat("[Security] NTLM Auth | User: ", tostring(EventData.TargetUserName), " | From: ", tostring(EventData.Workstation), " | Status: ", tostring(EventData.Status)),
+                                    // 4740: Account Lockout — TargetDomainName=Caller Computer Name (NOT a domain, per event schema)
+                                    EventID == 4740,
+                                        strcat("[Security] Account Lockout | Locked: ", tostring(EventData.TargetUserName), " | CallerComputer: ", tostring(EventData.TargetDomainName)),
+                                    // 1102: Security Audit Log Cleared
+                                    EventID == 1102,
+                                        strcat("[Security] Audit Log CLEARED | By: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 5140: Network Share Access — ShareLocalPath=actual filesystem path behind the share
+                                    EventID == 5140,
+                                        strcat("[Security] Share Access | Share: ", tostring(EventData.ShareName), " | Path: ", tostring(EventData.ShareLocalPath), " | From: ", tostring(EventData.IpAddress), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 4768: Kerberos TGT Request — TicketEncryptionType 0x17=RC4(AS-REP roasting signal); Status=result code
+                                    EventID == 4768,
+                                        strcat("[Security] Kerberos TGT | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | From: ", tostring(EventData.IpAddress), " | EncType: ", case(tostring(EventData.TicketEncryptionType) == "0x12", "0x12-AES256", tostring(EventData.TicketEncryptionType) == "0x11", "0x11-AES128", tostring(EventData.TicketEncryptionType) == "0x17", "0x17-RC4(ASREP?)", tostring(EventData.TicketEncryptionType) == "0xffffffff", "0xff-NoEnc", tostring(EventData.TicketEncryptionType)), " | PreAuth: ", tostring(EventData.PreAuthType), " | Status: ", tostring(EventData.Status)),
+                                    // 4769: Kerberos TGS Request — TicketEncryptionType 0x17=RC4(Kerberoasting signal); ServiceName=target resource
+                                    EventID == 4769,
+                                        strcat("[Security] Kerberos TGS | User: ", tostring(EventData.TargetUserName), " | Service: ", tostring(EventData.ServiceName), " | From: ", tostring(EventData.IpAddress), " | EncType: ", case(tostring(EventData.TicketEncryptionType) == "0x12", "0x12-AES256", tostring(EventData.TicketEncryptionType) == "0x11", "0x11-AES128", tostring(EventData.TicketEncryptionType) == "0x17", "0x17-RC4(Kerberoasting?)", tostring(EventData.TicketEncryptionType)), " | Status: ", tostring(EventData.Status)),
+                                    // 4771: Kerberos Pre-Authentication Failed — PreAuthType 0=no pre-auth(AS-REP roasting target); Status=Kerberos error code
+                                    EventID == 4771,
+                                        strcat("[Security] Kerberos Pre-Auth FAILED | User: ", tostring(EventData.TargetUserName), " | From: ", tostring(EventData.IpAddress), " | PreAuth: ", iff(tostring(EventData.PreAuthType) == "0", "0-NoPreauthRequired(ASREP?)", tostring(EventData.PreAuthType)), " | Code: ", tostring(EventData.Status)),
+                                    // 4104: PowerShell Script Block Logging
+                                    EventID == 4104,
+                                        strcat("[PowerShell] Script Block", iff(isnotempty(tostring(EventData.Path)) and tostring(EventData.Path) != "-", strcat(" | File: ", tostring(EventData.Path)), ""), " | ", substring(tostring(EventData.ScriptBlockText), 0, 200), iff(isnotempty(tostring(EventData.MessageNumber)) and tostring(EventData.MessageTotal) != "1", strcat(" [", tostring(EventData.MessageNumber), "/", tostring(EventData.MessageTotal), "]"), "")),
+                                    // 4697: Service Installed via Security log — ServiceFileName=binary path; ServiceStartType hex: 0x2=Auto, 0x3=Manual, 0x4=Disabled
+                                    EventID == 4697,
+                                        strcat("[Security] Service Installed | ", tostring(EventData.ServiceName), " | Path: ", tostring(EventData.ServiceFileName), " | Type: ", tostring(EventData.ServiceType), " | Start: ", tostring(EventData.ServiceStartType), " | Account: ", tostring(EventData.ServiceAccount), " | By: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 4794: DSRM password set attempt — Status 0x0=success; any non-zero indicates a failed attempt
+                                    EventID == 4794,
+                                        strcat("[Security] DSRM Password Set | Domain: ", tostring(EventData.TargetDomainName), " | By: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName), " | Status: ", tostring(EventData.Status)),
+                                    // 4964: Special groups assigned to new logon — SidList contains matched privileged group SIDs
+                                    EventID == 4964,
+                                        strcat("[Security] Special Groups Logon | User: ", tostring(EventData.TargetDomainName), "\\", tostring(EventData.TargetUserName), " | Type: ", tostring(EventData.LogonType), " | Groups: ", tostring(EventData.SidList)),
+                                    // 7036: Service state change (System/SCM) — param1=service name, param2="running"/"stopped"
+                                    EventID == 7036,
+                                        strcat("[System] Service ", tostring(EventData.param2), " | ", tostring(EventData.param1)),
+                                    // 7040: Service start type changed (System/SCM) — param1=service, param2=old type, param3=new type
+                                    EventID == 7040,
+                                        strcat("[System] Service StartType Changed | ", tostring(EventData.param1), " | ", tostring(EventData.param2), " -> ", tostring(EventData.param3)),
+                                    // 1074: System shutdown/restart — param1=initiating process, param5=reason string, param6=initiating user (domain\user)
+                                    EventID == 1074,
+                                        strcat("[System] Shutdown/Restart | By: ", tostring(EventData.param6), " | Process: ", extract(@"[^\\]+$", 0, tostring(EventData.param1)), " | Reason: ", tostring(EventData.param5)),
+                                    // 6005/6006: Event log service start/stop — no significant EventData
+                                    EventID in (6005, 6006),
+                                        strcat("[System] Event Log Service ", iff(EventID == 6005, "STARTED", "STOPPED")),
+                                    // 1000: Application Error — field names contain spaces in EventData
+                                    EventID == 1000,
+                                        strcat("[Application] App Error | ", tostring(EventData["Application Name"]), " | Fault: ", tostring(EventData["Fault Module Name"]), " | Exception: ", tostring(EventData["Exception Code"])),
+                                    // 1001: Windows Error Reporting bucket
+                                    EventID == 1001,
+                                        strcat("[Application] WER Report | ", tostring(EventData["Application Name"]), " | Fault: ", tostring(EventData["Fault Module Name"]), " | Exception: ", tostring(EventData["Exception Code"])),
+                                    // 1002: Application Hang — HangType 0=unresponsive, others indicate specific hang classes
+                                    EventID == 1002,
+                                        strcat("[Application] App Hang | ", tostring(EventData["Application Name"]), " | HangType: ", tostring(EventData["Hang Type"]), " | WaitTime: ", tostring(EventData["Wait Time"]), "ms"),
+                                    // Defender 1116/1117: Threat detected / action taken — field names contain spaces (e.g. EventData["Threat Name"])
+                                    EventID in (1116, 1117),
+                                        strcat("[Defender] ", iff(EventID == 1116, "Threat Detected", "Action Taken"), " | Threat: ", tostring(EventData["Threat Name"]), " | Severity: ", tostring(EventData["Severity Name"]), " | Path: ", tostring(EventData["Path"]), " | Action: ", tostring(EventData["Action Name"]), " | User: ", tostring(EventData["Detection User"])),
+                                    // Defender 1118/1119: Remediation non-critical error / critical error
+                                    EventID in (1118, 1119),
+                                        strcat("[Defender] Remediation ", iff(EventID == 1119, "FAILED (critical)", "Error"), " | Threat: ", tostring(EventData["Threat Name"]), " | Path: ", tostring(EventData["Path"]), " | Error: ", tostring(EventData["Error Description"]), " | User: ", tostring(EventData["Remediation User"])),
+                                    // Defender 1006/1007: Older scan detection / action (fewer fields than 1116/1117)
+                                    EventID in (1006, 1007),
+                                        strcat("[Defender] ", iff(EventID == 1006, "Scan Detection", "Scan Action"), " | Threat: ", tostring(EventData["Threat Name"]), " | Path: ", tostring(EventData["Path"]), " | Action: ", tostring(EventData["Action Name"])),
+                                    // 6416: New external device recognized (Security log) — requires object auditing; DeviceDescription=friendly name; DeviceId=hardware ID
+                                    EventID == 6416,
+                                        strcat("[Security] Device Connected | ", tostring(EventData.DeviceDescription), " | Class: ", tostring(EventData.ClassName), " | ID: ", tostring(EventData.DeviceId), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // 5379/5380/5381/5382: Credential Manager access — TargetName=accessed credential; ReadOperation %%8100=Enumerate, %%8102=ReadCredential; %%8101=CheckExistence
+                                    EventID in (5379, 5380, 5381, 5382),
+                                        strcat("[Security] CredManager ", case(EventID == 5379, "Read", EventID == 5380, "VaultFind", EventID == 5381, "VaultGet", "VaultAdd"), " | Target: ", tostring(EventData.TargetName), " | Op: ", case(tostring(EventData.ReadOperation) == "%%8100", "Enumerate", tostring(EventData.ReadOperation) == "%%8102", "ReadCredential", tostring(EventData.ReadOperation) == "%%8101", "CheckExistence", tostring(EventData.ReadOperation)), " | Count: ", tostring(EventData.CountOfCredentialsReturned), " | PID: ", tostring(EventData.ClientProcessId), " | User: ", tostring(EventData.SubjectDomainName), "\\", tostring(EventData.SubjectUserName)),
+                                    // TaskScheduler: task lifecycle and execution events
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID == 106,
+                                        strcat("[TaskScheduler] Task Registered | ", tostring(EventData.TaskName), " | By: ", tostring(EventData.UserContext)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID in (107, 108, 118, 119),
+                                        strcat("[TaskScheduler] Task Triggered | ", tostring(EventData.TaskName), iff(isnotempty(tostring(EventData.UserName)), strcat(" | User: ", tostring(EventData.UserName)), ""), " | EID:", tostring(EventID)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID == 129,
+                                        strcat("[TaskScheduler] Task Process Created | ", tostring(EventData.TaskName), " | Path: ", tostring(EventData.Path), " | PID: ", tostring(EventData.ProcessID)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID == 140,
+                                        strcat("[TaskScheduler] Task Updated | ", tostring(EventData.TaskName), " | By: ", tostring(EventData.UserName)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID == 141,
+                                        strcat("[TaskScheduler] Task DELETED | ", tostring(EventData.TaskName), " | By: ", tostring(EventData.UserName)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID == 200,
+                                        strcat("[TaskScheduler] Action Started | ", tostring(EventData.TaskName), " | Action: ", tostring(EventData.ActionName)),
+                                    Provider startswith "Microsoft-Windows-TaskScheduler" and EventID in (201, 202),
+                                        strcat("[TaskScheduler] Action ", iff(EventID == 201, "Completed", "FAILED"), " | ", tostring(EventData.TaskName), " | Action: ", tostring(EventData.ActionName), " | Result: ", tostring(EventData.ResultCode)),
+                                    // AppLocker: enforce (8004/8007/8022) and audit-block (8003/8006/8021) events
+                                    // Note: 8004/8007 use flat field names (FullFilePathBuffer/RuleNameBuffer); 8003/8006 use RuleAndFileData nested structure
+                                    Provider startswith "Microsoft-Windows-AppLocker" and EventID == 8004,
+                                        strcat("[AppLocker] BLOCKED EXE/DLL | ", coalesce(tostring(EventData.FullFilePathBuffer), tostring(EventData.FullFilePath), tostring(EventData.FilePath), ""), " | Rule: ", coalesce(tostring(EventData.RuleNameBuffer), tostring(EventData.RuleName), ""), " | User: ", tostring(EventData.TargetUser)),
+                                    Provider startswith "Microsoft-Windows-AppLocker" and EventID == 8007,
+                                        strcat("[AppLocker] BLOCKED Script/MSI | ", coalesce(tostring(EventData.FullFilePathBuffer), tostring(EventData.FullFilePath), tostring(EventData.FilePath), ""), " | Rule: ", coalesce(tostring(EventData.RuleNameBuffer), tostring(EventData.RuleName), ""), " | User: ", tostring(EventData.TargetUser)),
+                                    Provider startswith "Microsoft-Windows-AppLocker" and EventID == 8022,
+                                        strcat("[AppLocker] BLOCKED Package | ", coalesce(tostring(EventData.PackageBuffer), tostring(EventData.Package), ""), " | Rule: ", coalesce(tostring(EventData.RuleNameBuffer), tostring(EventData.RuleName), ""), " | User: ", tostring(EventData.TargetUser)),
+                                    Provider startswith "Microsoft-Windows-AppLocker" and EventID == 8003,
+                                        strcat("[AppLocker] AuditBlock EXE/DLL | ", coalesce(tostring(EventData.FullFilePathBuffer), tostring(EventData.FullFilePath), tostring(EventData.FilePath), ""), " | User: ", tostring(EventData.TargetUser)),
+                                    Provider startswith "Microsoft-Windows-AppLocker" and EventID == 8006,
+                                        strcat("[AppLocker] AuditBlock Script/MSI | ", coalesce(tostring(EventData.FullFilePathBuffer), tostring(EventData.FullFilePath), tostring(EventData.FilePath), ""), " | User: ", tostring(EventData.TargetUser)),
+                                    // TerminalServices LocalSessionManager: RDP session lifecycle (EIDs 21-25)
+                                    Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID == 21,
+                                        strcat("[TermSvc] Session Logon | User: ", tostring(EventData.User), " | Session: ", tostring(EventData.SessionID), " | From: ", tostring(EventData.Address)),
+                                    Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID == 22,
+                                        strcat("[TermSvc] Shell Started | User: ", tostring(EventData.User), " | Session: ", tostring(EventData.SessionID)),
+                                    Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID == 23,
+                                        strcat("[TermSvc] Session Logoff | User: ", tostring(EventData.User), " | Session: ", tostring(EventData.SessionID)),
+                                    Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID == 24,
+                                        strcat("[TermSvc] Session Disconnected | User: ", tostring(EventData.User), " | Session: ", tostring(EventData.SessionID), " | From: ", tostring(EventData.Address)),
+                                    Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID == 25,
+                                        strcat("[TermSvc] Session Reconnected | User: ", tostring(EventData.User), " | Session: ", tostring(EventData.SessionID), " | From: ", tostring(EventData.Address)),
+                                    // WMI Activity: provider load and subscription events — 5861 is key persistence indicator
+                                    Provider startswith "Microsoft-Windows-WMI-Activity" and EventID == 5857,
+                                        strcat("[WMI] Provider Loaded | ", tostring(EventData.ProviderName), " | Path: ", tostring(EventData.ProviderPath), " | PID: ", tostring(EventData.ProcessID)),
+                                    Provider startswith "Microsoft-Windows-WMI-Activity" and EventID == 5858,
+                                        strcat("[WMI] Client Query Error | User: ", tostring(EventData.User), " | PID: ", tostring(EventData.ClientProcessId), " | Op: ", substring(tostring(EventData.Operation), 0, 120)),
+                                    Provider startswith "Microsoft-Windows-WMI-Activity" and EventID == 5860,
+                                        strcat("[WMI] Temp Subscription | User: ", tostring(EventData.User), " | NS: ", tostring(EventData.NamespaceName), " | Query: ", substring(tostring(EventData.Query), 0, 150)),
+                                    Provider startswith "Microsoft-Windows-WMI-Activity" and EventID == 5861,
+                                        strcat("[WMI] Permanent Subscription (!PERSIST) | NS: ", tostring(EventData.Namespace), " | Consumer: ", tostring(EventData.CONSUMER), " | Cause: ", substring(tostring(EventData.PossibleCause), 0, 200)),
+                                    // Generic fallback: use rendered Message if available, else dump EventData fields
+                                    strcat("[", Channel, "] ", iff(isnotempty(Provider) and Provider != Channel, strcat(Provider, " | "), ""), "EID: ", tostring(EventID), " | ", iff(isnotempty(coalesce(Message, "")), replace_string(replace_string(Message, "\n", " "), "\r", ""), tostring(EventData)))
+                                )
+                            ),
+            User           = iff(
+                                isnotempty(tostring(EventData.TargetUserName)) and tostring(EventData.TargetUserName) != "-",
+                                strcat(iff(isnotempty(tostring(EventData.TargetDomainName)) and tostring(EventData.TargetDomainName) != "-", strcat(tostring(EventData.TargetDomainName), "\\"), ""), tostring(EventData.TargetUserName)),
+                                iff(isnotempty(tostring(EventData.SubjectUserName)) and tostring(EventData.SubjectUserName) != "-",
+                                    strcat(iff(isnotempty(tostring(EventData.SubjectDomainName)) and tostring(EventData.SubjectDomainName) != "-", strcat(tostring(EventData.SubjectDomainName), "\\"), ""), tostring(EventData.SubjectUserName)),
+                                    coalesce(tostring(EventData.User), ""))),
+            Path           = case(
+                                Provider == "Microsoft-Windows-Sysmon",
+                                case(
+                                    EventID in (1, 3, 5, 9, 17, 18, 22, 25), tostring(EventData.Image),
+                                    EventID in (6, 7),                        tostring(EventData.ImageLoaded),
+                                    EventID in (8, 10),                       tostring(EventData.TargetImage),
+                                    EventID in (2, 11, 15, 23, 26, 27, 28, 29), tostring(EventData.TargetFilename),
+                                    EventID in (12, 13, 14),                  tostring(EventData.TargetObject),
+                                    coalesce(tostring(EventData.Image), "")
+                                ),
+                                EventID == 4688, tostring(EventData.NewProcessName),
+                                EventID == 4689, tostring(EventData.ProcessName),
+                                EventID == 7045, tostring(EventData.ImagePath),
+                                EventID == 4697, tostring(EventData.ServiceFileName),
+                                EventID == 5140, tostring(EventData.ShareName),
+                                EventID == 1074, tostring(EventData.param1),
+                                EventID == 4104, tostring(EventData.Path),
+                                EventID in (4778, 4779), tostring(EventData.ClientAddress),
+                                EventID in (1116, 1117, 1118, 1119, 1006, 1007), tostring(EventData["Path"]),
+                                EventID in (1000, 1001), tostring(EventData["Application Path"]),
+                                EventID == 6416, tostring(EventData.DeviceId),
+                                Provider startswith "Microsoft-Windows-TaskScheduler" and EventID in (129, 200), tostring(EventData.ActionName),
+                                Provider startswith "Microsoft-Windows-AppLocker" and EventID in (8003, 8004, 8006, 8007, 8022), coalesce(tostring(EventData.FullFilePathBuffer), tostring(EventData.FullFilePath), tostring(EventData.FilePath), ""),
+                                Provider == "Microsoft-Windows-TerminalServices-LocalSessionManager" and EventID in (21, 24, 25), tostring(EventData.Address),
+                                ""
+                            ),
+            Hash           = coalesce(
+                                iff(isnotempty(_sysmonSHA256), strcat("SHA256:", _sysmonSHA256), ""),
+                                iff(isnotempty(_sysmonMD5),    strcat("MD5:",    _sysmonMD5),    ""),
+                                ""
+                            ),
             Details        = bag_pack(
                                 "EventID", EventID,
                                 "Channel", Channel,
@@ -732,7 +1059,7 @@ WindowsSupertimeline(
             Description    = strcat("[ScheduledTask] Registered | ", coalesce(URI, ""), " | Cmd: ", coalesce(Command, ""), " ", coalesce(Arguments, ""), " | User: ", coalesce(UserId, "")),
             User           = coalesce(UserId, ""),
             Path           = coalesce(URI, ""),
-            Hash           = coalesce(Hash, ""),
+            Hash           = case(strlen(coalesce(Hash, "")) == 64, strcat("SHA256:", Hash), strlen(coalesce(Hash, "")) == 40, strcat("SHA1:", Hash), strlen(coalesce(Hash, "")) == 32, strcat("MD5:", Hash), coalesce(Hash, "")),
             Details        = bag_pack(
                                 "URI", URI,
                                 "TaskID", TaskID,
@@ -1109,7 +1436,7 @@ WindowsSupertimeline(
             Description    = strcat("[DetectRaptor] BinaryRename | ", Name, " | Original: ", coalesce(OriginalFilename, ""), " | ", coalesce(OSPath, "")),
             User           = "",
             Path           = coalesce(OSPath, ""),
-            Hash           = coalesce(SHA256, SHA1, MD5, ""),
+            Hash           = coalesce(iff(isnotempty(SHA256), strcat("SHA256:", SHA256), ""), iff(isnotempty(SHA1), strcat("SHA1:", SHA1), ""), iff(isnotempty(MD5), strcat("MD5:", MD5), ""), ""),
             Details        = bag_pack(
                                 "Name", Name,
                                 "OriginalFilename", OriginalFilename,
@@ -1142,7 +1469,7 @@ WindowsSupertimeline(
             Description    = strcat("[DetectRaptor] HijackLibs | ", HijackType, " | ", coalesce(FileName, ""), " | Vendor: ", coalesce(HijackVendor, ""), " | ", coalesce(OSPath, "")),
             User           = "",
             Path           = coalesce(OSPath, ""),
-            Hash           = coalesce(DllSHA256, DllSHA1, DllMD5, ""),
+            Hash           = coalesce(iff(isnotempty(DllSHA256), strcat("SHA256:", DllSHA256), ""), iff(isnotempty(DllSHA1), strcat("SHA1:", DllSHA1), ""), iff(isnotempty(DllMD5), strcat("MD5:", DllMD5), ""), ""),
             Details        = bag_pack(
                                 "FileName", FileName,
                                 "HijackType", HijackType,
@@ -1176,7 +1503,7 @@ WindowsSupertimeline(
             Description    = strcat("[DetectRaptor] Amcache | ", DetectionName, " [", coalesce(DetectionCriticality, ""), "] | ", coalesce(EntryName, ""), " | ", coalesce(Publisher, ""), " | ", coalesce(EntryPath, "")),    
             User           = "",
             Path           = coalesce(EntryPath, ""),
-            Hash           = coalesce(SHA1, ""),
+            Hash           = iff(isnotempty(SHA1), strcat("SHA1:", SHA1), ""),
             Details        = bag_pack(
                                 "DetectionName", DetectionName,
                                 "DetectionCriticality", DetectionCriticality,
@@ -1420,6 +1747,7 @@ WindowsSupertimeline(
     | where isempty(_fPath) or Path          contains _fPath
     | where isempty(_fUser) or User          contains _fUser
     | where isempty(_fDescription) or Description   has _fDescription
+    | where isempty(_fHash)        or Hash           contains _fHash
     | order by EventTime asc
 }
 
@@ -1447,7 +1775,19 @@ WindowsSupertimelineSchema() {
         "FileSystem",     "RecycleBinDelete",    "WindowsForensicsRecycleBin",                     "Recycle Bin deleted files",
         "FileSystem",     "Download",            "WindowsAnalysisEvidenceOfDownload",              "Downloaded files (Zone.Identifier ADS)",
         "EventLog",       "HayabusaAlert",       "WindowsHayabusaRules",                           "Sigma/Hayabusa detection rule matches",
-        "EventLog",       "EvtxEvent",           "WindowsEventLogsEvtx",                           "Raw Windows event log entries",
+        "EventLog",       "Sysmon",              "WindowsEventLogsEvtx",                           "Sysmon (Microsoft-Windows-Sysmon) events",
+        "EventLog",       "SecurityLog",         "WindowsEventLogsEvtx",                           "Windows Security channel events",
+        "EventLog",       "SystemLog",           "WindowsEventLogsEvtx",                           "Windows System channel events",
+        "EventLog",       "PowerShell",          "WindowsEventLogsEvtx",                           "PowerShell (Microsoft-Windows-PowerShell) events",
+        "EventLog",       "AppLocker",           "WindowsEventLogsEvtx",                           "AppLocker events",
+        "EventLog",       "TaskScheduler",       "WindowsEventLogsEvtx",                           "Task Scheduler events",
+        "EventLog",       "TerminalServices",    "WindowsEventLogsEvtx",                           "Terminal Services / RDP events",
+        "EventLog",       "WMI",                 "WindowsEventLogsEvtx",                           "WMI activity events",
+        "EventLog",       "BitsClient",          "WindowsEventLogsEvtx",                           "BITS client transfer events",
+        "EventLog",       "DNSClient",           "WindowsEventLogsEvtx",                           "DNS client events",
+        "EventLog",       "DefenderAV",          "WindowsEventLogsEvtx",                           "Windows Defender antivirus/malware events",
+        "EventLog",       "Application",         "WindowsEventLogsEvtx",                           "Windows Application channel events (1000/1001/1002 etc.)",
+        "EventLog",       "EvtxEvent",           "WindowsEventLogsEvtx",                           "All other raw event log entries",
         "EventLog",       "HayabusaResult",      "WindowsEventLogsHayabusaResults",                "Hayabusa parsed results",
         "Detection",      "SuspiciousParent",    "WindowsAttackParentProcess",                     "Suspicious parent-child process relationships",
         "Detection",      "Malfind",             "WindowsDetectionMalfind",                        "Injected code / suspicious memory sections",

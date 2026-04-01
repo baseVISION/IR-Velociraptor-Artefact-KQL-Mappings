@@ -132,9 +132,8 @@ func TestBuildExpression_DetailsColumn(t *testing.T) {
 // ── parseRow ─────────────────────────────────────────────────────────────────
 
 func TestParseRow_EmptyName(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3, Enabled: -1,
-		Scope: -1, Category: -1, Type: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	_, err := parseRow([]string{"", "Path", "has", "x"}, idx, 2)
 	if err == nil {
 		t.Fatal("expected error for empty name")
@@ -142,9 +141,8 @@ func TestParseRow_EmptyName(t *testing.T) {
 }
 
 func TestParseRow_InvalidColumn(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3, Enabled: -1,
-		Scope: -1, Category: -1, Type: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	_, err := parseRow([]string{"r1", "BadCol", "has", "x"}, idx, 2)
 	if err == nil || !strings.Contains(err.Error(), "invalid column") {
 		t.Fatalf("expected 'invalid column' error, got %v", err)
@@ -152,9 +150,8 @@ func TestParseRow_InvalidColumn(t *testing.T) {
 }
 
 func TestParseRow_InvalidOperator(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3, Enabled: -1,
-		Scope: -1, Category: -1, Type: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	_, err := parseRow([]string{"r1", "Path", "like", "x"}, idx, 2)
 	if err == nil || !strings.Contains(err.Error(), "invalid operator") {
 		t.Fatalf("expected 'invalid operator' error, got %v", err)
@@ -162,9 +159,8 @@ func TestParseRow_InvalidOperator(t *testing.T) {
 }
 
 func TestParseRow_EmptyValue(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3, Enabled: -1,
-		Scope: -1, Category: -1, Type: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	_, err := parseRow([]string{"r1", "Path", "has", ""}, idx, 2)
 	if err == nil || !strings.Contains(err.Error(), "empty value") {
 		t.Fatalf("expected 'empty value' error, got %v", err)
@@ -172,9 +168,8 @@ func TestParseRow_EmptyValue(t *testing.T) {
 }
 
 func TestParseRow_EventTypeWithoutCategory(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3,
-		Scope: -1, Category: -1, Type: 4, Enabled: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: 4, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	_, err := parseRow([]string{"r1", "Path", "has", "x", "ProcessExec"}, idx, 2)
 	if err == nil || !strings.Contains(err.Error(), "EventType") {
 		t.Fatalf("expected EventType error, got %v", err)
@@ -182,28 +177,14 @@ func TestParseRow_EventTypeWithoutCategory(t *testing.T) {
 }
 
 func TestParseRow_DefaultScope(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3,
-		Scope: -1, Category: -1, Type: -1, Enabled: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
+	idx := colIndex{Name: 0, Scope: -1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{1, 2, 3}}}
 	r, err := parseRow([]string{"r1", "Path", "has", "x"}, idx, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if r.Scope != "Supertimeline" {
 		t.Errorf("scope = %q, want Supertimeline", r.Scope)
-	}
-}
-
-func TestParseRow_DisabledRule(t *testing.T) {
-	idx := colIndex{Name: 0, Col1: 1, Mode1: 2, Val1: 3, Enabled: 4,
-		Scope: -1, Category: -1, Type: -1,
-		Col2: -1, Mode2: -1, Val2: -1, Col3: -1, Mode3: -1, Val3: -1}
-	r, err := parseRow([]string{"r1", "Path", "has", "x", "false"}, idx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if r.Enabled {
-		t.Error("expected rule to be disabled")
 	}
 }
 
@@ -221,7 +202,7 @@ func TestIndexHeader_MissingRequired(t *testing.T) {
 func TestGenerate_NoActiveRules(t *testing.T) {
 	var buf bytes.Buffer
 	rules := []rule{
-		{Name: "disabled", Scope: "Supertimeline", Enabled: false,
+		{Name: "other", Scope: "Other",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "x"}}},
 	}
 	err := generate(&buf, rules, "Supertimeline", "TestFn", "test.csv")
@@ -237,7 +218,7 @@ func TestGenerate_NoActiveRules(t *testing.T) {
 func TestGenerate_SingleRule(t *testing.T) {
 	var buf bytes.Buffer
 	rules := []rule{
-		{Name: "test_rule", Scope: "Supertimeline", Enabled: true,
+		{Name: "test_rule", Scope: "Supertimeline",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "cmd.exe"}}},
 	}
 	err := generate(&buf, rules, "Supertimeline", "TestFn", "test.csv")
@@ -259,9 +240,9 @@ func TestGenerate_SingleRule(t *testing.T) {
 func TestGenerate_MultipleRulesUseOr(t *testing.T) {
 	var buf bytes.Buffer
 	rules := []rule{
-		{Name: "r1", Scope: "Supertimeline", Enabled: true,
+		{Name: "r1", Scope: "Supertimeline",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "a"}}},
-		{Name: "r2", Scope: "Supertimeline", Enabled: true,
+		{Name: "r2", Scope: "Supertimeline",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "b"}}},
 	}
 	err := generate(&buf, rules, "Supertimeline", "TestFn", "test.csv")
@@ -277,11 +258,9 @@ func TestGenerate_MultipleRulesUseOr(t *testing.T) {
 func TestGenerate_SkippedRuleComment(t *testing.T) {
 	var buf bytes.Buffer
 	rules := []rule{
-		{Name: "active", Scope: "Supertimeline", Enabled: true,
+		{Name: "active", Scope: "Supertimeline",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "a"}}},
-		{Name: "off", Scope: "Supertimeline", Enabled: false,
-			Conditions: []condition{{Column: "Path", Op: "has", Value: "b"}}},
-		{Name: "other_scope", Scope: "Other", Enabled: true,
+		{Name: "other_scope", Scope: "Other",
 			Conditions: []condition{{Column: "Path", Op: "has", Value: "c"}}},
 	}
 	err := generate(&buf, rules, "Supertimeline", "TestFn", "test.csv")
@@ -289,10 +268,7 @@ func TestGenerate_SkippedRuleComment(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	if !strings.Contains(out, "off — disabled") {
-		t.Errorf("missing disabled skip comment:\n%s", out)
-	}
-	if !strings.Contains(out, "other_scope — scope=Other") {
+	if !strings.Contains(out, "other_scope - scope=Other") {
 		t.Errorf("missing scope skip comment:\n%s", out)
 	}
 }
@@ -321,7 +297,7 @@ func TestGenerate_AllOperators(t *testing.T) {
 		t.Run(tt.op, func(t *testing.T) {
 			var buf bytes.Buffer
 			rules := []rule{
-				{Name: "op_test", Scope: "Supertimeline", Enabled: true,
+				{Name: "op_test", Scope: "Supertimeline",
 					Conditions: []condition{{Column: "Path", Op: tt.op, Value: tt.val}}},
 			}
 			err := generate(&buf, rules, "Supertimeline", "TestFn", "test.csv")
@@ -349,8 +325,8 @@ func TestEndToEnd_ExampleCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseCSV: %v", err)
 	}
-	if len(rules) != 11 {
-		t.Fatalf("expected 11 rules, got %d", len(rules))
+	if len(rules) != 10 {
+		t.Fatalf("expected 10 rules, got %d", len(rules))
 	}
 
 	var buf bytes.Buffer
@@ -361,21 +337,20 @@ func TestEndToEnd_ExampleCSV(t *testing.T) {
 
 	out := buf.String()
 
-	// Should have 9 active rules (1 disabled, 1 wrong scope).
-	if strings.Count(out, "// ── Rule") != 9 {
-		t.Errorf("expected 9 rule comments, got %d", strings.Count(out, "// ── Rule"))
+	// Should have 9 active rules (1 wrong scope).
+	if strings.Count(out, "// -- Rule") != 9 {
+		t.Errorf("expected 9 rule comments, got %d", strings.Count(out, "// -- Rule"))
 	}
 
 	// Spot-check specific conditions.
 	checks := []string{
-		`Path has "svchost.exe"`,                  // svchost
-		`User == "SYSTEM"`,                        // svchost condition 2
-		`Path contains @"\Windows\Prefetch\"`,     // prefetch with backslash
-		`not(Description contains "suspicious")`,  // negated condition
-		`disabled_rule_example — disabled`,         // disabled comment
-		`persistence_scope_example — scope=PersistenceOverview`, // scope skip
-		`EventCategory == "Execution"`,            // scope guard
-		`EventType == "ProcessExec"`,              // type guard
+		`Path has "svchost.exe"`,                                // svchost
+		`User == "SYSTEM"`,                                      // svchost condition 2
+		`Path contains @"\Windows\Prefetch\"`,                   // prefetch with backslash
+		`not(Description contains "suspicious")`,                // negated condition
+		`persistence_scope_example - scope=PersistenceOverview`, // scope skip
+		`EventCategory == "Execution"`,                          // scope guard
+		`EventType == "ProcessExec"`,                            // type guard
 	}
 	for _, c := range checks {
 		if !strings.Contains(out, c) {
@@ -407,5 +382,161 @@ func TestEndToEnd_NoConditions(t *testing.T) {
 	_, err := parseCSV(p)
 	if err == nil || !strings.Contains(err.Error(), "no conditions") {
 		t.Fatalf("expected 'no conditions' error, got %v", err)
+	}
+}
+
+// ── scope-keyed column validation ────────────────────────────────────────────
+
+func TestParseRow_PersistenceColumnsValid(t *testing.T) {
+	// PersistenceType as dedicated scope guard, Name as condition column.
+	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: 2,
+		Conds: [][3]int{{3, 4, 5}}}
+	r, err := parseRow([]string{"r1", "PersistenceOverview", "Boot Execute", "Name", "==", "autocheck autochk *"}, idx, 2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Scope != "PersistenceOverview" {
+		t.Errorf("scope = %q, want PersistenceOverview", r.Scope)
+	}
+	if r.PersistenceType != "Boot Execute" {
+		t.Errorf("PersistenceType = %q, want Boot Execute", r.PersistenceType)
+	}
+}
+
+func TestParseRow_CrossScopeColumnRejected(t *testing.T) {
+	// Path is a Supertimeline column; should be rejected for PersistenceOverview.
+	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{2, 3, 4}}}
+	_, err := parseRow([]string{"r1", "PersistenceOverview", "Path", "has", "x"}, idx, 2)
+	if err == nil || !strings.Contains(err.Error(), "invalid column") {
+		t.Fatalf("expected 'invalid column' error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "PersistenceOverview") {
+		t.Errorf("error should mention scope, got: %v", err)
+	}
+}
+
+func TestParseRow_UnknownScopeRejected(t *testing.T) {
+	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{2, 3, 4}}}
+	_, err := parseRow([]string{"r1", "UnknownScope", "Path", "has", "x"}, idx, 2)
+	if err == nil || !strings.Contains(err.Error(), "unknown scope") {
+		t.Fatalf("expected 'unknown scope' error, got %v", err)
+	}
+}
+
+func TestParseRow_EmptyValueEqualityAllowed(t *testing.T) {
+	// Suspicious == "" is a valid rule (empty string comparison).
+	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: -1,
+		Conds: [][3]int{{2, 3, 4}}}
+	r, err := parseRow([]string{"r1", "PersistenceOverview", "Suspicious", "==", ""}, idx, 2)
+	if err != nil {
+		t.Fatalf("unexpected error for empty == value: %v", err)
+	}
+	if r.Conditions[0].Value != "" {
+		t.Errorf("value = %q, want empty string", r.Conditions[0].Value)
+	}
+}
+
+func TestGenerate_EmptyValueEquality(t *testing.T) {
+	var buf bytes.Buffer
+	rules := []rule{
+		{Name: "no_flags", Scope: "PersistenceOverview",
+			Conditions: []condition{{Column: "Suspicious", Op: "==", Value: ""}}},
+	}
+	err := generate(&buf, rules, "PersistenceOverview", "TestFn", "test.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), `Suspicious == ""`) {
+		t.Errorf("expected Suspicious == \"\" in output:\n%s", buf.String())
+	}
+}
+
+// ── PersistenceType scope guard ─────────────────────────────────────────────────
+
+func TestBuildExpression_PersistenceTypeGuard(t *testing.T) {
+	r := rule{
+		Name:            "test",
+		Scope:           "PersistenceOverview",
+		PersistenceType: "Boot Execute",
+		Conditions: []condition{
+			{Column: "Name", Op: "==", Value: "autocheck autochk *"},
+		},
+	}
+	got := buildExpression(r)
+	want := `PersistenceType == "Boot Execute" and Name == "autocheck autochk *"`
+	if got != want {
+		t.Errorf("got\n  %s\nwant\n  %s", got, want)
+	}
+}
+
+func TestIndexHeader_DynamicFourConditions(t *testing.T) {
+	header := []string{
+		"RuleName", "Scope", "EventCategory", "EventType", "PersistenceType",
+		"Column1", "Mode1", "Value1",
+		"Column2", "Mode2", "Value2",
+		"Column3", "Mode3", "Value3",
+		"Column4", "Mode4", "Value4",
+	}
+	idx, err := indexHeader(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(idx.Conds) != 4 {
+		t.Errorf("expected 4 condition triplets, got %d", len(idx.Conds))
+	}
+	if idx.PersistenceTypeCol < 0 {
+		t.Error("PersistenceTypeCol should be set")
+	}
+}
+
+func TestIndexHeader_MissingModeRejected(t *testing.T) {
+	// Column2 present but Mode2 missing.
+	header := []string{"RuleName", "Column1", "Mode1", "Value1", "Column2", "Value2"}
+	_, err := indexHeader(header)
+	if err == nil || !strings.Contains(err.Error(), "Mode2") {
+		t.Fatalf("expected missing Mode2 error, got %v", err)
+	}
+}
+
+func TestEndToEnd_PersistenceCSV(t *testing.T) {
+	// Build a minimal in-memory persistence CSV with 4 conditions.
+	csv := "RuleName,Scope,EventCategory,EventType,PersistenceType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3,Column4,Mode4,Value4\n" +
+		"boot_exec,PersistenceOverview,,,Boot Execute,Name,==,autocheck autochk *,Target,contains,\\autochk.exe,Signer,startswith,(Verified) Microsoft,Suspicious,==,\n"
+	tmp := t.TempDir()
+	p := filepath.Join(tmp, "persistence.csv")
+	if err := os.WriteFile(p, []byte(csv), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rules, err := parseCSV(p)
+	if err != nil {
+		t.Fatalf("parseCSV: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+	if rules[0].PersistenceType != "Boot Execute" {
+		t.Errorf("PersistenceType = %q, want Boot Execute", rules[0].PersistenceType)
+	}
+	if len(rules[0].Conditions) != 4 {
+		t.Errorf("expected 4 conditions, got %d", len(rules[0].Conditions))
+	}
+	var buf bytes.Buffer
+	if err := generate(&buf, rules, "PersistenceOverview", "ApplyPersistenceBaseline", "persistence.csv"); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	checks := []string{
+		`PersistenceType == "Boot Execute"`,
+		`Name == "autocheck autochk *"`,
+		`Target contains @"\autochk.exe"`,
+		`Signer startswith "(Verified) Microsoft"`,
+		`Suspicious == ""`,
+	}
+	for _, c := range checks {
+		if !strings.Contains(out, c) {
+			t.Errorf("missing %q in output:\n%s", c, out)
+		}
 	}
 }

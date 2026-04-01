@@ -16,6 +16,8 @@ Options:
   --cluster     ADX cluster URL (e.g. https://mycluster.region.kusto.windows.net)
   --database    Database name
   --drop        Drop all mapped tables before deploying (keeps RawVelociraptorEvents)
+  --clear       Clear all table data (keeps schema and policies)
+  --no-deploy   Skip deploying statements (useful with --clear or --backfill alone)
   --backfill    Backfill all tables from RawVelociraptorEvents after deploying
   --dry-run     Print statements without executing
 """
@@ -103,6 +105,13 @@ def get_routing_functions(kql: str) -> list[str]:
     return re.findall(r"^\.create-or-alter function (\w+)", kql, re.MULTILINE)
 
 
+def clear_tables(client, database: str, tables: list[str], dry_run: bool, include_raw: bool = False):
+    all_tables = ([RAW_TABLE] if include_raw else []) + tables
+    print(f"\n=== Clearing data from {len(all_tables)} tables ===")
+    for table in all_tables:
+        execute(client, database, f".clear table {table} data", dry_run, f"clear {table}")
+
+
 def drop_tables(client, database: str, tables: list[str], dry_run: bool):
     print(f"\n=== Dropping {len(tables)} tables ===")
     for table in tables:
@@ -166,8 +175,11 @@ def main():
     parser.add_argument("--cluster", required=True, help="ADX cluster URL")
     parser.add_argument("--database", required=True, help="Database name")
     parser.add_argument("--drop", action="store_true", help="Drop all mapped tables before deploying")
-    parser.add_argument("--yes", action="store_true", help="Skip confirmation prompt for --drop (for non-interactive use)")
+    parser.add_argument("--clear", action="store_true", help="Clear all table data before deploying (keeps schema and policies)")
+    parser.add_argument("--clear-raw", action="store_true", help="Also clear RawVelociraptorEvents when using --clear")
+    parser.add_argument("--yes", action="store_true", help="Skip confirmation prompts for --drop/--clear (for non-interactive use)")
     parser.add_argument("--backfill", action="store_true", help="Backfill tables from RawVelociraptorEvents")
+    parser.add_argument("--no-deploy", action="store_true", help="Skip deploying statements (useful with --clear or --backfill alone)")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without executing")
     parser.add_argument("--mappings-file", default=MAPPINGS_FILE, help=f"Path to mappings KQL file (default: {MAPPINGS_FILE})")
     args = parser.parse_args()
@@ -176,6 +188,8 @@ def main():
     print(f"Database: {args.database}")
     print(f"File:     {args.mappings_file}")
     print(f"Drop:     {args.drop}")
+    print(f"Clear:    {args.clear}")
+    print(f"No-deploy:{args.no_deploy}")
     print(f"Backfill: {args.backfill}")
     print(f"Dry-run:  {args.dry_run}")
 
@@ -209,7 +223,18 @@ def main():
                 sys.exit(0)
         drop_tables(client, database, tables, args.dry_run)
 
-    errors = deploy_mappings(client, database, statements, args.dry_run)
+    if args.clear:
+        if not args.yes:
+            confirm = input(f"\nWARNING: This will CLEAR DATA from {len(tables)} tables in '{args.database}'. Type 'yes' to continue: ")
+            if confirm.strip().lower() != "yes":
+                print("Aborted.")
+                sys.exit(0)
+        clear_tables(client, database, tables, args.dry_run, include_raw=args.clear_raw)
+
+    if not args.no_deploy:
+        errors = deploy_mappings(client, database, statements, args.dry_run)
+    else:
+        errors = []
     if errors:
         print(f"\n=== {len(errors)} deployment error(s) ===", file=sys.stderr)
         for label, err in errors:

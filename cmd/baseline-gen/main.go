@@ -28,18 +28,27 @@ type condition struct {
 
 // rule represents one parsed CSV row.
 type rule struct {
-	Name       string
-	Scope      string
-	Category   string
-	Type       string
-	Conditions []condition
-	Enabled    bool
+	Name            string
+	Scope           string
+	Category        string
+	Type            string
+	PersistenceType string
+	Conditions      []condition
 }
 
-// validColumns is the set of columns that can be targeted by conditions.
-var validColumns = map[string]bool{
-	"Path": true, "Description": true, "Details": true,
-	"User": true, "Hash": true, "SourceArtifact": true,
+// validColumnsByScope maps each scope to its allowed condition target columns.
+// PersistenceType is a dedicated scope-guard column (not a condition column).
+// Column validation is enforced at parse time; unknown scopes are rejected.
+var validColumnsByScope = map[string]map[string]bool{
+	"Supertimeline": {
+		"Path": true, "Description": true, "Details": true,
+		"User": true, "Hash": true, "SourceArtifact": true,
+	},
+	"PersistenceOverview": {
+		"Name": true, "Target": true, "EntryLocation": true,
+		"User": true, "Enabled": true, "Signer": true,
+		"Hash": true, "Suspicious": true, "SourceArtifact": true,
+	},
 }
 
 // validOps is the set of supported KQL operators (including negated forms).
@@ -99,6 +108,7 @@ func parseCSV(path string) ([]rule, error) {
 
 	r := csv.NewReader(f)
 	r.FieldsPerRecord = -1 // allow variable fields
+	r.Comment = '#'        // skip # comment lines
 
 	header, err := r.Read()
 	if err != nil {
@@ -111,16 +121,15 @@ func parseCSV(path string) ([]rule, error) {
 
 	seen := make(map[string]int) // rule name → line number
 	var rules []rule
-	lineNum := 1
 	for {
-		lineNum++
 		rec, err := r.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", lineNum, err)
+			return nil, err // csv.ParseError already includes line info
 		}
+		lineNum, _ := r.FieldPos(0)
 
 		rule, err := parseRow(rec, idx, lineNum)
 		if err != nil {
@@ -137,11 +146,12 @@ func parseCSV(path string) ([]rule, error) {
 
 // colIndex maps column names to CSV field indices.
 type colIndex struct {
-	Name, Scope, Category, Type int
-	Col1, Mode1, Val1           int
-	Col2, Mode2, Val2           int
-	Col3, Mode3, Val3           int
-	Enabled                     int
+	Name               int
+	Scope              int
+	Category           int
+	Type               int
+	PersistenceTypeCol int
+	Conds              [][3]int // dynamically populated from ColumnN/ModeN/ValueN header triplets
 }
 
 func indexHeader(header []string) (colIndex, error) {
@@ -155,19 +165,36 @@ func indexHeader(header []string) (colIndex, error) {
 		}
 		return -1
 	}
-	// Validate required columns exist.
-	for _, required := range []string{"RuleName", "Column1", "Mode1", "Value1"} {
-		if _, ok := headerIdx[required]; !ok {
-			return colIndex{}, fmt.Errorf("missing required CSV column %q in header", required)
+	// Dynamically scan for ColumnN/ModeN/ValueN triplets — no fixed limit.
+	var conds [][3]int
+	for n := 1; ; n++ {
+		colKey := fmt.Sprintf("Column%d", n)
+		modeKey := fmt.Sprintf("Mode%d", n)
+		valKey := fmt.Sprintf("Value%d", n)
+		ci, hasCol := headerIdx[colKey]
+		mi, hasMode := headerIdx[modeKey]
+		vi, hasVal := headerIdx[valKey]
+		if !hasCol {
+			break
 		}
+		if !hasMode {
+			return colIndex{}, fmt.Errorf("missing %q in header (found %q)", modeKey, colKey)
+		}
+		if !hasVal {
+			return colIndex{}, fmt.Errorf("missing %q in header (found %q)", valKey, colKey)
+		}
+		conds = append(conds, [3]int{ci, mi, vi})
+	}
+	if len(conds) == 0 {
+		return colIndex{}, fmt.Errorf("missing required CSV column %q in header", "Value1")
 	}
 	return colIndex{
-		Name: get("RuleName"), Scope: get("Scope"),
-		Category: get("EventCategory"), Type: get("EventType"),
-		Col1: get("Column1"), Mode1: get("Mode1"), Val1: get("Value1"),
-		Col2: get("Column2"), Mode2: get("Mode2"), Val2: get("Value2"),
-		Col3: get("Column3"), Mode3: get("Mode3"), Val3: get("Value3"),
-		Enabled: get("IsEnabled"),
+		Name:               get("RuleName"),
+		Scope:              get("Scope"),
+		Category:           get("EventCategory"),
+		Type:               get("EventType"),
+		PersistenceTypeCol: get("PersistenceType"),
+		Conds:              conds,
 	}, nil
 }
 
@@ -178,43 +205,36 @@ func field(rec []string, i int) string {
 	return strings.TrimSpace(rec[i])
 }
 
-func fieldRaw(rec []string, i int) string {
-	if i < 0 || i >= len(rec) {
-		return ""
-	}
-	return rec[i]
-}
-
 func parseRow(rec []string, idx colIndex, lineNum int) (rule, error) {
 	name := field(rec, idx.Name)
 	if name == "" {
 		return rule{}, fmt.Errorf("line %d: empty RuleName", lineNum)
 	}
 
-	enabled := true
-	if v := field(rec, idx.Enabled); v != "" {
-		enabled = strings.EqualFold(v, "true")
+	scope := field(rec, idx.Scope)
+	if scope == "" {
+		scope = "Supertimeline"
+	}
+	scopeCols, knownScope := validColumnsByScope[scope]
+	if !knownScope {
+		return rule{}, fmt.Errorf("line %d (%s): unknown scope %q", lineNum, name, scope)
 	}
 
 	var conds []condition
-	for _, condCols := range [][3]int{
-		{idx.Col1, idx.Mode1, idx.Val1},
-		{idx.Col2, idx.Mode2, idx.Val2},
-		{idx.Col3, idx.Mode3, idx.Val3},
-	} {
+	for _, condCols := range idx.Conds {
 		col := field(rec, condCols[0])
 		op := field(rec, condCols[1])
-		val := fieldRaw(rec, condCols[2])
+		val := field(rec, condCols[2])
 		if col == "" {
 			continue
 		}
-		if !validColumns[col] {
-			return rule{}, fmt.Errorf("line %d (%s): invalid column %q", lineNum, name, col)
+		if !scopeCols[col] {
+			return rule{}, fmt.Errorf("line %d (%s): invalid column %q for scope %q", lineNum, name, col, scope)
 		}
 		if !validOps[op] {
 			return rule{}, fmt.Errorf("line %d (%s): invalid operator %q", lineNum, name, op)
 		}
-		if val == "" {
+		if val == "" && op != "==" && op != "!=" {
 			return rule{}, fmt.Errorf("line %d (%s): empty value for column %q", lineNum, name, col)
 		}
 		conds = append(conds, condition{Column: col, Op: op, Value: val})
@@ -229,18 +249,14 @@ func parseRow(rec []string, idx colIndex, lineNum int) (rule, error) {
 		return rule{}, fmt.Errorf("line %d (%s): EventType %q set without EventCategory", lineNum, name, typ)
 	}
 
-	scope := field(rec, idx.Scope)
-	if scope == "" {
-		scope = "Supertimeline"
-	}
-
+	persistenceType := field(rec, idx.PersistenceTypeCol)
 	return rule{
-		Name:       name,
-		Scope:      scope,
-		Category:   category,
-		Type:       typ,
-		Conditions: conds,
-		Enabled:    enabled,
+		Name:            name,
+		Scope:           scope,
+		Category:        category,
+		Type:            typ,
+		PersistenceType: persistenceType,
+		Conditions:      conds,
 	}, nil
 }
 
@@ -250,12 +266,9 @@ func generate(w io.Writer, rules []rule, scope, fnName, srcFile string) error {
 	var activeRules []rule
 
 	for _, r := range rules {
-		switch {
-		case !r.Enabled:
-			skipped = append(skipped, fmt.Sprintf("//        %s — disabled", r.Name))
-		case r.Scope != scope:
-			skipped = append(skipped, fmt.Sprintf("//        %s — scope=%s", r.Name, r.Scope))
-		default:
+		if r.Scope != scope {
+				skipped = append(skipped, fmt.Sprintf("//        %s - scope=%s", r.Name, r.Scope))
+		} else {
 			activeRules = append(activeRules, r)
 		}
 	}
@@ -269,12 +282,12 @@ func generate(w io.Writer, rules []rule, scope, fnName, srcFile string) error {
 	}
 
 	// Header
-	emit("// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	emit("// AUTO-GENERATED by baseline-codegen — do not edit manually.")
+	emit("// =============================================================================")
+	emit("// AUTO-GENERATED by baseline-gen - do not edit manually.")
 	emit("// Source: %s", srcFile)
 	emit("// Generated: %s", time.Now().UTC().Format(time.RFC3339))
 	emit("// Scope: %s | Rules: %d active, %d skipped", scope, len(activeRules), len(skipped))
-	emit("// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	emit("// =============================================================================")
 
 	// Function definition
 	emit(`.create-or-alter function with (folder="Analysis", docstring="[Generated] Baseline filter for %s. Adds IsBaseline column.", skipvalidation="true")`, scope)
@@ -297,7 +310,7 @@ func generate(w io.Writer, rules []rule, scope, fnName, srcFile string) error {
 		}
 
 		comment := ruleComment(r)
-		emit("        // ── Rule %d: %s ──", i+1, comment)
+		emit("        // -- Rule %d: %s --", i+1, comment)
 
 		expr := buildExpression(r)
 		emit("%s(%s)", prefix, expr)
@@ -324,6 +337,8 @@ func ruleComment(r rule) string {
 		scopeStr = r.Category + "/" + r.Type
 	case r.Category != "":
 		scopeStr = r.Category + "/*"
+	case r.PersistenceType != "":
+		scopeStr = "PersistenceType=" + r.PersistenceType
 	default:
 		scopeStr = "unscoped"
 	}
@@ -345,6 +360,9 @@ func buildExpression(r rule) string {
 		if r.Type != "" {
 			parts = append(parts, fmt.Sprintf("EventType == %s", kqlString(r.Type)))
 		}
+	}
+	if r.PersistenceType != "" {
+		parts = append(parts, fmt.Sprintf("PersistenceType == %s", kqlString(r.PersistenceType)))
 	}
 
 	// Conditions
