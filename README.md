@@ -147,6 +147,22 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 3. **Ingest data:** Send Velociraptor output to `RawVelociraptorEvents` table
 4. **Query:** Data automatically routes to artifact-specific tables (e.g., `WindowsForensicsPrefetch`, `LinuxSysPslist`)
 
+## Performance Tuning
+
+### Ingestion Latency
+
+See [`ADX_Ingestion_Performance.md`](ADX_Ingestion_Performance.md) for streaming ingestion and batching policy commands.
+
+### Query Result Limits
+
+ADX default limits (500k rows / 64 MB) will truncate large supertimeline queries. Apply once per cluster:
+
+```kql
+.alter-merge workload_group default '{"RequestLimitsPolicy":{"MaxResultBytes":{"IsRelaxable":true,"Value":2073741824},"MaxResultRecords":{"IsRelaxable":true,"Value":2000000}}}'
+```
+
+This sets a 2 million row cap and a 2 GB byte cap. `IsRelaxable: true` means individual queries can still override downward.
+
 ## Development Workflow
 
 **Creating/updating mappings:**
@@ -300,7 +316,7 @@ Run the expensive union once and query the cached result cheaply. Default expiry
 
 ```kusto
 // Materialise — run once at start of investigation session (expires after 7 days)
-.set stored_query_result Timeline_ComputerXY with (expiresAfter=7d) <|
+.set stored_query_result Timeline_ComputerXY <|
     WindowsSupertimeline(datetime(2026-03-20), datetime(2026-03-26), targetHostname="ComputerXY")
 
 // Query the cache (no table scans)

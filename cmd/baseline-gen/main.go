@@ -68,6 +68,45 @@ func main() {
 	scope := flag.String("scope", "Supertimeline", "scope to filter rules by")
 	outPath := flag.String("out", "", "output .kql file (default: stdout)")
 	fnName := flag.String("fn", "ApplyTimelineBaseline", "generated KQL function name")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `baseline-gen - generate a KQL baseline function from a rules CSV
+
+Usage:
+  go run . -in <rules.csv> [options]
+
+Options:
+`)
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, `
+Examples:
+
+  # Supertimeline baseline (default scope + function name)
+  go run . \
+    -in examples/supertimeline_baseline_rules.csv \
+    -out ../../analysis/generated/Windows.Supertimeline.Baseline.kql
+
+  # Persistence overview baseline
+  go run . \
+    -in examples/persistence_baseline_rules.csv \
+    -scope PersistenceOverview \
+    -fn ApplyPersistenceBaseline \
+    -out ../../analysis/generated/Windows.Persistence.Baseline.kql
+
+After deploying the generated .kql to ADX, validate with:
+
+  # Supertimeline
+  stored_query_result("Timeline_Host1")
+  | invoke ApplyTimelineBaseline()
+  | summarize Total=count(), BaselineCount=countif(IsBaseline), PassCount=countif(not(IsBaseline))
+
+  # Persistence
+  WindowsPersistenceOverview(ago(30d), now(), targetHostname="HOST1")
+  | invoke ApplyPersistenceBaseline()
+  | summarize Total=count(), BaselineCount=countif(IsBaseline), PassCount=countif(not(IsBaseline))
+`)
+	}
+
 	flag.Parse()
 
 	if *inPath == "" {

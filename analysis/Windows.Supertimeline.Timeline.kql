@@ -450,6 +450,7 @@ WindowsSupertimeline(
             EventType      = "MFTTimeline",
             Description    = strcat("[", Source, "] ", Message, " | ", Path,
                               " | Size: ", tostring(FileSize),
+                              iff(not(InUse), " | [DELETED]", ""),
                               iff(_flags == "", "", strcat(" | Flags: ", _flags))),
             User           = "",
             Path,

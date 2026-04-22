@@ -1,0 +1,69 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.LolDrivers
+.create table DetectRaptorWindowsDetectionLolDrivers (
+    Timestamp: datetime,
+    Hostname: string,
+    KeyMTime: datetime,
+    Name: string,
+    SHA1: string,
+    Category: string,
+    Usecase: string,
+    Product: string,
+    MachineType: string,
+    FileVersion: string,
+    ProductVersion: string,
+    HivePath: string,
+    EntryKey: string,
+    EntryType: string,
+    LolDriversUrl: string,
+    Description: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionLolDrivers() {
+    RawVelociraptorEvents
+    | where Artifact in ("DetectRaptor.Windows.Detection.LolDrivers", "DetectRaptor.Windows.Detection.LolDriversVulnerable")
+    | extend
+        KeyMTime = todatetime(RawData.KeyMTime),
+        Name = tostring(RawData.Name),
+        SHA1 = tostring(RawData.SHA1),
+        Category = tostring(RawData.Category),
+        Usecase = tostring(RawData.Usecase),
+        Product = tostring(RawData.Product),
+        MachineType = tostring(RawData.MachineType),
+        FileVersion = tostring(RawData.FileVersion),
+        ProductVersion = tostring(RawData.ProductVersion),
+        HivePath = tostring(RawData.HivePath),
+        EntryKey = tostring(RawData.EntryKey),
+        EntryType = tostring(RawData.EntryType),
+        LolDriversUrl = tostring(RawData.LolDriversUrl),
+        Description = tostring(RawData.Description)
+    | extend Timestamp = KeyMTime
+    | project
+        Timestamp,
+        Hostname,
+        KeyMTime,
+        Name,
+        SHA1,
+        Category,
+        Usecase,
+        Product,
+        MachineType,
+        FileVersion,
+        ProductVersion,
+        HivePath,
+        EntryKey,
+        EntryType,
+        LolDriversUrl,
+        Description,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionLolDrivers policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolDrivers()", "IsEnabled": "True", "IsTransactional": true}]'

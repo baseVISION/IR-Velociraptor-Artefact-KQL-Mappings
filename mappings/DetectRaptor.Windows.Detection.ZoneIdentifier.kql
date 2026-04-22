@@ -1,0 +1,87 @@
+//ARTIFACT: DetectRaptor.Windows.Detection.ZoneIdentifier
+.create table DetectRaptorWindowsDetectionZoneIdentifier (
+    Timestamp: datetime,
+    Hostname: string,
+    HostBtime: datetime,
+    HostMtime: datetime,
+    HostCtime: datetime,
+    HostAtime: datetime,
+    Category: string,
+    DomainRegex: string,
+    ReferrerUrl: string,
+    ReferrerDomain: string,
+    HostUrl: string,
+    UrlDomain: string,
+    ZoneId: string,
+    HostObject: string,
+    OSPath: string,
+    AdsName: string,
+    Size: long,
+    Inode: string,
+    AllowRegex: string,
+    Comment: string,
+    HostTimestampsSI: dynamic,
+    AdsContent: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionZoneIdentifier() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.ZoneIdentifier"
+    | extend
+        HostBtime = todatetime(RawData.HostTimestampsSI.Btime),
+        HostMtime = todatetime(RawData.HostTimestampsSI.Mtime),
+        HostCtime = todatetime(RawData.HostTimestampsSI.Ctime),
+        HostAtime = todatetime(RawData.HostTimestampsSI.Atime),
+        Category = tostring(RawData.Category),
+        DomainRegex = tostring(RawData.DomainRegex),
+        ReferrerUrl = tostring(RawData.AdsContent.ReferrerUrl),
+        ReferrerDomain = tostring(RawData.AdsContent.ReferrerDomain),
+        HostUrl = tostring(RawData.AdsContent.HostUrl),
+        UrlDomain = tostring(RawData.AdsContent.UrlDomain),
+        ZoneId = tostring(RawData.AdsContent.ZoneId),
+        HostObject = tostring(RawData.HostObject),
+        OSPath = tostring(RawData.OSPath),
+        AdsName = tostring(RawData.AdsName),
+        Size = tolong(RawData.Size),
+        Inode = tostring(RawData.Inode),
+        AllowRegex = tostring(RawData.AllowRegex),
+        Comment = tostring(RawData.Comment),
+        HostTimestampsSI = RawData.HostTimestampsSI,
+        AdsContent = RawData.AdsContent
+    | extend Timestamp = HostBtime
+    | project
+        Timestamp,
+        Hostname,
+        HostBtime,
+        HostMtime,
+        HostCtime,
+        HostAtime,
+        Category,
+        DomainRegex,
+        ReferrerUrl,
+        ReferrerDomain,
+        HostUrl,
+        UrlDomain,
+        ZoneId,
+        HostObject,
+        OSPath,
+        AdsName,
+        Size,
+        Inode,
+        AllowRegex,
+        Comment,
+        HostTimestampsSI,
+        AdsContent,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionZoneIdentifier policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionZoneIdentifier()", "IsEnabled": "True", "IsTransactional": true}]'

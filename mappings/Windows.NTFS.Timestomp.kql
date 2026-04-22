@@ -1,0 +1,51 @@
+//ARTIFACT: Windows.NTFS.Timestomp
+.create table WindowsNTFSTimestomp (
+    Timestamp: datetime,
+    Hostname: string,
+    SI_Created0x10: datetime,
+    FN_Created0x30: datetime,
+    OSPath: string,
+    SIltFN: bool,
+    USecZeros: bool,
+    SuspiciousCompileTime: string,
+    InUse: bool,
+    NtfsMetadata: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsNTFSTimestomp() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.NTFS.Timestomp"
+    | extend
+        SI_Created0x10 = todatetime(RawData.CreatedTimestamps.["Created0x10"]),
+        FN_Created0x30 = todatetime(RawData.CreatedTimestamps.["Created0x30"]),
+        SIltFN = tobool(RawData.["SI<FN"]),
+        USecZeros = tobool(RawData.USecZeros),
+        SuspiciousCompileTime = tostring(RawData.SuspiciousCompileTime),
+        OSPath = tostring(RawData.OSPath),
+        InUse = tobool(RawData.InUse),
+        NtfsMetadata = RawData.NtfsMetadata
+    | extend Timestamp = SI_Created0x10
+    | project
+        Timestamp,
+        Hostname,
+        SI_Created0x10,
+        FN_Created0x30,
+        OSPath,
+        SIltFN,
+        USecZeros,
+        SuspiciousCompileTime,
+        InUse,
+        NtfsMetadata,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsNTFSTimestomp policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNTFSTimestomp()", "IsEnabled": "True", "IsTransactional": true}]'

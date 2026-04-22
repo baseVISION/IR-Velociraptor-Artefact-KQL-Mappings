@@ -69,3 +69,133 @@
 }
 
 .alter table DetectRaptorWindowsDetectionLolRMM policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolRMM()", "IsEnabled": "True", "IsTransactional": true}]'
+//ARTIFACT: DetectRaptor.Windows.Detection.LolRMM/Processes
+.create table DetectRaptorWindowsDetectionLolRMMProcesses (
+    Timestamp: datetime,
+    Hostname: string,
+    ProcessName: string,
+    Pid: long,
+    Exe: string,
+    CommandLine: string,
+    Name: string,
+    HitPathRegex: string,
+    HitDomainRegex: string,
+    LolRMMLink: string,
+    Description: string,
+    Source: string,
+    VersionInformation: dynamic,
+    Authenticode: dynamic,
+    HitRegex: dynamic,
+    Event: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionLolRMMProcesses() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.LolRMM/Processes"
+    | extend
+        ProcessName = tostring(RawData.Event.ProcessName),
+        Pid = tolong(RawData.Event.Pid),
+        Exe = tostring(RawData.Event.Exe),
+        CommandLine = tostring(RawData.Event.CommandLine),
+        Name = tostring(RawData.Name),
+        HitPathRegex = tostring(RawData.HitRegex.PathRegex),
+        HitDomainRegex = tostring(RawData.HitRegex.DomainRegex),
+        LolRMMLink = tostring(RawData.LolRMMLink),
+        Description = tostring(RawData.Description),
+        Source = tostring(RawData.Source),
+        VersionInformation = RawData.Event.VersionInformation,
+        Authenticode = RawData.Event.Authenticode,
+        HitRegex = RawData.HitRegex,
+        Event = RawData.Event
+    | project
+        Timestamp,
+        Hostname,
+        ProcessName,
+        Pid,
+        Exe,
+        CommandLine,
+        Name,
+        HitPathRegex,
+        HitDomainRegex,
+        LolRMMLink,
+        Description,
+        Source,
+        VersionInformation,
+        Authenticode,
+        HitRegex,
+        Event,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionLolRMMProcesses policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolRMMProcesses()", "IsEnabled": "True", "IsTransactional": true}]'
+//ARTIFACT: DetectRaptor.Windows.Detection.LolRMM/ResolvedDomains
+.create table DetectRaptorWindowsDetectionLolRMMResolvedDomains (
+    Timestamp: datetime,
+    Hostname: string,
+    DNSName: string,
+    Record: string,
+    RecordType: string,
+    TTL: long,
+    Name: string,
+    HitPathRegex: string,
+    HitDomainRegex: string,
+    LolRMMLink: string,
+    Description: string,
+    Source: string,
+    HitRegex: dynamic,
+    Event: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorWindowsDetectionLolRMMResolvedDomains() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Windows.Detection.LolRMM/ResolvedDomains"
+    | extend
+        DNSName = tostring(RawData.Event.DNSName),
+        Record = tostring(RawData.Event.Record),
+        RecordType = tostring(RawData.Event.RecordType),
+        TTL = tolong(RawData.Event.TTL),
+        Name = tostring(RawData.Name),
+        HitPathRegex = tostring(RawData.HitRegex.PathRegex),
+        HitDomainRegex = tostring(RawData.HitRegex.DomainRegex),
+        LolRMMLink = tostring(RawData.LolRMMLink),
+        Description = tostring(RawData.Description),
+        Source = tostring(RawData.Source),
+        HitRegex = RawData.HitRegex,
+        Event = RawData.Event
+    | project
+        Timestamp,
+        Hostname,
+        DNSName,
+        Record,
+        RecordType,
+        TTL,
+        Name,
+        HitPathRegex,
+        HitDomainRegex,
+        LolRMMLink,
+        Description,
+        Source,
+        HitRegex,
+        Event,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorWindowsDetectionLolRMMResolvedDomains policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorWindowsDetectionLolRMMResolvedDomains()", "IsEnabled": "True", "IsTransactional": true}]'

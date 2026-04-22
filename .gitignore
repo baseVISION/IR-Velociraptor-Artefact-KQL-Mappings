@@ -1,5 +1,6 @@
 # Sample data files
 samples.txt
+*.txt
 
 # Generated analysis kql files
 analysis/generated/

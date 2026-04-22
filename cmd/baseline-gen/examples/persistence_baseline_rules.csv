@@ -1,4 +1,4 @@
-RuleName,Scope,EventCategory,EventType,PersistenceType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3
-autorun_codec_microsoft_signed,PersistenceOverview,,,Codecs,Signer,startswith,(Verified) Microsoft,Suspicious,==,
-autorun_boot_execute_microsoft_signed,PersistenceOverview,,,Boot Execute,Name,==,autocheck autochk *,Target,contains,\autochk.exe,Signer,startswith,(Verified) Microsoft
-autorun_logon_microsoft_signed,PersistenceOverview,,,Logon,Signer,startswith,(Verified) Microsoft,Suspicious,==,
+RuleName,Scope,PersistenceType,Column1,Mode1,Value1,Column2,Mode2,Value2,Column3,Mode3,Value3
+autorun_codec_microsoft_signed,PersistenceOverview,Codecs,Signer,startswith,(Verified) Microsoft,Suspicious,==,
+autorun_boot_execute_microsoft_signed,PersistenceOverview,Boot Execute,Name,==,autocheck autochk *,Target,contains,\autochk.exe,Signer,startswith,(Verified) Microsoft
+autorun_logon_microsoft_signed,PersistenceOverview,Logon,Signer,startswith,(Verified) Microsoft,Suspicious,==,
