@@ -1,5 +1,5 @@
 // Combined KQL mappings for Velociraptor Artefacts
-// Generated on: Wed 22 Apr 18:54:44 CEST 2026
+// Generated on: Fri  3 Jul 16:15:29 CEST 2026
 // Source directory: mappings
 
 
@@ -6214,6 +6214,266 @@
 
 .alter table WindowsEventLogsHayabusaUpload policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsEventLogsHayabusaUpload()", "IsEnabled": "True", "IsTransactional": true}]'
 // ============================================
+// Source: mappings/Windows.EventLogs.LogonSessions.kql
+// ============================================
+
+//ARTIFACT: Windows.EventLogs.LogonSessions
+.create table WindowsEventLogsLogonSessions (
+    Timestamp: datetime,
+    Hostname: string,
+    Start: datetime,
+    End: datetime,
+    Duration: real,
+    SourceHost: string,
+    TargetUserName: dynamic,
+    TargetDomainName: dynamic,
+    TargetLogonId: dynamic,
+    LogonType: dynamic,
+    SubjectUserName: dynamic,
+    SubjectDomainName: dynamic,
+    SubjectUserSid: dynamic,
+    LogonProcessName: dynamic,
+    ProcessName: dynamic,
+    IpAddress: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsEventLogsLogonSessions() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.LogonSessions"
+    | extend
+        Start = todatetime(RawData.Start),
+        End = todatetime(RawData.End),
+        Duration = toreal(RawData.Duration),
+        SourceHost = tostring(RawData.SourceHost),
+        TargetUserName = RawData.TargetUserName,
+        TargetDomainName = RawData.TargetDomainName,
+        TargetLogonId = RawData.TargetLogonId,
+        LogonType = RawData.LogonType,
+        SubjectUserName = RawData.SubjectUserName,
+        SubjectDomainName = RawData.SubjectDomainName,
+        SubjectUserSid = RawData.SubjectUserSid,
+        LogonProcessName = RawData.LogonProcessName,
+        ProcessName = RawData.ProcessName,
+        IpAddress = RawData.IpAddress
+    | project
+        Timestamp,
+        Hostname,
+        Start,
+        End,
+        Duration,
+        SourceHost,
+        TargetUserName,
+        TargetDomainName,
+        TargetLogonId,
+        LogonType,
+        SubjectUserName,
+        SubjectDomainName,
+        SubjectUserSid,
+        LogonProcessName,
+        ProcessName,
+        IpAddress,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsEventLogsLogonSessions policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsEventLogsLogonSessions()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/Windows.Forensics.Amcache.kql
+// ============================================
+
+// NOTE: verified against the upstream Velociraptor artifact definition that this artifact is
+// actually named "Windows.Forensics.Amcache" (not "Windows.System.Amcache" - that name does not
+// exist upstream). The table/function below were previously misnamed and filtered on a
+// non-existent artifact name, so they never received any data. If a deployment previously
+// created the old objects, clean them up with:
+//   .drop table WindowsSystemAmcacheInventoryApplicationFile ifexists
+//   .drop function RouteWindowsSystemAmcacheInventoryApplicationFile ifexists
+//ARTIFACT: Windows.Forensics.Amcache/InventoryApplicationFile
+.create table WindowsForensicsAmcacheInventoryApplicationFile (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    FullPath: string,
+    OriginalFileName: string,
+    ProductName: string,
+    ProductVersion: string,
+    AppxPackageFullName: string,
+    SHA1: string,
+    Size: long,
+    BinaryType: string,
+    LinkDate: string,
+    Usn: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryApplicationFile() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryApplicationFile"
+    | extend 
+        Name = tostring(RawData.Name),
+        FullPath = tostring(RawData.FullPath),
+        OriginalFileName = tostring(RawData.OriginalFileName),
+        ProductName = tostring(RawData.ProductName),
+        ProductVersion = tostring(RawData.ProductVersion),
+        AppxPackageFullName = tostring(RawData.AppxPackageFullName),
+        SHA1 = tostring(RawData.SHA1),
+        Size = tolong(RawData.Size),
+        BinaryType = tostring(RawData.BinaryType),
+        LinkDate = tostring(RawData.LinkDate),
+        Usn = tolong(RawData.Usn)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        FullPath,
+        OriginalFileName,
+        ProductName,
+        ProductVersion,
+        AppxPackageFullName,
+        SHA1,
+        Size,
+        BinaryType,
+        LinkDate,
+        Usn,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryApplicationFile policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryApplicationFile()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.Amcache/InventoryDriverBinary
+.create table WindowsForensicsAmcacheInventoryDriverBinary (
+    Timestamp: datetime,
+    Hostname: string,
+    DriverName: string,
+    Service: string,
+    DriverCompany: string,
+    Product: string,
+    ProductVersion: string,
+    DriverVersion: string,
+    FullPath: string,
+    SHA1: string,
+    DriverType: long,
+    DriverTimeStamp: long,
+    ImageSize: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryDriverBinary() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryDriverBinary"
+    | extend
+        DriverName = tostring(RawData.DriverName),
+        Service = tostring(RawData.Service),
+        DriverCompany = tostring(RawData.DriverCompany),
+        Product = tostring(RawData.Product),
+        ProductVersion = tostring(RawData.ProductVersion),
+        DriverVersion = tostring(RawData.DriverVersion),
+        FullPath = tostring(RawData.FullPath),
+        SHA1 = tostring(RawData.SHA1),
+        DriverType = tolong(RawData.DriverType),
+        DriverTimeStamp = tolong(RawData.DriverTimeStamp),
+        ImageSize = tolong(RawData.ImageSize)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        DriverName,
+        Service,
+        DriverCompany,
+        Product,
+        ProductVersion,
+        DriverVersion,
+        FullPath,
+        SHA1,
+        DriverType,
+        DriverTimeStamp,
+        ImageSize,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryDriverBinary policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryDriverBinary()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.Amcache/InventoryDevicePnp
+.create table WindowsForensicsAmcacheInventoryDevicePnp (
+    Timestamp: datetime,
+    Hostname: string,
+    DriverName: string,
+    Description: string,
+    Model: string,
+    Manufacturer: string,
+    Enumerator: string,
+    InstallDate: string,
+    ParentId: string,
+    MatchingId: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryDevicePnp() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryDevicePnp"
+    | extend
+        DriverName = tostring(RawData.DriverName),
+        Description = tostring(RawData.Description),
+        Model = tostring(RawData.Model),
+        Manufacturer = tostring(RawData.Manufacturer),
+        Enumerator = tostring(RawData.Enumerator),
+        InstallDate = tostring(RawData.InstallDate),
+        ParentId = tostring(RawData.ParentId),
+        MatchingId = tostring(RawData.MatchingId)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        DriverName,
+        Description,
+        Model,
+        Manufacturer,
+        Enumerator,
+        InstallDate,
+        ParentId,
+        MatchingId,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryDevicePnp policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryDevicePnp()", "IsEnabled": "True", "IsTransactional": true}]'
+
+
+
+// ============================================
 // Source: mappings/Windows.Forensics.CertUtil.kql
 // ============================================
 
@@ -7619,64 +7879,6 @@
 // Source: mappings/Windows.Network.NetstatEnriched.kql
 // ============================================
 
-//ARTIFACT: Windows.Network.NetstatEnriched
-.create table WindowsNetworkNetstatEnriched (
-    Hostname: string,
-    Timestamp: datetime,
-    Name: string,
-    Pid: long,
-    Ppid: long,
-    CommandLine: string,
-    Path: string,
-    Hash: dynamic,
-    Authenticode: dynamic,
-    Family: string,
-    Laddr: dynamic,
-    Lport: long,
-    Artifact: string,
-    Organization: string,
-    ClientId: string,
-    FlowId: string,
-    IngestionTime: datetime
-)
-
-.create-or-alter function RouteWindowsNetworkNetstatEnriched() {
-    RawVelociraptorEvents
-    | where Artifact == "Windows.Network.NetstatEnriched"
-    | extend 
-        Timestamp = todatetime(RawData.Timestamp),
-        Name = tostring(RawData.Name),
-        Pid = tolong(RawData.Pid),
-        Ppid = tolong(RawData.Ppid),
-        CommandLine = tostring(RawData.CommandLine),
-        Path = tostring(RawData.Path),
-        Hash = RawData.Hash,
-        Authenticode = RawData.Authenticode,
-        Family = tostring(RawData.Family),
-        Laddr = RawData.Laddr,
-        Lport = tolong(RawData.Lport)
-    | project 
-        Hostname, 
-        Timestamp,
-        Name,
-        Pid,
-        Ppid,
-        CommandLine,
-        Path,
-        Hash,
-        Authenticode,
-        Family,
-        Laddr,
-        Lport,
-        Artifact,
-        Organization,
-        ClientId,
-        FlowId,
-        IngestionTime
-}
-
-.alter table WindowsNetworkNetstatEnriched policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsNetworkNetstatEnriched()", "IsEnabled": "True", "IsTransactional": true}]'
-
 //ARTIFACT: Windows.Network.NetstatEnriched/Netstat
 .create table WindowsNetworkNetstatEnrichedNetstat (
     Hostname: string,
@@ -8204,6 +8406,73 @@
 .alter table WindowsPacksPersistenceWMIEventFilters policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPacksPersistenceWMIEventFilters()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
+// Source: mappings/Windows.Persistence.PermanentWMIEvents.kql
+// ============================================
+
+//ARTIFACT: Windows.Persistence.PermanentWMIEvents
+.create table WindowsPersistencePermanentWMIEvents (
+    Timestamp: datetime,
+    Hostname: string,
+    ConsumerName: string,
+    ConsumerCategory: int,
+    ConsumerEventID: int,
+    ConsumerEventType: int,
+    ConsumerSourceName: string,
+    FilterName: string,
+    FilterEventNamespace: string,
+    FilterQuery: string,
+    FilterQueryLanguage: string,
+    Namespace: string,
+    ConsumerDetails: dynamic,
+    FilterDetails: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsPersistencePermanentWMIEvents() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Persistence.PermanentWMIEvents"
+    | extend
+        ConsumerName = tostring(RawData.ConsumerDetails.Name),
+        ConsumerCategory = toint(RawData.ConsumerDetails.Category),
+        ConsumerEventID = toint(RawData.ConsumerDetails.EventID),
+        ConsumerEventType = toint(RawData.ConsumerDetails.EventType),
+        ConsumerSourceName = tostring(RawData.ConsumerDetails.SourceName),
+        FilterName = tostring(RawData.FilterDetails.Name),
+        FilterEventNamespace = tostring(RawData.FilterDetails.EventNamespace),
+        FilterQuery = tostring(RawData.FilterDetails.Query),
+        FilterQueryLanguage = tostring(RawData.FilterDetails.QueryLanguage),
+        Namespace = tostring(RawData.Namespace),
+        ConsumerDetails = RawData.ConsumerDetails,
+        FilterDetails = RawData.FilterDetails
+    | project
+        Timestamp,
+        Hostname,
+        ConsumerName,
+        ConsumerCategory,
+        ConsumerEventID,
+        ConsumerEventType,
+        ConsumerSourceName,
+        FilterName,
+        FilterEventNamespace,
+        FilterQuery,
+        FilterQueryLanguage,
+        Namespace,
+        ConsumerDetails,
+        FilterDetails,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsPersistencePermanentWMIEvents policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPersistencePermanentWMIEvents()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
 // Source: mappings/Windows.Registry.NTUser.kql
 // ============================================
 
@@ -8368,6 +8637,52 @@
 }
 
 .alter table WindowsRegistryScheduledTasks policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsRegistryScheduledTasks()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/Windows.Registry.Sysinternals.Eulacheck.kql
+// ============================================
+
+//ARTIFACT: Windows.Registry.Sysinternals.Eulacheck/RegistryAPI
+.create table WindowsRegistrySysinternalsEulacheckRegistryAPI (
+    Timestamp: datetime,
+    Hostname: string,
+    TimeAccepted: datetime,
+    ProgramName: string,
+    User: string,
+    Key: string,
+    EulaAccepted: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsRegistrySysinternalsEulacheckRegistryAPI() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Registry.Sysinternals.Eulacheck/RegistryAPI"
+    | extend
+        TimeAccepted = todatetime(RawData.TimeAccepted),
+        ProgramName = tostring(RawData.ProgramName),
+        User = tostring(RawData.User),
+        Key = tostring(RawData.Key),
+        EulaAccepted = tolong(RawData.EulaAccepted)
+    | project
+        Timestamp,
+        Hostname,
+        TimeAccepted,
+        ProgramName,
+        User,
+        Key,
+        EulaAccepted,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsRegistrySysinternalsEulacheckRegistryAPI policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsRegistrySysinternalsEulacheckRegistryAPI()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Windows.Registry.UserAssist.kql
@@ -8713,71 +9028,6 @@
 .alter table WindowsSysStartupItems policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysStartupItems()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
-// Source: mappings/Windows.System.Amcache.kql
-// ============================================
-
-//ARTIFACT: Windows.System.Amcache/InventoryApplicationFile
-.create table WindowsSystemAmcacheInventoryApplicationFile (
-    Timestamp: datetime,
-    Hostname: string,
-    Name: string,
-    Binary: string,
-    FileId: string,
-    Size: long,
-    Version: string,
-    BinFileVersion: string,
-    ProductName: string,
-    Publisher: string,
-    LastModified: datetime,
-    Key: string,
-    Hive: string,
-    Artifact: string,
-    Organization: string,
-    ClientId: string,
-    FlowId: string,
-    IngestionTime: datetime
-)
-
-.create-or-alter function RouteWindowsSystemAmcacheInventoryApplicationFile() {
-    RawVelociraptorEvents
-    | where Artifact == "Windows.System.Amcache/InventoryApplicationFile"
-    | extend 
-        Name = tostring(RawData.Name),
-        Binary = tostring(RawData.Binary),
-        FileId = tostring(RawData.FileId),
-        Size = tolong(RawData.Size),
-        Version = tostring(RawData.Version),
-        BinFileVersion = tostring(RawData.BinFileVersion),
-        ProductName = tostring(RawData.ProductName),
-        Publisher = tostring(RawData.Publisher),
-        LastModified = todatetime(RawData.LastModified),
-        Key = tostring(RawData.Key),
-        Hive = tostring(RawData.Hive)
-    | extend Timestamp = LastModified
-    | project 
-        Timestamp, 
-        Hostname, 
-        Name,
-        Binary,
-        FileId,
-        Size,
-        Version,
-        BinFileVersion,
-        ProductName,
-        Publisher,
-        LastModified,
-        Key,
-        Hive,
-        Artifact,
-        Organization,
-        ClientId,
-        FlowId,
-        IngestionTime
-}
-
-.alter table WindowsSystemAmcacheInventoryApplicationFile policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemAmcacheInventoryApplicationFile()", "IsEnabled": "True", "IsTransactional": true}]'
-
-// ============================================
 // Source: mappings/Windows.System.AppCompatPCA.kql
 // ============================================
 
@@ -9049,6 +9299,125 @@
 .alter table WindowsSystemPslist policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemPslist()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
+// Source: mappings/Windows.System.Services.kql
+// ============================================
+
+//ARTIFACT: Windows.System.Services
+.create table WindowsSystemServices (
+    Timestamp: datetime,
+    Hostname: string,
+    Created: datetime,
+    Name: string,
+    DisplayName: string,
+    UserAccount: string,
+    Pid: long,
+    PathName: string,
+    AbsoluteExePath: string,
+    ServiceDll: string,
+    ServiceExeMD5: string,
+    ServiceExeSHA1: string,
+    ServiceExeSHA256: string,
+    ServiceExeTrusted: string,
+    ServiceExeSubjectName: string,
+    ServiceDllMD5: string,
+    ServiceDllSHA1: string,
+    ServiceDllSHA256: string,
+    ServiceDllTrusted: string,
+    ServiceDllSubjectName: string,
+    HashServiceExe: dynamic,
+    CertinfoServiceExe: dynamic,
+    HashServiceDll: dynamic,
+    CertinfoServiceDll: dynamic,
+    State: string,
+    Status: string,
+    StartMode: string,
+    ServiceType: string,
+    ExitCode: long,
+    FailureCommand: string,
+    FailureActions: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemServices() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.Services"
+    | extend
+        Created = todatetime(RawData.Created),
+        Name = tostring(RawData.Name),
+        DisplayName = tostring(RawData.DisplayName),
+        UserAccount = tostring(RawData.UserAccount),
+        Pid = tolong(RawData.Pid),
+        PathName = tostring(RawData.PathName),
+        AbsoluteExePath = tostring(RawData.AbsoluteExePath),
+        ServiceDll = tostring(RawData.ServiceDll),
+        ServiceExeMD5 = tostring(RawData.HashServiceExe.MD5),
+        ServiceExeSHA1 = tostring(RawData.HashServiceExe.SHA1),
+        ServiceExeSHA256 = tostring(RawData.HashServiceExe.SHA256),
+        ServiceExeTrusted = tostring(RawData.CertinfoServiceExe.Trusted),
+        ServiceExeSubjectName = tostring(RawData.CertinfoServiceExe.SubjectName),
+        ServiceDllMD5 = tostring(RawData.HashServiceDll.MD5),
+        ServiceDllSHA1 = tostring(RawData.HashServiceDll.SHA1),
+        ServiceDllSHA256 = tostring(RawData.HashServiceDll.SHA256),
+        ServiceDllTrusted = tostring(RawData.CertinfoServiceDll.Trusted),
+        ServiceDllSubjectName = tostring(RawData.CertinfoServiceDll.SubjectName),
+        HashServiceExe = RawData.HashServiceExe,
+        CertinfoServiceExe = RawData.CertinfoServiceExe,
+        HashServiceDll = RawData.HashServiceDll,
+        CertinfoServiceDll = RawData.CertinfoServiceDll,
+        State = tostring(RawData.State),
+        Status = tostring(RawData.Status),
+        StartMode = tostring(RawData.StartMode),
+        ServiceType = tostring(RawData.ServiceType),
+        ExitCode = tolong(RawData.ExitCode),
+        FailureCommand = tostring(RawData.FailureCommand),
+        FailureActions = RawData.FailureActions
+    | project
+        Timestamp,
+        Hostname,
+        Created,
+        Name,
+        DisplayName,
+        UserAccount,
+        Pid,
+        PathName,
+        AbsoluteExePath,
+        ServiceDll,
+        ServiceExeMD5,
+        ServiceExeSHA1,
+        ServiceExeSHA256,
+        ServiceExeTrusted,
+        ServiceExeSubjectName,
+        ServiceDllMD5,
+        ServiceDllSHA1,
+        ServiceDllSHA256,
+        ServiceDllTrusted,
+        ServiceDllSubjectName,
+        HashServiceExe,
+        CertinfoServiceExe,
+        HashServiceDll,
+        CertinfoServiceDll,
+        State,
+        Status,
+        StartMode,
+        ServiceType,
+        ExitCode,
+        FailureCommand,
+        FailureActions,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemServices policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemServices()", "IsEnabled": "True", "IsTransactional": true}]'
+
+
+// ============================================
 // Source: mappings/Windows.System.Shares.kql
 // ============================================
 
@@ -9099,6 +9468,95 @@
 }
 
 .alter table WindowsSystemShares policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemShares()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/Windows.System.TaskScheduler.kql
+// ============================================
+
+//ARTIFACT: Windows.System.TaskScheduler/Analysis
+.create table WindowsSystemTaskSchedulerAnalysis (
+    Timestamp: datetime,
+    Hostname: string,
+    Mtime: datetime,
+    RegistrationTime: datetime,
+    StartBoundary: datetime,
+    TaskName: string,
+    OSPath: string,
+    UserId: string,
+    RunLevel: string,
+    LogonType: string,
+    Command: string,
+    Arguments: string,
+    ComHandler: string,
+    MD5: string,
+    SHA256: string,
+    AuthenticodeTrusted: string,
+    AuthenticodeSubjectName: string,
+    StateChange: string,
+    Authenticode: dynamic,
+    Upload: dynamic,
+    XML: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemTaskSchedulerAnalysis() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.TaskScheduler/Analysis"
+    | extend
+        Mtime = todatetime(RawData.Mtime),
+        RegistrationTime = todatetime(RawData.RegistrationTime),
+        StartBoundary = todatetime(RawData.StartBoundary),
+        TaskName = tostring(RawData.TaskName),
+        OSPath = tostring(RawData.OSPath),
+        UserId = tostring(RawData.UserId),
+        RunLevel = tostring(RawData.RunLevel),
+        LogonType = tostring(RawData.LogonType),
+        Command = tostring(RawData.Command),
+        Arguments = tostring(RawData.Arguments),
+        ComHandler = tostring(RawData.ComHandler),
+        MD5 = tostring(RawData.Upload.md5),
+        SHA256 = tostring(RawData.Upload.sha256),
+        AuthenticodeTrusted = tostring(RawData.Authenticode.Trusted),
+        AuthenticodeSubjectName = tostring(RawData.Authenticode.SubjectName),
+        StateChange = tostring(RawData.StateChange),
+        Authenticode = RawData.Authenticode,
+        Upload = RawData.Upload,
+        XML = RawData._XML
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        Mtime,
+        RegistrationTime,
+        StartBoundary,
+        TaskName,
+        OSPath,
+        UserId,
+        RunLevel,
+        LogonType,
+        Command,
+        Arguments,
+        ComHandler,
+        MD5,
+        SHA256,
+        AuthenticodeTrusted,
+        AuthenticodeSubjectName,
+        StateChange,
+        Authenticode,
+        Upload,
+        XML,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemTaskSchedulerAnalysis policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemTaskSchedulerAnalysis()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Windows.System.WMIProviders.kql
@@ -9309,6 +9767,68 @@
 }
 
 .alter table WindowsSystemWMIQuery policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemWMIQuery()", "IsEnabled": "True", "IsTransactional": true}]'
+
+// ============================================
+// Source: mappings/Windows.Sys.Users.kql
+// ============================================
+
+//ARTIFACT: Windows.Sys.Users
+.create table WindowsSysUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    ProfileLoadTime: datetime,
+    ProfileUnloadTime: datetime,
+    Mtime: datetime,
+    HomedirMtime: datetime,
+    Name: string,
+    UUID: string,
+    Directory: string,
+    Uid: long,
+    Gid: string,
+    Description: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sys.Users"
+    | extend
+        ProfileLoadTime = todatetime(RawData.Data.ProfileLoadTime),
+        ProfileUnloadTime = todatetime(RawData.Data.ProfileUnloadTime),
+        Mtime = todatetime(RawData.Mtime),
+        HomedirMtime = todatetime(RawData.HomedirMtime),
+        Name = tostring(RawData.Name),
+        UUID = tostring(RawData.UUID),
+        Directory = tostring(RawData.Directory),
+        Uid = tolong(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        Description = tostring(RawData.Description)
+    | extend Timestamp = iff(isnotnull(Mtime), Mtime, Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        ProfileLoadTime,
+        ProfileUnloadTime,
+        Mtime,
+        HomedirMtime,
+        Name,
+        UUID,
+        Directory,
+        Uid,
+        Gid,
+        Description,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysUsers policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysUsers()", "IsEnabled": "True", "IsTransactional": true}]'
 
 // ============================================
 // Source: mappings/Windows.Timeline.MFT.kql
@@ -10346,9 +10866,9 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsSystemAmcacheInventoryApplicationFile  -  Amcache inventory
+    // [Execution] WindowsForensicsAmcacheInventoryApplicationFile  -  Amcache inventory
     let _amcacheInventory =
-        WindowsSystemAmcacheInventoryApplicationFile
+        WindowsForensicsAmcacheInventoryApplicationFile
         | where Timestamp between (_start .. _end)
         | where isempty(_host) or Hostname has _host
         | where isempty(_org) or Organization == _org
@@ -11925,7 +12445,7 @@ WindowsSupertimelineSchema() {
         "Execution",      "PrefetchTimeline",    "WindowsTimelinePrefetchImproved",                "Prefetch timeline (pre-formatted MACB events)",
         "Execution",      "PrefetchHit",         "WindowsForensicsPrefetch",                       "Prefetch forensic detail per executable",
         "Execution",      "ProcessCreation",     "WindowsSystemPslist",                            "Running processes (kernel CreateTime)",
-        "Execution",      "AmcacheInventory",    "WindowsSystemAmcacheInventoryApplicationFile",   "Amcache application inventory",
+        "Execution",      "AmcacheInventory",    "WindowsForensicsAmcacheInventoryApplicationFile", "Amcache application inventory",
         "Execution",      "AmcacheDetection",    "WindowsDetectionAmcache",                        "Amcache-based execution detection",
         "Execution",      "AppCompatExecution",  "WindowsSystemAppCompatPCA",                      "AppCompat PCA program execution",
         "Execution",      "UserAssist",          "WindowsRegistryUserAssist",                      "User-launched application (Explorer)",
