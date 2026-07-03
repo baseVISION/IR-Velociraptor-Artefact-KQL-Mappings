@@ -1,0 +1,182 @@
+// NOTE: verified against the upstream Velociraptor artifact definition that this artifact is
+// actually named "Windows.Forensics.Amcache" (not "Windows.System.Amcache" - that name does not
+// exist upstream). The table/function below were previously misnamed and filtered on a
+// non-existent artifact name, so they never received any data. If a deployment previously
+// created the old objects, clean them up with:
+//   .drop table WindowsSystemAmcacheInventoryApplicationFile ifexists
+//   .drop function RouteWindowsSystemAmcacheInventoryApplicationFile ifexists
+//ARTIFACT: Windows.Forensics.Amcache/InventoryApplicationFile
+.create table WindowsForensicsAmcacheInventoryApplicationFile (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    FullPath: string,
+    OriginalFileName: string,
+    ProductName: string,
+    ProductVersion: string,
+    AppxPackageFullName: string,
+    SHA1: string,
+    Size: long,
+    BinaryType: string,
+    LinkDate: string,
+    Usn: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryApplicationFile() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryApplicationFile"
+    | extend 
+        Name = tostring(RawData.Name),
+        FullPath = tostring(RawData.FullPath),
+        OriginalFileName = tostring(RawData.OriginalFileName),
+        ProductName = tostring(RawData.ProductName),
+        ProductVersion = tostring(RawData.ProductVersion),
+        AppxPackageFullName = tostring(RawData.AppxPackageFullName),
+        SHA1 = tostring(RawData.SHA1),
+        Size = tolong(RawData.Size),
+        BinaryType = tostring(RawData.BinaryType),
+        LinkDate = tostring(RawData.LinkDate),
+        Usn = tolong(RawData.Usn)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project 
+        Timestamp, 
+        Hostname, 
+        Name,
+        FullPath,
+        OriginalFileName,
+        ProductName,
+        ProductVersion,
+        AppxPackageFullName,
+        SHA1,
+        Size,
+        BinaryType,
+        LinkDate,
+        Usn,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryApplicationFile policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryApplicationFile()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.Amcache/InventoryDriverBinary
+.create table WindowsForensicsAmcacheInventoryDriverBinary (
+    Timestamp: datetime,
+    Hostname: string,
+    DriverName: string,
+    Service: string,
+    DriverCompany: string,
+    Product: string,
+    ProductVersion: string,
+    DriverVersion: string,
+    FullPath: string,
+    SHA1: string,
+    DriverType: long,
+    DriverTimeStamp: long,
+    ImageSize: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryDriverBinary() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryDriverBinary"
+    | extend
+        DriverName = tostring(RawData.DriverName),
+        Service = tostring(RawData.Service),
+        DriverCompany = tostring(RawData.DriverCompany),
+        Product = tostring(RawData.Product),
+        ProductVersion = tostring(RawData.ProductVersion),
+        DriverVersion = tostring(RawData.DriverVersion),
+        FullPath = tostring(RawData.FullPath),
+        SHA1 = tostring(RawData.SHA1),
+        DriverType = tolong(RawData.DriverType),
+        DriverTimeStamp = tolong(RawData.DriverTimeStamp),
+        ImageSize = tolong(RawData.ImageSize)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        DriverName,
+        Service,
+        DriverCompany,
+        Product,
+        ProductVersion,
+        DriverVersion,
+        FullPath,
+        SHA1,
+        DriverType,
+        DriverTimeStamp,
+        ImageSize,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryDriverBinary policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryDriverBinary()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Windows.Forensics.Amcache/InventoryDevicePnp
+.create table WindowsForensicsAmcacheInventoryDevicePnp (
+    Timestamp: datetime,
+    Hostname: string,
+    DriverName: string,
+    Description: string,
+    Model: string,
+    Manufacturer: string,
+    Enumerator: string,
+    InstallDate: string,
+    ParentId: string,
+    MatchingId: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsAmcacheInventoryDevicePnp() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Amcache/InventoryDevicePnp"
+    | extend
+        DriverName = tostring(RawData.DriverName),
+        Description = tostring(RawData.Description),
+        Model = tostring(RawData.Model),
+        Manufacturer = tostring(RawData.Manufacturer),
+        Enumerator = tostring(RawData.Enumerator),
+        InstallDate = tostring(RawData.InstallDate),
+        ParentId = tostring(RawData.ParentId),
+        MatchingId = tostring(RawData.MatchingId)
+    | extend Timestamp = todatetime(RawData.Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        DriverName,
+        Description,
+        Model,
+        Manufacturer,
+        Enumerator,
+        InstallDate,
+        ParentId,
+        MatchingId,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsAmcacheInventoryDevicePnp policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsAmcacheInventoryDevicePnp()", "IsEnabled": "True", "IsTransactional": true}]'
+
+

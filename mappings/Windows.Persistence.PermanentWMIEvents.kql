@@ -1,0 +1,62 @@
+//ARTIFACT: Windows.Persistence.PermanentWMIEvents
+.create table WindowsPersistencePermanentWMIEvents (
+    Timestamp: datetime,
+    Hostname: string,
+    ConsumerName: string,
+    ConsumerCategory: int,
+    ConsumerEventID: int,
+    ConsumerEventType: int,
+    ConsumerSourceName: string,
+    FilterName: string,
+    FilterEventNamespace: string,
+    FilterQuery: string,
+    FilterQueryLanguage: string,
+    Namespace: string,
+    ConsumerDetails: dynamic,
+    FilterDetails: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsPersistencePermanentWMIEvents() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Persistence.PermanentWMIEvents"
+    | extend
+        ConsumerName = tostring(RawData.ConsumerDetails.Name),
+        ConsumerCategory = toint(RawData.ConsumerDetails.Category),
+        ConsumerEventID = toint(RawData.ConsumerDetails.EventID),
+        ConsumerEventType = toint(RawData.ConsumerDetails.EventType),
+        ConsumerSourceName = tostring(RawData.ConsumerDetails.SourceName),
+        FilterName = tostring(RawData.FilterDetails.Name),
+        FilterEventNamespace = tostring(RawData.FilterDetails.EventNamespace),
+        FilterQuery = tostring(RawData.FilterDetails.Query),
+        FilterQueryLanguage = tostring(RawData.FilterDetails.QueryLanguage),
+        Namespace = tostring(RawData.Namespace),
+        ConsumerDetails = RawData.ConsumerDetails,
+        FilterDetails = RawData.FilterDetails
+    | project
+        Timestamp,
+        Hostname,
+        ConsumerName,
+        ConsumerCategory,
+        ConsumerEventID,
+        ConsumerEventType,
+        ConsumerSourceName,
+        FilterName,
+        FilterEventNamespace,
+        FilterQuery,
+        FilterQueryLanguage,
+        Namespace,
+        ConsumerDetails,
+        FilterDetails,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsPersistencePermanentWMIEvents policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsPersistencePermanentWMIEvents()", "IsEnabled": "True", "IsTransactional": true}]'

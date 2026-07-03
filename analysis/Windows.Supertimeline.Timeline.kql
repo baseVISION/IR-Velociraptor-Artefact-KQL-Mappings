@@ -184,9 +184,9 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
-    // [Execution] WindowsSystemAmcacheInventoryApplicationFile  -  Amcache inventory
+    // [Execution] WindowsForensicsAmcacheInventoryApplicationFile  -  Amcache inventory
     let _amcacheInventory =
-        WindowsSystemAmcacheInventoryApplicationFile
+        WindowsForensicsAmcacheInventoryApplicationFile
         | where Timestamp between (_start .. _end)
         | where isempty(_host) or Hostname has _host
         | where isempty(_org) or Organization == _org
@@ -1763,7 +1763,7 @@ WindowsSupertimelineSchema() {
         "Execution",      "PrefetchTimeline",    "WindowsTimelinePrefetchImproved",                "Prefetch timeline (pre-formatted MACB events)",
         "Execution",      "PrefetchHit",         "WindowsForensicsPrefetch",                       "Prefetch forensic detail per executable",
         "Execution",      "ProcessCreation",     "WindowsSystemPslist",                            "Running processes (kernel CreateTime)",
-        "Execution",      "AmcacheInventory",    "WindowsSystemAmcacheInventoryApplicationFile",   "Amcache application inventory",
+        "Execution",      "AmcacheInventory",    "WindowsForensicsAmcacheInventoryApplicationFile", "Amcache application inventory",
         "Execution",      "AmcacheDetection",    "WindowsDetectionAmcache",                        "Amcache-based execution detection",
         "Execution",      "AppCompatExecution",  "WindowsSystemAppCompatPCA",                      "AppCompat PCA program execution",
         "Execution",      "UserAssist",          "WindowsRegistryUserAssist",                      "User-launched application (Explorer)",

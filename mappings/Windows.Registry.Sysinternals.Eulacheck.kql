@@ -1,0 +1,41 @@
+//ARTIFACT: Windows.Registry.Sysinternals.Eulacheck/RegistryAPI
+.create table WindowsRegistrySysinternalsEulacheckRegistryAPI (
+    Timestamp: datetime,
+    Hostname: string,
+    TimeAccepted: datetime,
+    ProgramName: string,
+    User: string,
+    Key: string,
+    EulaAccepted: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsRegistrySysinternalsEulacheckRegistryAPI() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Registry.Sysinternals.Eulacheck/RegistryAPI"
+    | extend
+        TimeAccepted = todatetime(RawData.TimeAccepted),
+        ProgramName = tostring(RawData.ProgramName),
+        User = tostring(RawData.User),
+        Key = tostring(RawData.Key),
+        EulaAccepted = tolong(RawData.EulaAccepted)
+    | project
+        Timestamp,
+        Hostname,
+        TimeAccepted,
+        ProgramName,
+        User,
+        Key,
+        EulaAccepted,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsRegistrySysinternalsEulacheckRegistryAPI policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsRegistrySysinternalsEulacheckRegistryAPI()", "IsEnabled": "True", "IsTransactional": true}]'

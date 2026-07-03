@@ -1,0 +1,57 @@
+//ARTIFACT: Windows.Sys.Users
+.create table WindowsSysUsers (
+    Timestamp: datetime,
+    Hostname: string,
+    ProfileLoadTime: datetime,
+    ProfileUnloadTime: datetime,
+    Mtime: datetime,
+    HomedirMtime: datetime,
+    Name: string,
+    UUID: string,
+    Directory: string,
+    Uid: long,
+    Gid: string,
+    Description: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSysUsers() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Sys.Users"
+    | extend
+        ProfileLoadTime = todatetime(RawData.Data.ProfileLoadTime),
+        ProfileUnloadTime = todatetime(RawData.Data.ProfileUnloadTime),
+        Mtime = todatetime(RawData.Mtime),
+        HomedirMtime = todatetime(RawData.HomedirMtime),
+        Name = tostring(RawData.Name),
+        UUID = tostring(RawData.UUID),
+        Directory = tostring(RawData.Directory),
+        Uid = tolong(RawData.Uid),
+        Gid = tostring(RawData.Gid),
+        Description = tostring(RawData.Description)
+    | extend Timestamp = iff(isnotnull(Mtime), Mtime, Timestamp)
+    | project
+        Timestamp,
+        Hostname,
+        ProfileLoadTime,
+        ProfileUnloadTime,
+        Mtime,
+        HomedirMtime,
+        Name,
+        UUID,
+        Directory,
+        Uid,
+        Gid,
+        Description,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSysUsers policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSysUsers()", "IsEnabled": "True", "IsTransactional": true}]'

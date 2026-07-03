@@ -1,0 +1,84 @@
+//ARTIFACT: Windows.System.TaskScheduler/Analysis
+.create table WindowsSystemTaskSchedulerAnalysis (
+    Timestamp: datetime,
+    Hostname: string,
+    Mtime: datetime,
+    RegistrationTime: datetime,
+    StartBoundary: datetime,
+    TaskName: string,
+    OSPath: string,
+    UserId: string,
+    RunLevel: string,
+    LogonType: string,
+    Command: string,
+    Arguments: string,
+    ComHandler: string,
+    MD5: string,
+    SHA256: string,
+    AuthenticodeTrusted: string,
+    AuthenticodeSubjectName: string,
+    StateChange: string,
+    Authenticode: dynamic,
+    Upload: dynamic,
+    XML: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsSystemTaskSchedulerAnalysis() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.System.TaskScheduler/Analysis"
+    | extend
+        Mtime = todatetime(RawData.Mtime),
+        RegistrationTime = todatetime(RawData.RegistrationTime),
+        StartBoundary = todatetime(RawData.StartBoundary),
+        TaskName = tostring(RawData.TaskName),
+        OSPath = tostring(RawData.OSPath),
+        UserId = tostring(RawData.UserId),
+        RunLevel = tostring(RawData.RunLevel),
+        LogonType = tostring(RawData.LogonType),
+        Command = tostring(RawData.Command),
+        Arguments = tostring(RawData.Arguments),
+        ComHandler = tostring(RawData.ComHandler),
+        MD5 = tostring(RawData.Upload.md5),
+        SHA256 = tostring(RawData.Upload.sha256),
+        AuthenticodeTrusted = tostring(RawData.Authenticode.Trusted),
+        AuthenticodeSubjectName = tostring(RawData.Authenticode.SubjectName),
+        StateChange = tostring(RawData.StateChange),
+        Authenticode = RawData.Authenticode,
+        Upload = RawData.Upload,
+        XML = RawData._XML
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        Mtime,
+        RegistrationTime,
+        StartBoundary,
+        TaskName,
+        OSPath,
+        UserId,
+        RunLevel,
+        LogonType,
+        Command,
+        Arguments,
+        ComHandler,
+        MD5,
+        SHA256,
+        AuthenticodeTrusted,
+        AuthenticodeSubjectName,
+        StateChange,
+        Authenticode,
+        Upload,
+        XML,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsSystemTaskSchedulerAnalysis policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsSystemTaskSchedulerAnalysis()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -1,0 +1,68 @@
+//ARTIFACT: Windows.EventLogs.LogonSessions
+.create table WindowsEventLogsLogonSessions (
+    Timestamp: datetime,
+    Hostname: string,
+    Start: datetime,
+    End: datetime,
+    Duration: real,
+    SourceHost: string,
+    TargetUserName: dynamic,
+    TargetDomainName: dynamic,
+    TargetLogonId: dynamic,
+    LogonType: dynamic,
+    SubjectUserName: dynamic,
+    SubjectDomainName: dynamic,
+    SubjectUserSid: dynamic,
+    LogonProcessName: dynamic,
+    ProcessName: dynamic,
+    IpAddress: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsEventLogsLogonSessions() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.EventLogs.LogonSessions"
+    | extend
+        Start = todatetime(RawData.Start),
+        End = todatetime(RawData.End),
+        Duration = toreal(RawData.Duration),
+        SourceHost = tostring(RawData.SourceHost),
+        TargetUserName = RawData.TargetUserName,
+        TargetDomainName = RawData.TargetDomainName,
+        TargetLogonId = RawData.TargetLogonId,
+        LogonType = RawData.LogonType,
+        SubjectUserName = RawData.SubjectUserName,
+        SubjectDomainName = RawData.SubjectDomainName,
+        SubjectUserSid = RawData.SubjectUserSid,
+        LogonProcessName = RawData.LogonProcessName,
+        ProcessName = RawData.ProcessName,
+        IpAddress = RawData.IpAddress
+    | project
+        Timestamp,
+        Hostname,
+        Start,
+        End,
+        Duration,
+        SourceHost,
+        TargetUserName,
+        TargetDomainName,
+        TargetLogonId,
+        LogonType,
+        SubjectUserName,
+        SubjectDomainName,
+        SubjectUserSid,
+        LogonProcessName,
+        ProcessName,
+        IpAddress,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsEventLogsLogonSessions policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsEventLogsLogonSessions()", "IsEnabled": "True", "IsTransactional": true}]'
