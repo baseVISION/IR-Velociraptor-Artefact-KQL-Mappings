@@ -1,8 +1,10 @@
 # Sample data files
 samples.txt
 *.txt
+docs/
 
 # Generated analysis kql files
 analysis/generated/
 
 baseline_rules.csv
+.tokensave
