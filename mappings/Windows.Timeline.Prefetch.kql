@@ -1,9 +1,10 @@
-//ARTIFACT: Windows.Timeline.Prefetch.Improved
-.create table WindowsTimelinePrefetchImproved (
+//ARTIFACT: Windows.Timeline.Prefetch
+.create table WindowsTimelinePrefetch (
     Timestamp: datetime,
     Hostname: string,
     FileName: string,
     Message: string,
+    ExecutablePath: string,
     PrefetchFile: string,
     PrefetchCount: int,
     PrefetchHash: string,
@@ -21,13 +22,14 @@
     IngestionTime: datetime
 )
 
-.create-or-alter function RouteWindowsTimelinePrefetchImproved() {
+.create-or-alter function RouteWindowsTimelinePrefetch() {
     RawVelociraptorEvents
-    | where Artifact == "Windows.Timeline.Prefetch.Improved"
+    | where Artifact == "Windows.Timeline.Prefetch"
     | extend
         EventTime = todatetime(RawData.event_time),
         FileName = tostring(RawData.file_name),
         Message = tostring(RawData.message),
+        ExecutablePath = tostring(RawData.ExecutablePath),
         Source = tostring(RawData.source),
         Parser = tostring(RawData.parser),
         PrefetchFile = tostring(RawData.prefetch_file),
@@ -43,6 +45,7 @@
         Hostname,
         FileName,
         Message,
+        ExecutablePath,
         PrefetchFile,
         PrefetchCount,
         PrefetchHash,
@@ -60,4 +63,4 @@
         IngestionTime
 }
 
-.alter table WindowsTimelinePrefetchImproved policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTimelinePrefetchImproved()", "IsEnabled": "True", "IsTransactional": true}]'
+.alter table WindowsTimelinePrefetch policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsTimelinePrefetch()", "IsEnabled": "True", "IsTransactional": true}]'

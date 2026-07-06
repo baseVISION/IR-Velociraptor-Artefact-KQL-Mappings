@@ -1,0 +1,39 @@
+//ARTIFACT: Windows.Forensics.Bam
+.create table WindowsForensicsBam (
+    Timestamp: datetime,
+    Hostname: string,
+    BamTime: datetime,
+    UserName: string,
+    SID: string,
+    Binary: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsBam() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.Bam"
+    | extend
+        BamTime = todatetime(RawData.Bam_time),
+        UserName = tostring(RawData.UserName),
+        SID = tostring(RawData.SID),
+        Binary = tostring(RawData.Binary)
+    | extend Timestamp = BamTime
+    | project
+        Timestamp,
+        Hostname,
+        BamTime,
+        UserName,
+        SID,
+        Binary,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsBam policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsBam()", "IsEnabled": "True", "IsTransactional": true}]'

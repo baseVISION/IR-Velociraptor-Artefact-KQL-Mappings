@@ -1,0 +1,1126 @@
+//ARTIFACT: Generic.Forensic.SQLiteHunter/AllFiles
+.create table GenericForensicSQLiteHunterAllFiles (
+    Timestamp: datetime,
+    Hostname: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterAllFiles() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/AllFiles"
+    | extend
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterAllFiles policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterAllFiles()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Bookmarks
+.create table GenericForensicSQLiteHunterChromiumBrowserBookmarks (
+    Timestamp: datetime,
+    Hostname: string,
+    DateAdded: datetime,
+    DateLastUsed: datetime,
+    Name: string,
+    URL: string,
+    Type: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserBookmarks() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Bookmarks"
+    | extend
+        DateAdded = todatetime(RawData.DateAdded),
+        DateLastUsed = todatetime(RawData.DateLastUsed),
+        Name = tostring(RawData.Name),
+        URL = tostring(RawData.URL),
+        Type = tostring(RawData.Type),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = DateAdded
+    | project
+        Timestamp,
+        Hostname,
+        DateAdded,
+        DateLastUsed,
+        Name,
+        URL,
+        Type,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserBookmarks policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserBookmarks()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Favicons
+.create table GenericForensicSQLiteHunterChromiumBrowserFavicons (
+    Timestamp: datetime,
+    Hostname: string,
+    LastUpdated: datetime,
+    PageURL: string,
+    FaviconURL: string,
+    ID: long,
+    IconID: long,
+    ImageMD5: string,
+    ImageSHA256: string,
+    Image: dynamic,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserFavicons() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Favicons"
+    | extend
+        LastUpdated = todatetime(RawData.LastUpdated),
+        PageURL = tostring(RawData.PageURL),
+        FaviconURL = tostring(RawData.FaviconURL),
+        ID = tolong(RawData.ID),
+        IconID = tolong(RawData.IconID),
+        ImageMD5 = tostring(RawData.Image.md5),
+        ImageSHA256 = tostring(RawData.Image.sha256),
+        Image = RawData.Image,
+        OSPath = tostring(RawData._OSPath)
+    | extend Timestamp = LastUpdated
+    | project
+        Timestamp,
+        Hostname,
+        LastUpdated,
+        PageURL,
+        FaviconURL,
+        ID,
+        IconID,
+        ImageMD5,
+        ImageSHA256,
+        Image,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserFavicons policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserFavicons()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser History_Visits
+.create table GenericForensicSQLiteHunterChromiumBrowserHistoryVisits (
+    Timestamp: datetime,
+    Hostname: string,
+    VisitTime: datetime,
+    LastVisitedTime: datetime,
+    URL: string,
+    URLTitle: string,
+    VisitCount: long,
+    TypedCount: long,
+    Hidden: string,
+    VisitID: long,
+    FromVisitID: long,
+    VisitDurationInSeconds: real,
+    ID: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserHistoryVisits() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser History_Visits"
+    | extend
+        VisitTime = todatetime(RawData.VisitTime),
+        LastVisitedTime = todatetime(RawData.LastVisitedTime),
+        URL = tostring(RawData.URL),
+        URLTitle = tostring(RawData.URLTitle),
+        VisitCount = tolong(RawData.VisitCount),
+        TypedCount = tolong(RawData.TypedCount),
+        Hidden = tostring(RawData.Hidden),
+        VisitID = tolong(RawData.VisitID),
+        FromVisitID = tolong(RawData.FromVisitID),
+        VisitDurationInSeconds = toreal(RawData.VisitDurationInSeconds),
+        ID = tolong(RawData.ID),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = VisitTime
+    | project
+        Timestamp,
+        Hostname,
+        VisitTime,
+        LastVisitedTime,
+        URL,
+        URLTitle,
+        VisitCount,
+        TypedCount,
+        Hidden,
+        VisitID,
+        FromVisitID,
+        VisitDurationInSeconds,
+        ID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserHistoryVisits policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserHistoryVisits()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Cookies_Cookies
+.create table GenericForensicSQLiteHunterChromiumBrowserCookiesCookies (
+    Timestamp: datetime,
+    Hostname: string,
+    CreationUTC: datetime,
+    LastAccessUTC: datetime,
+    ExpiresUTC: datetime,
+    HostKey: string,
+    Name: string,
+    Path: string,
+    IsSecure: string,
+    IsHttpOnly: string,
+    HasExpiration: string,
+    IsPersistent: string,
+    Priority: long,
+    SourcePort: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserCookiesCookies() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Cookies_Cookies"
+    | extend
+        CreationUTC = todatetime(RawData.CreationUTC),
+        LastAccessUTC = todatetime(RawData.LastAccessUTC),
+        ExpiresUTC = todatetime(RawData.ExpiresUTC),
+        HostKey = tostring(RawData.HostKey),
+        Name = tostring(RawData.Name),
+        Path = tostring(RawData.Path),
+        IsSecure = tostring(RawData.IsSecure),
+        IsHttpOnly = tostring(RawData.IsHttpOnly),
+        HasExpiration = tostring(RawData.HasExpiration),
+        IsPersistent = tostring(RawData.IsPersistent),
+        Priority = tolong(RawData.Priority),
+        SourcePort = tolong(RawData.SourcePort),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastAccessUTC
+    | project
+        Timestamp,
+        Hostname,
+        CreationUTC,
+        LastAccessUTC,
+        ExpiresUTC,
+        HostKey,
+        Name,
+        Path,
+        IsSecure,
+        IsHttpOnly,
+        HasExpiration,
+        IsPersistent,
+        Priority,
+        SourcePort,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserCookiesCookies policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserCookiesCookies()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Extensions
+.create table GenericForensicSQLiteHunterChromiumBrowserExtensions (
+    Timestamp: datetime,
+    Hostname: string,
+    Name: string,
+    Description: string,
+    Key: string,
+    Permissions: dynamic,
+    Email: string,
+    Scopes: dynamic,
+    ImageMD5: string,
+    ImageSHA256: string,
+    Image: dynamic,
+    Manifest: dynamic,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserExtensions() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Extensions"
+    | extend
+        Name = tostring(RawData.name),
+        Description = tostring(RawData.description),
+        Key = tostring(RawData.Key),
+        Permissions = RawData.Permissions,
+        Email = tostring(RawData.Email),
+        Scopes = RawData.Scopes,
+        ImageMD5 = tostring(RawData.Image.md5),
+        ImageSHA256 = tostring(RawData.Image.sha256),
+        Image = RawData.Image,
+        Manifest = RawData._Manifest,
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        Name,
+        Description,
+        Key,
+        Permissions,
+        Email,
+        Scopes,
+        ImageMD5,
+        ImageSHA256,
+        Image,
+        Manifest,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserExtensions policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserExtensions()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Network_Predictor
+.create table GenericForensicSQLiteHunterChromiumBrowserNetworkPredictor (
+    Timestamp: datetime,
+    Hostname: string,
+    UserText: string,
+    URL: string,
+    NumberOfHits: long,
+    NumberOfMisses: long,
+    ID: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserNetworkPredictor() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Network_Predictor"
+    | extend
+        UserText = tostring(RawData.UserText),
+        URL = tostring(RawData.URL),
+        NumberOfHits = tolong(RawData.NumberOfHits),
+        NumberOfMisses = tolong(RawData.NumberOfMisses),
+        ID = tostring(RawData.ID),
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        UserText,
+        URL,
+        NumberOfHits,
+        NumberOfMisses,
+        ID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserNetworkPredictor policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserNetworkPredictor()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser History_Downloads
+.create table GenericForensicSQLiteHunterChromiumBrowserHistoryDownloads (
+    Timestamp: datetime,
+    Hostname: string,
+    StartTime: datetime,
+    EndTime: datetime,
+    LastAccessTime: datetime,
+    LastModified: datetime,
+    Opened: datetime,
+    State: string,
+    DangerType: string,
+    InterruptReason: string,
+    TargetPath: string,
+    CurrentPath: string,
+    DownloadURL: string,
+    ReferrerURL: string,
+    SiteURL: string,
+    TabURL: string,
+    TabReferrerURL: string,
+    OriginalMIMEType: string,
+    ReceivedBytes: long,
+    TotalBytes: long,
+    ID: long,
+    GUID: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserHistoryDownloads() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser History_Downloads"
+    | extend
+        StartTime = todatetime(RawData.StartTime),
+        EndTime = todatetime(RawData.EndTime),
+        LastAccessTime = todatetime(RawData.LastAccessTime),
+        LastModified = todatetime(RawData.LastModified),
+        Opened = todatetime(RawData.Opened),
+        State = tostring(RawData.State),
+        DangerType = tostring(RawData.DangerType),
+        InterruptReason = tostring(RawData.InterruptReason),
+        TargetPath = tostring(RawData.TargetPath),
+        CurrentPath = tostring(RawData.CurrentPath),
+        DownloadURL = tostring(RawData.DownloadURL),
+        ReferrerURL = tostring(RawData.ReferrerURL),
+        SiteURL = tostring(RawData.SiteURL),
+        TabURL = tostring(RawData.TabURL),
+        TabReferrerURL = tostring(RawData.TabReferrerURL),
+        OriginalMIMEType = tostring(RawData.OriginalMIMEType),
+        ReceivedBytes = tolong(RawData.ReceivedBytes),
+        TotalBytes = tolong(RawData.TotalBytes),
+        ID = tolong(RawData.ID),
+        GUID = tostring(RawData.GUID),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = StartTime
+    | project
+        Timestamp,
+        Hostname,
+        StartTime,
+        EndTime,
+        LastAccessTime,
+        LastModified,
+        Opened,
+        State,
+        DangerType,
+        InterruptReason,
+        TargetPath,
+        CurrentPath,
+        DownloadURL,
+        ReferrerURL,
+        SiteURL,
+        TabURL,
+        TabReferrerURL,
+        OriginalMIMEType,
+        ReceivedBytes,
+        TotalBytes,
+        ID,
+        GUID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserHistoryDownloads policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserHistoryDownloads()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser History_Keywords
+.create table GenericForensicSQLiteHunterChromiumBrowserHistoryKeywords (
+    Timestamp: datetime,
+    Hostname: string,
+    LastVisitedTime: datetime,
+    KeywordSearchTerm: string,
+    Title: string,
+    URL: string,
+    KeywordID: long,
+    URLID: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserHistoryKeywords() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser History_Keywords"
+    | extend
+        LastVisitedTime = todatetime(RawData.LastVisitedTime),
+        KeywordSearchTerm = tostring(RawData.KeywordSearchTerm),
+        Title = tostring(RawData.Title),
+        URL = tostring(RawData.URL),
+        KeywordID = tolong(RawData.KeywordID),
+        URLID = tolong(RawData.URLID),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastVisitedTime
+    | project
+        Timestamp,
+        Hostname,
+        LastVisitedTime,
+        KeywordSearchTerm,
+        Title,
+        URL,
+        KeywordID,
+        URLID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserHistoryKeywords policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserHistoryKeywords()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_Site Engagements
+.create table GenericForensicSQLiteHunterChromiumBrowserNotificationsSiteEngagements (
+    Timestamp: datetime,
+    Hostname: string,
+    LastEngagementTime: datetime,
+    LastModified: datetime,
+    Site: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserNotificationsSiteEngagements() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_Site Engagements"
+    | extend
+        LastEngagementTime = todatetime(RawData.LastEngagementTime),
+        LastModified = todatetime(RawData.LastModified),
+        Site = tostring(RawData.Site),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastEngagementTime
+    | project
+        Timestamp,
+        Hostname,
+        LastEngagementTime,
+        LastModified,
+        Site,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserNotificationsSiteEngagements policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserNotificationsSiteEngagements()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_App Banners
+.create table GenericForensicSQLiteHunterChromiumBrowserNotificationsAppBanners (
+    Timestamp: datetime,
+    Hostname: string,
+    LastModified: datetime,
+    Site: string,
+    Setting: dynamic,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserNotificationsAppBanners() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_App Banners"
+    | extend
+        LastModified = todatetime(RawData.LastModified),
+        Site = tostring(RawData.Site),
+        Setting = RawData.Setting,
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastModified
+    | project
+        Timestamp,
+        Hostname,
+        LastModified,
+        Site,
+        Setting,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserNotificationsAppBanners policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserNotificationsAppBanners()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Shortcuts
+.create table GenericForensicSQLiteHunterChromiumBrowserShortcuts (
+    Timestamp: datetime,
+    Hostname: string,
+    LastAccessTime: datetime,
+    URL: string,
+    Description: string,
+    TextTyped: string,
+    FillIntoEdit: string,
+    Contents: string,
+    Keyword: string,
+    TimesSelectedByUser: long,
+    Type: long,
+    ID: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserShortcuts() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Shortcuts"
+    | extend
+        LastAccessTime = todatetime(RawData.LastAccessTime),
+        URL = tostring(RawData.URL),
+        Description = tostring(RawData.Description),
+        TextTyped = tostring(RawData.TextTyped),
+        FillIntoEdit = tostring(RawData.FillIntoEdit),
+        Contents = tostring(RawData.Contents),
+        Keyword = tostring(RawData.Keyword),
+        TimesSelectedByUser = tolong(RawData.TimesSelectedByUser),
+        Type = tolong(RawData.Type),
+        ID = tostring(RawData.ID),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastAccessTime
+    | project
+        Timestamp,
+        Hostname,
+        LastAccessTime,
+        URL,
+        Description,
+        TextTyped,
+        FillIntoEdit,
+        Contents,
+        Keyword,
+        TimesSelectedByUser,
+        Type,
+        ID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserShortcuts policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserShortcuts()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Chromium Browser Top Sites
+.create table GenericForensicSQLiteHunterChromiumBrowserTopSites (
+    Timestamp: datetime,
+    Hostname: string,
+    Title: string,
+    URL: string,
+    URLRank: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterChromiumBrowserTopSites() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Chromium Browser Top Sites"
+    | extend
+        Title = tostring(RawData.Title),
+        URL = tostring(RawData.URL),
+        URLRank = tolong(RawData.URLRank),
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        Title,
+        URL,
+        URLRank,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterChromiumBrowserTopSites policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterChromiumBrowserTopSites()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Firefox Cookies
+.create table GenericForensicSQLiteHunterFirefoxCookies (
+    Timestamp: datetime,
+    Hostname: string,
+    CreationTime: datetime,
+    LastAccessedTime: datetime,
+    Expiration: datetime,
+    Host: string,
+    Name: string,
+    Value: string,
+    IsSecure: string,
+    IsHTTPOnly: string,
+    ID: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterFirefoxCookies() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Firefox Cookies"
+    | extend
+        CreationTime = todatetime(RawData.CreationTime),
+        LastAccessedTime = todatetime(RawData.LastAccessedTime),
+        Expiration = todatetime(RawData.Expiration),
+        Host = tostring(RawData.Host),
+        Name = tostring(RawData.Name),
+        Value = tostring(RawData.Value),
+        IsSecure = tostring(RawData.IsSecure),
+        IsHTTPOnly = tostring(RawData.IsHTTPOnly),
+        ID = tolong(RawData.ID),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = LastAccessedTime
+    | project
+        Timestamp,
+        Hostname,
+        CreationTime,
+        LastAccessedTime,
+        Expiration,
+        Host,
+        Name,
+        Value,
+        IsSecure,
+        IsHTTPOnly,
+        ID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterFirefoxCookies policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterFirefoxCookies()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Firefox Favicons
+.create table GenericForensicSQLiteHunterFirefoxFavicons (
+    Timestamp: datetime,
+    Hostname: string,
+    PageURL: string,
+    FaviconURL: string,
+    Expiration: datetime,
+    ID: long,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterFirefoxFavicons() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Firefox Favicons"
+    | extend
+        PageURL = tostring(RawData.PageURL),
+        FaviconURL = tostring(RawData.FaviconURL),
+        Expiration = todatetime(RawData.Expiration),
+        ID = tolong(RawData.ID),
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        PageURL,
+        FaviconURL,
+        Expiration,
+        ID,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterFirefoxFavicons policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterFirefoxFavicons()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_Highlights
+.create table GenericForensicSQLiteHunterIEOrEdgeWebCacheV01Highlights (
+    Timestamp: datetime,
+    Hostname: string,
+    AccessedTime: datetime,
+    ModifiedTime: datetime,
+    ExpiryTime: datetime,
+    Url: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterIEOrEdgeWebCacheV01Highlights() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_Highlights"
+    | extend
+        AccessedTime = todatetime(RawData.AccessedTime),
+        ModifiedTime = todatetime(RawData.ModifiedTime),
+        ExpiryTime = todatetime(RawData.ExpiryTime),
+        Url = tostring(RawData.Url)
+    | extend Timestamp = AccessedTime
+    | project
+        Timestamp,
+        Hostname,
+        AccessedTime,
+        ModifiedTime,
+        ExpiryTime,
+        Url,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterIEOrEdgeWebCacheV01Highlights policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterIEOrEdgeWebCacheV01Highlights()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Windows Activities Cache_ActivityPackageId
+.create table GenericForensicSQLiteHunterWindowsActivitiesCacheActivityPackageId (
+    Timestamp: datetime,
+    Hostname: string,
+    PackageName: string,
+    Platform: string,
+    ActivityId: string,
+    ExpirationTime: datetime,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterWindowsActivitiesCacheActivityPackageId() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Windows Activities Cache_ActivityPackageId"
+    | extend
+        PackageName = tostring(RawData.PackageName),
+        Platform = tostring(RawData.Platform),
+        ActivityId = tostring(RawData.ActivityId),
+        ExpirationTime = todatetime(RawData.ExpirationTime),
+        OSPath = tostring(RawData.OSPath)
+    | project
+        Timestamp,
+        Hostname,
+        PackageName,
+        Platform,
+        ActivityId,
+        ExpirationTime,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterWindowsActivitiesCacheActivityPackageId policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterWindowsActivitiesCacheActivityPackageId()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Windows WPNDatabase - Notifications_Notifications
+.create table GenericForensicSQLiteHunterWindowsWPNDatabaseNotificationsNotifications (
+    Timestamp: datetime,
+    Hostname: string,
+    ArrivalTime: datetime,
+    HandlerCreated: datetime,
+    HandlerModified: datetime,
+    ExpirationTime: datetime,
+    Application: string,
+    HandlerType: string,
+    HandlerId: long,
+    Type: string,
+    Tag: string,
+    Group: string,
+    PayloadType: string,
+    PayloadMD5: string,
+    PayloadSHA256: string,
+    Payload: dynamic,
+    ActivityId: string,
+    ID: long,
+    Order: long,
+    Parent: string,
+    URI: string,
+    ChannelID: string,
+    WNFEventName: string,
+    WNSId: string,
+    WNSCreatedTime: string,
+    WNSExpirationTime: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterWindowsWPNDatabaseNotificationsNotifications() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Windows WPNDatabase - Notifications_Notifications"
+    | extend
+        ArrivalTime = todatetime(RawData.ArrivalTime),
+        HandlerCreated = todatetime(RawData.HandlerCreated),
+        HandlerModified = todatetime(RawData.HandlerModified),
+        ExpirationTime = todatetime(RawData.ExpirationTime),
+        Application = tostring(RawData.Application),
+        HandlerType = tostring(RawData.HandlerType),
+        HandlerId = tolong(RawData.HandlerId),
+        Type = tostring(RawData.Type),
+        Tag = tostring(RawData.Tag),
+        Group = tostring(RawData.Group),
+        PayloadType = tostring(RawData.PayloadType),
+        PayloadMD5 = tostring(RawData.Payload.md5),
+        PayloadSHA256 = tostring(RawData.Payload.sha256),
+        Payload = RawData.Payload,
+        ActivityId = tostring(RawData.ActivityId),
+        ID = tolong(RawData.ID),
+        Order = tolong(RawData.Order),
+        Parent = tostring(RawData.Parent),
+        URI = tostring(RawData.URI),
+        ChannelID = tostring(RawData.ChannelID),
+        WNFEventName = tostring(RawData.WNFEventName),
+        WNSId = tostring(RawData.WNSId),
+        WNSCreatedTime = tostring(RawData.WNSCreatedTime),
+        WNSExpirationTime = tostring(RawData.WNSExpirationTime),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = ArrivalTime
+    | project
+        Timestamp,
+        Hostname,
+        ArrivalTime,
+        HandlerCreated,
+        HandlerModified,
+        ExpirationTime,
+        Application,
+        HandlerType,
+        HandlerId,
+        Type,
+        Tag,
+        Group,
+        PayloadType,
+        PayloadMD5,
+        PayloadSHA256,
+        Payload,
+        ActivityId,
+        ID,
+        Order,
+        Parent,
+        URI,
+        ChannelID,
+        WNFEventName,
+        WNSId,
+        WNSCreatedTime,
+        WNSExpirationTime,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterWindowsWPNDatabaseNotificationsNotifications policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterWindowsWPNDatabaseNotificationsNotifications()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/Firefox Places History
+.create table GenericForensicSQLiteHunterFirefoxPlacesHistory (
+    Timestamp: datetime,
+    Hostname: string,
+    VisitDate: datetime,
+    LastVisitDate: datetime,
+    URL: string,
+    Title: string,
+    VisitType: string,
+    Typed: string,
+    Hidden: string,
+    VisitCount: long,
+    Frecency: long,
+    VisitID: long,
+    FromVisitID: long,
+    Description: string,
+    PreviewImageURL: string,
+    OSPath: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterFirefoxPlacesHistory() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/Firefox Places History"
+    | extend
+        VisitDate = todatetime(RawData.VisitDate),
+        LastVisitDate = todatetime(RawData.LastVisitDate),
+        URL = tostring(RawData.URL),
+        Title = tostring(RawData.Title),
+        VisitType = tostring(RawData.VisitType),
+        Typed = tostring(RawData.Typed),
+        Hidden = tostring(RawData.Hidden),
+        VisitCount = tolong(RawData.VisitCount),
+        Frecency = tolong(RawData.Frecency),
+        VisitID = tolong(RawData.VisitID),
+        FromVisitID = tolong(RawData.FromVisitID),
+        Description = tostring(RawData.Description),
+        PreviewImageURL = tostring(RawData.PreviewImageURL),
+        OSPath = tostring(RawData.OSPath)
+    | extend Timestamp = VisitDate
+    | project
+        Timestamp,
+        Hostname,
+        VisitDate,
+        LastVisitDate,
+        URL,
+        Title,
+        VisitType,
+        Typed,
+        Hidden,
+        VisitCount,
+        Frecency,
+        VisitID,
+        FromVisitID,
+        Description,
+        PreviewImageURL,
+        OSPath,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterFirefoxPlacesHistory policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterFirefoxPlacesHistory()", "IsEnabled": "True", "IsTransactional": true}]'
+
+//ARTIFACT: Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_All Data
+.create table GenericForensicSQLiteHunterIEOrEdgeWebCacheV01AllData (
+    Timestamp: datetime,
+    Hostname: string,
+    AccessedTime: datetime,
+    ModifiedTime: datetime,
+    ExpiryTime: datetime,
+    CreationTime: long,
+    Url: string,
+    Type: long,
+    Flags: long,
+    EntryId: long,
+    ContainerId: long,
+    CacheId: long,
+    UrlHash: string,
+    FileSize: long,
+    AccessCount: long,
+    SecureDirectory: long,
+    SyncTime: string,
+    SyncCount: long,
+    PostCheckTime: long,
+    ExemptionDelta: long,
+    ResponseHeaders: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteGenericForensicSQLiteHunterIEOrEdgeWebCacheV01AllData() {
+    RawVelociraptorEvents
+    | where Artifact == "Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_All Data"
+    | extend
+        AccessedTime = todatetime(RawData.AccessedTime),
+        ModifiedTime = todatetime(RawData.ModifiedTime),
+        ExpiryTime = todatetime(RawData.ExpiryTime),
+        CreationTime = tolong(RawData.CreationTime),
+        Url = tostring(RawData.Url),
+        Type = tolong(RawData.Type),
+        Flags = tolong(RawData.Flags),
+        EntryId = tolong(RawData.EntryId),
+        ContainerId = tolong(RawData.ContainerId),
+        CacheId = tolong(RawData.CacheId),
+        UrlHash = tostring(RawData.UrlHash),
+        FileSize = tolong(RawData.FileSize),
+        AccessCount = tolong(RawData.AccessCount),
+        SecureDirectory = tolong(RawData.SecureDirectory),
+        SyncTime = tostring(RawData.SyncTime),
+        SyncCount = tolong(RawData.SyncCount),
+        PostCheckTime = tolong(RawData.PostCheckTime),
+        ExemptionDelta = tolong(RawData.ExemptionDelta),
+        ResponseHeaders = tostring(RawData.ResponseHeaders)
+    | extend Timestamp = AccessedTime
+    | project
+        Timestamp,
+        Hostname,
+        AccessedTime,
+        ModifiedTime,
+        ExpiryTime,
+        CreationTime,
+        Url,
+        Type,
+        Flags,
+        EntryId,
+        ContainerId,
+        CacheId,
+        UrlHash,
+        FileSize,
+        AccessCount,
+        SecureDirectory,
+        SyncTime,
+        SyncCount,
+        PostCheckTime,
+        ExemptionDelta,
+        ResponseHeaders,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table GenericForensicSQLiteHunterIEOrEdgeWebCacheV01AllData policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteGenericForensicSQLiteHunterIEOrEdgeWebCacheV01AllData()", "IsEnabled": "True", "IsTransactional": true}]'

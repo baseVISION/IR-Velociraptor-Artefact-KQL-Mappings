@@ -1,0 +1,93 @@
+//ARTIFACT: Windows.Applications.SBECmd
+// NOTE: This artifact is marked deprecated upstream by Velociraptor in favor of the native
+// Windows.Forensics.Shellbags artifact (already mapped in this repo). Kept here for existing
+// collections/backfills, but prefer Windows.Forensics.Shellbags for new collections.
+.create table WindowsApplicationsSBECmd (
+    Timestamp: datetime,
+    Hostname: string,
+    LastWriteTime: datetime,
+    CreatedOn: datetime,
+    ModifiedOn: datetime,
+    AccessedOn: datetime,
+    FirstInteracted: datetime,
+    LastInteracted: datetime,
+    UserName: string,
+    SourceFile: string,
+    AbsolutePath: string,
+    Value: string,
+    ShellType: string,
+    HasExplored: string,
+    ChildBags: long,
+    MFTEntry: long,
+    MFTSequenceNumber: long,
+    ExtensionBlockCount: long,
+    Slot: long,
+    NodeSlot: long,
+    MRUPosition: long,
+    BagPath: string,
+    Miscellaneous: string,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsApplicationsSBECmd() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Applications.SBECmd"
+    | extend
+        LastWriteTime = todatetime(RawData.LastWriteTime),
+        CreatedOn = todatetime(RawData.CreatedOn),
+        ModifiedOn = todatetime(RawData.ModifiedOn),
+        AccessedOn = todatetime(RawData.AccessedOn),
+        FirstInteracted = todatetime(RawData.FirstInteracted),
+        LastInteracted = todatetime(RawData.LastInteracted),
+        UserName = tostring(RawData.UserName),
+        SourceFile = tostring(RawData.SourceFile),
+        AbsolutePath = tostring(RawData.AbsolutePath),
+        Value = tostring(RawData.Value),
+        ShellType = tostring(RawData.ShellType),
+        HasExplored = tostring(RawData.HasExplored),
+        ChildBags = tolong(RawData.ChildBags),
+        MFTEntry = tolong(RawData.MFTEntry),
+        MFTSequenceNumber = tolong(RawData.MFTSequenceNumber),
+        ExtensionBlockCount = tolong(RawData.ExtensionBlockCount),
+        Slot = tolong(RawData.Slot),
+        NodeSlot = tolong(RawData.NodeSlot),
+        MRUPosition = tolong(RawData.MRUPosition),
+        BagPath = tostring(RawData.BagPath),
+        Miscellaneous = tostring(RawData.Miscellaneous)
+    | extend Timestamp = LastWriteTime
+    | project
+        Timestamp,
+        Hostname,
+        LastWriteTime,
+        CreatedOn,
+        ModifiedOn,
+        AccessedOn,
+        FirstInteracted,
+        LastInteracted,
+        UserName,
+        SourceFile,
+        AbsolutePath,
+        Value,
+        ShellType,
+        HasExplored,
+        ChildBags,
+        MFTEntry,
+        MFTSequenceNumber,
+        ExtensionBlockCount,
+        Slot,
+        NodeSlot,
+        MRUPosition,
+        BagPath,
+        Miscellaneous,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsApplicationsSBECmd policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsApplicationsSBECmd()", "IsEnabled": "True", "IsTransactional": true}]'

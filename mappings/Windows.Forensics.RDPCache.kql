@@ -1,0 +1,45 @@
+//ARTIFACT: Windows.Forensics.RDPCache/TargetFiles
+.create table WindowsForensicsRDPCacheTargetFiles (
+    Timestamp: datetime,
+    Hostname: string,
+    Mtime: datetime,
+    Btime: datetime,
+    Ctime: datetime,
+    Atime: datetime,
+    OSPath: string,
+    Size: long,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteWindowsForensicsRDPCacheTargetFiles() {
+    RawVelociraptorEvents
+    | where Artifact == "Windows.Forensics.RDPCache/TargetFiles"
+    | extend
+        Mtime = todatetime(RawData.Mtime),
+        Btime = todatetime(RawData.Btime),
+        Ctime = todatetime(RawData.Ctime),
+        Atime = todatetime(RawData.Atime),
+        OSPath = tostring(RawData.OSPath),
+        Size = tolong(RawData.Size)
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        Mtime,
+        Btime,
+        Ctime,
+        Atime,
+        OSPath,
+        Size,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table WindowsForensicsRDPCacheTargetFiles policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteWindowsForensicsRDPCacheTargetFiles()", "IsEnabled": "True", "IsTransactional": true}]'

@@ -14,6 +14,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - **`.github/.copilot-instructions.md`** - Development guidelines for creating new mappings
 
 ## Current Parsed Artifacts
+- `DetectRaptor.Generic.Detection.BrowserExtensions` (⚠️ not yet validated against real sample data)
 - `DetectRaptor.Windows.Detection.Amcache`
 - `DetectRaptor.Windows.Detection.Applications`
 - `DetectRaptor.Windows.Detection.BinaryRename`
@@ -31,6 +32,26 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Generic.Client.Info/WindowsInfo`
 - `Generic.Client.VQL`
 - `Generic.Detection.HashHunter`
+- `Generic.Forensic.SQLiteHunter/AllFiles`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Bookmarks`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Favicons`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser History_Visits`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Cookies_Cookies`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Extensions`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Network_Predictor`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser History_Downloads`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser History_Keywords`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_Site Engagements`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Notifications_App Banners`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Shortcuts`
+- `Generic.Forensic.SQLiteHunter/Chromium Browser Top Sites`
+- `Generic.Forensic.SQLiteHunter/Firefox Cookies`
+- `Generic.Forensic.SQLiteHunter/Firefox Favicons`
+- `Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_Highlights`
+- `Generic.Forensic.SQLiteHunter/Windows Activities Cache_ActivityPackageId`
+- `Generic.Forensic.SQLiteHunter/Windows WPNDatabase - Notifications_Notifications`
+- `Generic.Forensic.SQLiteHunter/Firefox Places History`
+- `Generic.Forensic.SQLiteHunter/IE or Edge WebCacheV01_All Data`
 - `Generic.Network.InterfaceAddresses`
 - `Generic.System.EfiSignatures/Certificates`
 - `Generic.System.ProcessSiblings`
@@ -87,6 +108,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `System.VFS.DownloadFile`
 - `System.VFS.ListDirectory/Listing`
 - `Windows.Analysis.EvidenceOfDownload`
+- `Windows.Applications.SBECmd`
 - `Windows.Attack.ParentProcess`
 - `Windows.Attack.Prefetch`
 - `Windows.Collectors.File/All Matches Metadata`
@@ -101,12 +123,15 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Windows.Forensics.Amcache/InventoryApplicationFile`
 - `Windows.Forensics.Amcache/InventoryDevicePnp`
 - `Windows.Forensics.Amcache/InventoryDriverBinary`
+- `Windows.Forensics.Bam`
 - `Windows.Forensics.CertUtil`
 - `Windows.Forensics.Clipboard`
 - `Windows.Forensics.FilenameSearch`
+- `Windows.Forensics.JumpLists`
 - `Windows.Forensics.Lnk`
 - `Windows.Forensics.PartitionTable`
 - `Windows.Forensics.Prefetch`
+- `Windows.Forensics.RDPCache/TargetFiles`
 - `Windows.Forensics.RecycleBin`
 - `Windows.Forensics.SAM/CreateTimes`
 - `Windows.Forensics.Shellbags`
@@ -145,7 +170,7 @@ KQL mappings for parsing Velociraptor forensic artifacts into Azure Data Explore
 - `Windows.System.WMIProviders`
 - `Windows.System.WMIQuery`
 - `Windows.Timeline.MFT`
-- `Windows.Timeline.Prefetch.Improved`
+- `Windows.Timeline.Prefetch`
 - `Windows.Triage.Targets/SearchGlobs`
 
 ## Quick Start

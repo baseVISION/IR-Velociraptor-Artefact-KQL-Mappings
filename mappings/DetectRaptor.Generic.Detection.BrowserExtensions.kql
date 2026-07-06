@@ -1,0 +1,73 @@
+//ARTIFACT: DetectRaptor.Generic.Detection.BrowserExtensions
+// NOTE: Built directly from the upstream VQL source (no sample data available yet):
+// https://github.com/mgreen27/DetectRaptor/blob/master/vql/BrowserExtensions.yaml
+// Real artifact name is "DetectRaptor.Generic.Detection.BrowserExtensions" (single/default
+// source - confirmed no named source in the upstream yaml). Matches installed browser
+// extension IDs (Chrome/Edge/Brave/Opera/Vivaldi/Firefox, cross-platform) against the
+// ExtSentry threat intelligence feed to flag known-malicious/suspicious extensions.
+// Field types/names inferred from the VQL's SELECT projections (extension_id, extension_name,
+// category, threat_type, reference_url, description, crx_sha256, chrome_webstore_url, OSPath,
+// Mtime, version, Metadata). SHOULD BE REVALIDATED once real sample data is available - field
+// names/casing/nesting could not be verified against actual captured output.
+.create table DetectRaptorGenericDetectionBrowserExtensions (
+    Timestamp: datetime,
+    Hostname: string,
+    Mtime: datetime,
+    ExtensionId: string,
+    ExtensionName: string,
+    Category: string,
+    ThreatType: string,
+    Description: string,
+    CrxSHA256: string,
+    ReferenceUrl: string,
+    ChromeWebstoreUrl: string,
+    Version: string,
+    OSPath: string,
+    Metadata: dynamic,
+    Artifact: string,
+    Organization: string,
+    ClientId: string,
+    FlowId: string,
+    IngestionTime: datetime
+)
+
+.create-or-alter function RouteDetectRaptorGenericDetectionBrowserExtensions() {
+    RawVelociraptorEvents
+    | where Artifact == "DetectRaptor.Generic.Detection.BrowserExtensions"
+    | extend
+        Mtime = todatetime(RawData.Mtime),
+        ExtensionId = tostring(RawData.extension_id),
+        ExtensionName = tostring(RawData.extension_name),
+        Category = tostring(RawData.category),
+        ThreatType = tostring(RawData.threat_type),
+        Description = tostring(RawData.description),
+        CrxSHA256 = tostring(RawData.crx_sha256),
+        ReferenceUrl = tostring(RawData.reference_url),
+        ChromeWebstoreUrl = tostring(RawData.chrome_webstore_url),
+        Version = tostring(RawData.version),
+        OSPath = tostring(RawData.OSPath),
+        Metadata = RawData.Metadata
+    | extend Timestamp = Mtime
+    | project
+        Timestamp,
+        Hostname,
+        Mtime,
+        ExtensionId,
+        ExtensionName,
+        Category,
+        ThreatType,
+        Description,
+        CrxSHA256,
+        ReferenceUrl,
+        ChromeWebstoreUrl,
+        Version,
+        OSPath,
+        Metadata,
+        Artifact,
+        Organization,
+        ClientId,
+        FlowId,
+        IngestionTime
+}
+
+.alter table DetectRaptorGenericDetectionBrowserExtensions policy update @'[{"Source": "RawVelociraptorEvents", "Query": "RouteDetectRaptorGenericDetectionBrowserExtensions()", "IsEnabled": "True", "IsTransactional": true}]'
