@@ -244,6 +244,17 @@ func field(rec []string, i int) string {
 	return strings.TrimSpace(rec[i])
 }
 
+// fieldRaw is like field but preserves leading/trailing whitespace, since a
+// rule's match value can rely on it (e.g. "\OneDrive " to require a space
+// after the prefix). Structural fields (RuleName, Scope, Column, Mode) should
+// still use field, since those are never meant to carry meaningful whitespace.
+func fieldRaw(rec []string, i int) string {
+	if i < 0 || i >= len(rec) {
+		return ""
+	}
+	return rec[i]
+}
+
 func parseRow(rec []string, idx colIndex, lineNum int) (rule, error) {
 	name := field(rec, idx.Name)
 	if name == "" {
@@ -263,7 +274,7 @@ func parseRow(rec []string, idx colIndex, lineNum int) (rule, error) {
 	for _, condCols := range idx.Conds {
 		col := field(rec, condCols[0])
 		op := field(rec, condCols[1])
-		val := field(rec, condCols[2])
+		val := fieldRaw(rec, condCols[2])
 		if col == "" {
 			continue
 		}
@@ -420,9 +431,14 @@ func buildExpression(r rule) string {
 func conditionExpr(col, op, value string) string {
 	lit := kqlString(value)
 
-	// != is a native KQL operator — don't decompose it.
+	// == / != are native KQL operators but case-sensitive; use the
+	// case-insensitive equality operators since Windows paths/values
+	// are case-insensitive in practice and real-world casing varies.
+	if op == "==" {
+		return fmt.Sprintf("%s =~ %s", col, lit)
+	}
 	if op == "!=" {
-		return fmt.Sprintf("%s != %s", col, lit)
+		return fmt.Sprintf("%s !~ %s", col, lit)
 	}
 
 	// Other negated operators: !has → not(... has ...), etc.

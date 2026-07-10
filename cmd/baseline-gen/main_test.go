@@ -53,8 +53,8 @@ func TestConditionExpr(t *testing.T) {
 		{"Path", "!has", "cmd.exe", `not(Path has "cmd.exe")`},
 		{"Path", "contains", `\Windows\`, `Path contains @"\Windows\"`},
 		{"Path", "!contains", "suspicious", `not(Path contains "suspicious")`},
-		{"User", "==", "SYSTEM", `User == "SYSTEM"`},
-		{"User", "!=", "SYSTEM", `User != "SYSTEM"`},
+		{"User", "==", "SYSTEM", `User =~ "SYSTEM"`},
+		{"User", "!=", "SYSTEM", `User !~ "SYSTEM"`},
 		{"Path", "startswith", `C:\Users\`, `Path startswith @"C:\Users\"`},
 		{"Path", "!startswith", `C:\`, `not(Path startswith @"C:\")`},
 		{"Path", "endswith", ".exe", `Path endswith ".exe"`},
@@ -111,7 +111,7 @@ func TestBuildExpression_CategoryAndType(t *testing.T) {
 		},
 	}
 	got := buildExpression(r)
-	want := `EventCategory == "Execution" and EventType == "ProcessExec" and Path has "svc.exe" and User == "SYSTEM"`
+	want := `EventCategory == "Execution" and EventType == "ProcessExec" and Path has "svc.exe" and User =~ "SYSTEM"`
 	if got != want {
 		t.Errorf("got\n  %s\nwant\n  %s", got, want)
 	}
@@ -285,8 +285,8 @@ func TestGenerate_AllOperators(t *testing.T) {
 		{"!has", "cmd.exe", `not(Path has "cmd.exe")`},
 		{"contains", `\Windows\`, `Path contains @"\Windows\"`},
 		{"!contains", "temp", `not(Path contains "temp")`},
-		{"==", "SYSTEM", `Path == "SYSTEM"`},
-		{"!=", "SYSTEM", `Path != "SYSTEM"`},
+		{"==", "SYSTEM", `Path =~ "SYSTEM"`},
+		{"!=", "SYSTEM", `Path !~ "SYSTEM"`},
 		{"startswith", `C:\Users\`, `Path startswith @"C:\Users\"`},
 		{"!startswith", `C:\`, `not(Path startswith @"C:\")`},
 		{"endswith", ".exe", `Path endswith ".exe"`},
@@ -403,6 +403,20 @@ func TestParseRow_PersistenceColumnsValid(t *testing.T) {
 	}
 }
 
+func TestParseRow_ValuePreservesWhitespace(t *testing.T) {
+	// A condition value's leading/trailing whitespace is meaningful (e.g.
+	// requiring a space after a prefix) and must not be trimmed away.
+	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: 2,
+		Conds: [][3]int{{3, 4, 5}}}
+	r, err := parseRow([]string{"r1", "PersistenceOverview", "Logon", "Name", "startswith", "\\OneDrive "}, idx, 2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Conditions[0].Value != "\\OneDrive " {
+		t.Errorf("Value = %q, want %q (trailing space preserved)", r.Conditions[0].Value, "\\OneDrive ")
+	}
+}
+
 func TestParseRow_CrossScopeColumnRejected(t *testing.T) {
 	// Path is a Supertimeline column; should be rejected for PersistenceOverview.
 	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: -1,
@@ -426,7 +440,7 @@ func TestParseRow_UnknownScopeRejected(t *testing.T) {
 }
 
 func TestParseRow_EmptyValueEqualityAllowed(t *testing.T) {
-	// Suspicious == "" is a valid rule (empty string comparison).
+	// Suspicious =~ "" is a valid rule (empty string comparison).
 	idx := colIndex{Name: 0, Scope: 1, Category: -1, Type: -1, PersistenceTypeCol: -1,
 		Conds: [][3]int{{2, 3, 4}}}
 	r, err := parseRow([]string{"r1", "PersistenceOverview", "Suspicious", "==", ""}, idx, 2)
@@ -448,7 +462,7 @@ func TestGenerate_EmptyValueEquality(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(buf.String(), `Suspicious == ""`) {
+	if !strings.Contains(buf.String(), `Suspicious =~ ""`) {
 		t.Errorf("expected Suspicious == \"\" in output:\n%s", buf.String())
 	}
 }
@@ -465,7 +479,7 @@ func TestBuildExpression_PersistenceTypeGuard(t *testing.T) {
 		},
 	}
 	got := buildExpression(r)
-	want := `PersistenceType == "Boot Execute" and Name == "autocheck autochk *"`
+	want := `PersistenceType == "Boot Execute" and Name =~ "autocheck autochk *"`
 	if got != want {
 		t.Errorf("got\n  %s\nwant\n  %s", got, want)
 	}
@@ -529,10 +543,10 @@ func TestEndToEnd_PersistenceCSV(t *testing.T) {
 	out := buf.String()
 	checks := []string{
 		`PersistenceType == "Boot Execute"`,
-		`Name == "autocheck autochk *"`,
+		`Name =~ "autocheck autochk *"`,
 		`Target contains @"\autochk.exe"`,
 		`Signer startswith "(Verified) Microsoft"`,
-		`Suspicious == ""`,
+		`Suspicious =~ ""`,
 	}
 	for _, c := range checks {
 		if !strings.Contains(out, c) {
