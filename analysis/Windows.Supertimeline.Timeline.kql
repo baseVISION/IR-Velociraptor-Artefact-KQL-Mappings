@@ -2,25 +2,25 @@
 // Windows Supertimeline  -  unions all Windows artifact tables into a single
 // schema for cross-artifact chronological analysis during incident response.
 //
-// Phase 1: Core forensic timeline (30 union legs) + 10 DetectRaptor detection legs
+// Phase 1: Core forensic timeline (33 union legs) + 11 DetectRaptor detection legs
 //
 // Categories & EventTypes:
 //   Execution        -  PrefetchTimeline, PrefetchHit, ProcessCreation, AmcacheInventory,
-//                     AmcacheDetection, AppCompatExecution, UserAssist, SRUMExecution,
+//                     AmcacheDetection, AppCompatExecution, UserAssist, Bam, SRUMExecution,
 //                     ForensicTimeline, CertUtilDownload, SRUMAppResource
 //   FileSystem       -  MFTTimeline, USNChange, RecycleBinDelete, Download
 //   EventLog         -  HayabusaAlert, HayabusaResult,
 //                     Sysmon, SecurityLog, SystemLog, PowerShell, AppLocker,
 //                     TaskScheduler, TerminalServices, WMI, BitsClient, DNSClient,
 //                     EvtxEvent (all other channels/providers)
-//   Detection        -  SuspiciousParent, Malfind, DetectRaptorApplications, DetectRaptorEvtx,
+//   Detection        -  SuspiciousParent, Malfind, Timestomp, DetectRaptorApplications, DetectRaptorEvtx,
 //                     DetectRaptorBinaryRename, DetectRaptorHijackLibs, DetectRaptorAmcache,
 //                     DetectRaptorLolRMM, DetectRaptorMFT, DetectRaptorPSReadline,
-//                     DetectRaptorWebhistory, DetectRaptorYaraProcess
+//                     DetectRaptorWebhistory, DetectRaptorYaraProcess, DetectRaptorLolDrivers
 //   Persistence      -  ScheduledTask
-//   Authentication   -  LateralMovement, SAMAccountCreated, SAMAccountActivity
+//   Authentication   -  LateralMovement, SAMAccountCreated, SAMAccountActivity, LogonSession
 //   Network          -  SRUMNetworkUsage, SRUMNetworkConnection
-//   UserActivity     -  LnkFile, Shellbag, Clipboard
+//   UserActivity     -  LnkFile, Shellbag, Clipboard, JumpList, NTUser
 //
 // Queryable reference: WindowsSupertimelineSchema() returns all category/type/source mappings
 //
@@ -92,7 +92,7 @@ WindowsSupertimeline(
     let _timelinePrefetch =
         WindowsTimelinePrefetchImproved
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "PrefetchTimeline" in (_fTypeList)
@@ -123,7 +123,7 @@ WindowsSupertimeline(
     let _forensicsPrefetch =
         WindowsForensicsPrefetch
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "PrefetchHit" in (_fTypeList)
@@ -156,7 +156,7 @@ WindowsSupertimeline(
         WindowsSystemPslist
         | where isnotempty(CreateTime)
         | where CreateTime between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "ProcessCreation" in (_fTypeList)
@@ -188,7 +188,7 @@ WindowsSupertimeline(
     let _amcacheInventory =
         WindowsForensicsAmcacheInventoryApplicationFile
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "AmcacheInventory" in (_fTypeList)
@@ -221,7 +221,7 @@ WindowsSupertimeline(
     let _amcacheDetection =
         WindowsDetectionAmcache
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "AmcacheDetection" in (_fTypeList)
@@ -252,7 +252,7 @@ WindowsSupertimeline(
     let _appCompatPCA =
         WindowsSystemAppCompatPCA
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "AppCompatExecution" in (_fTypeList)
@@ -279,7 +279,7 @@ WindowsSupertimeline(
     let _userAssist =
         WindowsRegistryUserAssist
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "UserAssist" in (_fTypeList)
@@ -303,11 +303,38 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
+    // [Execution] WindowsForensicsBam  -  Background Activity Moderator last-execution times
+    let _bam =
+        WindowsForensicsBam
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Bam" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Execution",
+            EventType      = "Bam",
+            Description    = strcat("[BAM] Execution: ", coalesce(Binary, ""), " | User: ", coalesce(UserName, "")),
+            User           = coalesce(UserName, ""),
+            Path           = coalesce(Binary, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "UserName", UserName,
+                                "SID", SID,
+                                "Binary", Binary
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
     // [Execution] WindowsForensicsSRUMExecutionStats  -  SRUM execution statistics
     let _srumExecution =
         WindowsForensicsSRUMExecutionStats
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SRUMExecution" in (_fTypeList)
@@ -337,7 +364,7 @@ WindowsSupertimeline(
     let _forensicsTimeline =
         WindowsForensicsTimeline
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "ForensicTimeline" in (_fTypeList)
@@ -364,7 +391,7 @@ WindowsSupertimeline(
     let _certUtil =
         WindowsForensicsCertUtil
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "CertUtilDownload" in (_fTypeList)
@@ -395,7 +422,7 @@ WindowsSupertimeline(
     let _srumAppResource =
         WindowsForensicsSRUMApplicationResourceUsage
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Execution" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SRUMAppResource" in (_fTypeList)
@@ -432,7 +459,7 @@ WindowsSupertimeline(
     let _timelineMft =
         WindowsTimelineMFT
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "MFTTimeline" in (_fTypeList)
@@ -480,7 +507,7 @@ WindowsSupertimeline(
     let _usn =
         WindowsForensicsUsn
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "USNChange" in (_fTypeList)
@@ -514,7 +541,7 @@ WindowsSupertimeline(
     let _recycleBin =
         WindowsForensicsRecycleBin
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "RecycleBinDelete" in (_fTypeList)
@@ -543,7 +570,7 @@ WindowsSupertimeline(
     let _evidenceOfDownload =
         WindowsAnalysisEvidenceOfDownload
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "FileSystem" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "Download" in (_fTypeList)
@@ -574,7 +601,7 @@ WindowsSupertimeline(
     let _hayabusaRules =
         WindowsHayabusaRules
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "HayabusaAlert" in (_fTypeList)
@@ -608,7 +635,7 @@ WindowsSupertimeline(
     let _evtx =
         WindowsEventLogsEvtx
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
         | extend _evtxType = case(
@@ -938,7 +965,7 @@ WindowsSupertimeline(
     let _hayabusaResults =
         WindowsEventLogsHayabusaResults
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "EventLog" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "HayabusaResult" in (_fTypeList)
@@ -971,7 +998,7 @@ WindowsSupertimeline(
     let _attackParentProcess =
         WindowsAttackParentProcess
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SuspiciousParent" in (_fTypeList)
@@ -1004,7 +1031,7 @@ WindowsSupertimeline(
     let _malfind =
         WindowsDetectionMalfind
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "Malfind" in (_fTypeList)
@@ -1041,6 +1068,37 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
+    // [Detection] WindowsNTFSTimestomp  -  MFT SI/FN timestamp mismatch (anti-forensics)
+    let _timestomp =
+        WindowsNTFSTimestomp
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "Timestomp" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "Timestomp",
+            Description    = strcat("[Timestomp] SI<FN mismatch: ", coalesce(OSPath, ""), " | SI: ", tostring(SI_Created0x10), " | FN: ", tostring(FN_Created0x30)),
+            User           = "",
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "SI_Created0x10", SI_Created0x10,
+                                "FN_Created0x30", FN_Created0x30,
+                                "SIltFN", SIltFN,
+                                "USecZeros", USecZeros,
+                                "SuspiciousCompileTime", SuspiciousCompileTime,
+                                "InUse", InUse,
+                                "NtfsMetadata", NtfsMetadata
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
     // ========================================================================
     // Persistence
     // ========================================================================
@@ -1048,7 +1106,7 @@ WindowsSupertimeline(
     let _scheduledTasks =
         WindowsRegistryScheduledTasks
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Persistence" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "ScheduledTask" in (_fTypeList)
@@ -1090,7 +1148,7 @@ WindowsSupertimeline(
     let _lateralMovement =
         WindowsPacksLateralMovementAlternateLogon
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "LateralMovement" in (_fTypeList)
@@ -1123,7 +1181,7 @@ WindowsSupertimeline(
     let _samCreate =
         WindowsForensicsSAMCreateTimes
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SAMAccountCreated" in (_fTypeList)
@@ -1150,7 +1208,7 @@ WindowsSupertimeline(
         WindowsForensicsSAMParsed
         | where isnotempty(Timestamp)
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SAMAccountActivity" in (_fTypeList)
@@ -1181,6 +1239,49 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
+    // [Authentication] WindowsEventLogsLogonSessions  -  Correlated logon/logoff sessions
+    // TargetUserName/LogonType are dynamic arrays (a session can correlate multiple values);
+    // Start can be null for sessions reconstructed without a logon event.
+    let _logonSessions =
+        WindowsEventLogsLogonSessions
+        | where Start between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Authentication" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "LogonSession" in (_fTypeList)
+        | extend
+            _userStr     = coalesce(tostring(TargetUserName[0]), tostring(TargetUserName)),
+            _userList    = coalesce(strcat_array(TargetUserName, ", "), tostring(TargetUserName), ""),
+            _logonType   = coalesce(tostring(LogonType[0]), tostring(LogonType))
+        | project
+            EventTime      = Start,
+            Hostname,
+            EventCategory  = "Authentication",
+            EventType      = "LogonSession",
+            Description    = strcat("[Logon] Session: ", _userList, " | Type: ", _logonType, " | Source: ", coalesce(SourceHost, ""), " | Duration: ", tostring(Duration)),
+            User           = _userStr,
+            Path           = "",
+            Hash           = "",
+            Details        = bag_pack(
+                                "End", End,
+                                "Duration", Duration,
+                                "SourceHost", SourceHost,
+                                "TargetUserName", TargetUserName,
+                                "TargetDomainName", TargetDomainName,
+                                "TargetLogonId", TargetLogonId,
+                                "LogonType", LogonType,
+                                "SubjectUserName", SubjectUserName,
+                                "SubjectDomainName", SubjectDomainName,
+                                "SubjectUserSid", SubjectUserSid,
+                                "LogonProcessName", LogonProcessName,
+                                "ProcessName", ProcessName,
+                                "IpAddress", IpAddress
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
     // ========================================================================
     // Network
     // ========================================================================
@@ -1188,7 +1289,7 @@ WindowsSupertimeline(
     let _srumNetworkUsage =
         WindowsForensicsSRUMNetworkUsage
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Network" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SRUMNetworkUsage" in (_fTypeList)
@@ -1220,7 +1321,7 @@ WindowsSupertimeline(
     let _srumNetworkConnections =
         WindowsForensicsSRUMNetworkConnections
         | where StartTime between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Network" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "SRUMNetworkConnection" in (_fTypeList)
@@ -1254,7 +1355,7 @@ WindowsSupertimeline(
     let _lnk =
         WindowsForensicsLnk
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "LnkFile" in (_fTypeList)
@@ -1290,7 +1391,7 @@ WindowsSupertimeline(
     let _shellbags =
         WindowsForensicsShellbags
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "Shellbag" in (_fTypeList)
@@ -1321,7 +1422,7 @@ WindowsSupertimeline(
     let _clipboard =
         WindowsForensicsClipboard
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "Clipboard" in (_fTypeList)
@@ -1348,7 +1449,78 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
+    // [UserActivity] WindowsForensicsJumpLists  -  Jump list application usage
+    let _jumpLists =
+        WindowsForensicsJumpLists
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "JumpList" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "UserActivity",
+            EventType      = "JumpList",
+            Description    = strcat("[JumpList] ", coalesce(Application, ""), " | Target: ", coalesce(LinkTarget, "")),
+            User           = "",
+            Path           = coalesce(LinkTarget, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "CreationTime", CreationTime,
+                                "AccessTime", AccessTime,
+                                "WriteTime", WriteTime,
+                                "TrackerCreationTime", TrackerCreationTime,
+                                "Application", Application,
+                                "ApplicationId", ApplicationId,
+                                "Arguments", Arguments,
+                                "WorkingDir", WorkingDir,
+                                "VolumeLabel", VolumeLabel,
+                                "MachineID", MachineID,
+                                "FileSize", FileSize
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
+    // [UserActivity] WindowsRegistryNTUser  -  NTUSER.DAT registry activity (MRU, etc.)
+    let _ntUser =
+        WindowsRegistryNTUser
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "UserActivity" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "NTUser" in (_fTypeList)
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "UserActivity",
+            EventType      = "NTUser",
+            Description    = strcat("[NTUser] ", coalesce(Description, ""), " | ", coalesce(OSPath, ""), " = ", coalesce(DataValue, "")),
+            User           = coalesce(Username, ""),
+            Path           = coalesce(OSPath, ""),
+            Hash           = "",
+            Details        = bag_pack(
+                                "UUID", UUID,
+                                "Directory", Directory,
+                                "Uid", Uid,
+                                "Gid", Gid,
+                                "DataType", DataType,
+                                "DataLen", DataLen,
+                                "DataValue", DataValue,
+                                "Data", Data
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
     // EXCLUDED: WindowsSystemPowershellPSReadline  -  Timestamp is file-level Mtime, not per-command (all commands share one timestamp)
+    // EXCLUDED: WindowsSysinternalsAutoruns  -  Time field is an unparsed string in the source mapping; needs todatetime() fix upstream before it can anchor a timeline row
+    // EXCLUDED: WindowsSystemTaskSchedulerAnalysis  -  Overlaps WindowsRegistryScheduledTasks (same tasks, registry hive vs task XML source); would double-count on the timeline
+    // EXCLUDED: WindowsDetectionMutantsHandles / WindowsDetectionMutantsObjectTree  -  Point-in-time process/handle snapshot, no per-record forensic timestamp
+    // EXCLUDED: WindowsPersistencePermanentWMIEvents  -  No per-record forensic timestamp field
     // ========================================================================
     // DetectRaptor Detections
     // ========================================================================
@@ -1356,7 +1528,7 @@ WindowsSupertimeline(
     let _drApplications =
         DetectRaptorWindowsDetectionApplications
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorApplications" in (_fTypeList)
@@ -1392,7 +1564,7 @@ WindowsSupertimeline(
     let _drEvtx =
         DetectRaptorWindowsDetectionEvtx
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorEvtx" in (_fTypeList)
@@ -1425,7 +1597,7 @@ WindowsSupertimeline(
     let _drBinaryRename =
         DetectRaptorWindowsDetectionBinaryRename
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorBinaryRename" in (_fTypeList)
@@ -1458,7 +1630,7 @@ WindowsSupertimeline(
     let _drHijackLibs =
         DetectRaptorWindowsDetectionHijackLibsMFT
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorHijackLibs" in (_fTypeList)
@@ -1492,7 +1664,7 @@ WindowsSupertimeline(
     let _drAmcache =
         DetectRaptorWindowsDetectionAmcache
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorAmcache" in (_fTypeList)
@@ -1524,7 +1696,7 @@ WindowsSupertimeline(
     let _drLolRMM =
         DetectRaptorWindowsDetectionLolRMM
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorLolRMM" in (_fTypeList)
@@ -1558,7 +1730,7 @@ WindowsSupertimeline(
     let _drMFT =
         DetectRaptorWindowsDetectionMFT
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorMFT" in (_fTypeList)
@@ -1594,7 +1766,7 @@ WindowsSupertimeline(
     let _drPSReadline =
         DetectRaptorWindowsDetectionPowershellPSReadline
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorPSReadline" in (_fTypeList)
@@ -1625,7 +1797,7 @@ WindowsSupertimeline(
     let _drWebhistory =
         DetectRaptorWindowsDetectionWebhistory
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorWebhistory" in (_fTypeList)
@@ -1659,7 +1831,7 @@ WindowsSupertimeline(
     let _drYaraProcess =
         DetectRaptorWindowsDetectionYaraProcessWin
         | where Timestamp between (_start .. _end)
-        | where isempty(_host) or Hostname has _host
+        | where isempty(_host) or Hostname =~ _host
         | where isempty(_org) or Organization == _org
         | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
         | where array_length(_fTypeList)     == 0 or "DetectRaptorYaraProcess" in (_fTypeList)
@@ -1690,6 +1862,43 @@ WindowsSupertimeline(
             ClientId,
             FlowId,
             IngestionTime;
+    // [Detection] DetectRaptorWindowsDetectionLolDrivers  -  Known-malicious/vulnerable driver registrations
+    let _drLolDrivers =
+        DetectRaptorWindowsDetectionLolDrivers
+        | where Timestamp between (_start .. _end)
+        | where isempty(_host) or Hostname =~ _host
+        | where isempty(_org) or Organization == _org
+        | where array_length(_fCategoryList) == 0 or "Detection" in (_fCategoryList)
+        | where array_length(_fTypeList)     == 0 or "DetectRaptorLolDrivers" in (_fTypeList)
+        | extend _rawDescription = Description
+        | project
+            EventTime      = Timestamp,
+            Hostname,
+            EventCategory  = "Detection",
+            EventType      = "DetectRaptorLolDrivers",
+            Description    = strcat("[DetectRaptor] LolDrivers | ", coalesce(Name, ""), " | ", coalesce(Category, ""), " | ", coalesce(Usecase, "")),
+            User           = "",
+            Path           = coalesce(HivePath, ""),
+            Hash           = coalesce(SHA1, ""),
+            Details        = bag_pack(
+                                "Name", Name,
+                                "SHA1", SHA1,
+                                "Category", Category,
+                                "Usecase", Usecase,
+                                "Product", Product,
+                                "MachineType", MachineType,
+                                "FileVersion", FileVersion,
+                                "ProductVersion", ProductVersion,
+                                "EntryKey", EntryKey,
+                                "EntryType", EntryType,
+                                "LolDriversUrl", LolDriversUrl,
+                                "Description", _rawDescription
+                            ),
+            SourceArtifact = Artifact,
+            Organization,
+            ClientId,
+            FlowId,
+            IngestionTime;
     // ========================================================================
     // Union all legs + post-filter
     // ========================================================================
@@ -1702,6 +1911,7 @@ WindowsSupertimeline(
         _amcacheDetection,
         _appCompatPCA,
         _userAssist,
+        _bam,
         _srumExecution,
         _forensicsTimeline,
         _certUtil,
@@ -1718,6 +1928,7 @@ WindowsSupertimeline(
         // Detection
         _attackParentProcess,
         _malfind,
+        _timestomp,
         // DetectRaptor Detections
         _drApplications,
         _drEvtx,
@@ -1729,19 +1940,23 @@ WindowsSupertimeline(
         _drPSReadline,
         _drWebhistory,
         _drYaraProcess,
+        _drLolDrivers,
         // Persistence
         _scheduledTasks,
         // Authentication / Lateral Movement
         _lateralMovement,
         _samCreate,
         _samParsed,
+        _logonSessions,
         // Network
         _srumNetworkUsage,
         _srumNetworkConnections,
         // User Activity
         _lnk,
         _shellbags,
-        _clipboard
+        _clipboard,
+        _jumpLists,
+        _ntUser
     | extend Path = replace_string(Path, " -> ", "\\")
     | where array_length(_fCategoryList) == 0 or EventCategory has_any (_fCategoryList)
     | where array_length(_fTypeList)     == 0 or EventType     has_any (_fTypeList)
@@ -1771,6 +1986,7 @@ WindowsSupertimelineSchema() {
         "Execution",      "ForensicTimeline",    "WindowsForensicsTimeline",                       "General forensic timeline events",
         "Execution",      "CertUtilDownload",    "WindowsForensicsCertUtil",                       "CertUtil download cache (LOLBin)",
         "Execution",      "SRUMAppResource",     "WindowsForensicsSRUMApplicationResourceUsage",   "SRUM application resource usage",
+        "Execution",      "Bam",                 "WindowsForensicsBam",                            "Background Activity Moderator last-execution times",
         "FileSystem",     "MFTTimeline",         "WindowsTimelineMFT",                             "MFT timeline (MACB decomposed, $MFT/$LogFile/$UsnJrnl)",
         "FileSystem",     "USNChange",           "WindowsForensicsUsn",                            "USN journal change records",
         "FileSystem",     "RecycleBinDelete",    "WindowsForensicsRecycleBin",                     "Recycle Bin deleted files",
@@ -1802,14 +2018,19 @@ WindowsSupertimelineSchema() {
         "Detection",      "DetectRaptorPSReadline", "DetectRaptorWindowsDetectionPowershellPSReadline", "DetectRaptor suspicious PowerShell commands",
         "Detection",      "DetectRaptorWebhistory", "DetectRaptorWindowsDetectionWebhistory",      "DetectRaptor suspicious web browsing detections",
         "Detection",      "DetectRaptorYaraProcess", "DetectRaptorWindowsDetectionYaraProcessWin", "DetectRaptor YARA process memory scan detections",
+        "Detection",      "Timestomp",           "WindowsNTFSTimestomp",                           "MFT SI/FN timestamp mismatch (anti-forensics)",
+        "Detection",      "DetectRaptorLolDrivers", "DetectRaptorWindowsDetectionLolDrivers",      "DetectRaptor known-malicious/vulnerable driver registrations",
         "Persistence",    "ScheduledTask",       "WindowsRegistryScheduledTasks",                  "Scheduled tasks (registry Mtime)",
         "Authentication", "LateralMovement",     "WindowsPacksLateralMovementAlternateLogon",      "Lateral movement alternate logon events",
         "Authentication", "SAMAccountCreated",   "WindowsForensicsSAMCreateTimes",                 "SAM account creation times",
         "Authentication", "SAMAccountActivity",  "WindowsForensicsSAMParsed",                      "SAM account last login activity",
+        "Authentication", "LogonSession",        "WindowsEventLogsLogonSessions",                  "Correlated logon/logoff sessions",
         "Network",        "SRUMNetworkUsage",    "WindowsForensicsSRUMNetworkUsage",               "SRUM network bytes per application",
         "Network",        "SRUMNetworkConnection","WindowsForensicsSRUMNetworkConnections",        "SRUM network connection records",
         "UserActivity",   "LnkFile",             "WindowsForensicsLnk",                            "LNK shortcut file timestamps",
         "UserActivity",   "Shellbag",            "WindowsForensicsShellbags",                      "Explorer folder navigation history",
-        "UserActivity",   "Clipboard",           "WindowsForensicsClipboard",                      "Clipboard history entries"
+        "UserActivity",   "Clipboard",           "WindowsForensicsClipboard",                      "Clipboard history entries",
+        "UserActivity",   "JumpList",            "WindowsForensicsJumpLists",                      "Jump list application usage",
+        "UserActivity",   "NTUser",              "WindowsRegistryNTUser",                          "NTUSER.DAT registry activity (MRU, etc.)"
     ]
 }

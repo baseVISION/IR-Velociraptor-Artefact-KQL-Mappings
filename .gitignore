@@ -8,3 +8,4 @@ analysis/generated/
 
 baseline_rules.csv
 .tokensave
+.claude
